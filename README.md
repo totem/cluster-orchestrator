@@ -27,8 +27,9 @@ The project has following dependencies
 - python 2.7.x or 3.4.x 
 - Virtualenv (Recommended)
 - Python pip
-- etcd 0.4.6 (Required if using docker based deployment)
+- etcd 0.4.6
 - Elasticsearch 1.3+
+- docker 1.3+ (Required if using docker based deployment)
 
 ### Dependencies
 
@@ -66,7 +67,7 @@ python local-server.py
 ```
 
 Once server is up you can access the root api using:  
-[http://localhost:9300](http://localhost:9300)
+[http://localhost:9400](http://localhost:9400)
 
 ### Using Docker
 
