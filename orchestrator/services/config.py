@@ -1,6 +1,7 @@
 from conf.appconfig import CONFIG_PROVIDERS, CONFIG_PROVIDER_LIST
 from orchestrator.cluster_config.effective import MergedConfigProvider
 from orchestrator.cluster_config.etcd import EtcdConfigProvider
+from orchestrator.cluster_config.s3 import S3ConfigProvider
 from orchestrator.services.errors import ConfigProviderNotFound
 
 __author__ = 'sukrit'
@@ -51,6 +52,19 @@ def _get_etcd_provider(ttl=None):
     )
 
 
+def _get_s3_provider():
+    """
+    Gets S3 Config Provider
+
+    :return: Instance of S3ConfigProvider
+    :rtype: S3ConfigProvider
+    """
+    return S3ConfigProvider(
+        bucket=CONFIG_PROVIDERS['s3']['bucket'],
+        config_base=CONFIG_PROVIDERS['s3']['base']+'/config'
+    )
+
+
 def get_provider(provider_type):
     """
     Factory method to create config provider instance.
@@ -69,6 +83,8 @@ def get_provider(provider_type):
         return _get_etcd_provider()
     if provider_type == 'effective':
         return _get_effective_config_provider()
+    if provider_type == 's3':
+        return _get_s3_provider()
 
 
 def load_config(*paths, **kwargs):

@@ -40,7 +40,7 @@ API_DEFAULT_PAGE_SIZE = 10
 CONFIG_PROVIDERS = {
     's3': {
         'bucket':  os.getenv('CONFIG_S3_BUCKET', 'not_set'),
-        'bucket_base': os.getenv('CONFIG_S3_BUCKET_BASE', 'totem/config'),
+        'base': os.getenv('CONFIG_S3_BUCKET_BASE', 'totem/config'),
     },
     'etcd': {
         'base': os.getenv('ETCD_TOTEM_BASE', '/totem'),

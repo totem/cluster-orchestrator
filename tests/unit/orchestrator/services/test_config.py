@@ -9,6 +9,7 @@ from mock import patch
 from nose.tools import eq_, raises
 from orchestrator.cluster_config.effective import MergedConfigProvider
 from orchestrator.cluster_config.etcd import EtcdConfigProvider
+from orchestrator.cluster_config.s3 import S3ConfigProvider
 import orchestrator.services.config as service
 from orchestrator.services.errors import ConfigProviderNotFound
 
@@ -71,6 +72,29 @@ def test_get_etcd_provider(mock_provider_list):
     eq_(provider.etcd_cl.port, 10000)
     eq_(provider.config_base, '/mock/config')
     eq_(provider.ttl, None)
+
+
+@patch.dict('orchestrator.services.config.CONFIG_PROVIDERS', {
+    's3': {
+        'bucket': 'mockbucket',
+        'base': '/mock'
+    }
+})
+@patch('orchestrator.services.config.CONFIG_PROVIDER_LIST')
+def test_get_s3_provider(mock_provider_list):
+    """
+    Should return s3 provider
+    """
+    # Given: Existing config provider list"
+    mock_provider_list.__contains__.return_value = True
+
+    # When: I fetch provider that does not exists
+    provider = service.get_provider('s3')
+
+    # Then: Etcd Config Provider is returned
+    eq_(isinstance(provider, S3ConfigProvider), True)
+    eq_(provider.bucket, 'mockbucket')
+    eq_(provider.config_base, '/mock/config')
 
 
 @patch.dict('orchestrator.services.config.CONFIG_PROVIDERS', {
