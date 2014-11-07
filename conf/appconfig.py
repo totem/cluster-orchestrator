@@ -20,7 +20,7 @@ SEARCH_SETTINGS = {
     BOOLEAN_TRUE_VALUES,
     'host': os.getenv('ELASTICSEARCH_HOST', '172.17.42.1'),
     'port': os.getenv('ELASTICSEARCH_PORT', '9200'),
-    'default-index': 'cluster-deployer-%s' % os.getenv('CLUSTER_NAME', 'local')
+    'default-index': 'orchestrator-%s' % os.getenv('CLUSTER_NAME', 'local')
 }
 
 CORS_SETTINGS = {
@@ -31,11 +31,16 @@ CORS_SETTINGS = {
 
 MIME_JSON = 'application/json'
 MIME_ROOT_V1 = 'application/vnd.orch.root.v1+json'
+MIME_HEALTH_V1 = 'application/vnd.totem.health.v1+json'
 
 SCHEMA_ROOT_V1 = 'root-v1'
+SCHEMA_HEALTH_V1 = 'health-v1'
 
 API_MAX_PAGE_SIZE = 1000
 API_DEFAULT_PAGE_SIZE = 10
+
+HEALTH_OK = 'ok'
+HEALTH_FAILED = 'failed'
 
 CONFIG_PROVIDERS = {
     's3': {

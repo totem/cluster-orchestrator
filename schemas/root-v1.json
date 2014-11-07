@@ -12,7 +12,13 @@
     {
       "rel": "self",
       "href": "${base_url}",
-      "mediaType": "application/vnd.deployer.root-v1+json",
+      "mediaType": "application/vnd.orch.root-v1+json",
+      "method": "GET"
+    },
+    {
+      "rel": "self",
+      "href": "/health",
+      "mediaType": "application/vnd.totem.health-v1+json",
       "method": "GET"
     }
   ]
