@@ -71,7 +71,7 @@ def get_provider(provider_type):
         return _get_effective_config_provider()
 
 
-def load_config(*paths, provider_type='effective'):
+def load_config(*paths, **kwargs):
     """
     Loads config for given path and provider type.
 
@@ -82,11 +82,12 @@ def load_config(*paths, provider_type='effective'):
     :return: Parsed configuration
     :rtype: dict
     """
+    provider_type = kwargs.get('provider_type', 'effective')
     provider = get_provider(provider_type)
     return provider.load(*paths)
 
 
-def write_config(config, *paths, provider_type='etcd'):
+def write_config(config, *paths, **kwargs):
     """
     Writes config for given path
 
@@ -96,6 +97,7 @@ def write_config(config, *paths, provider_type='etcd'):
     :type provider_type: str
     :return: None
     """
+    provider_type = kwargs.get('provider_type', 'effective')
     provider = get_provider(provider_type)
     if provider:
         provider.write(config)
