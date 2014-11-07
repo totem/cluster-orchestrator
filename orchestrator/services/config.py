@@ -1,19 +1,12 @@
-from repoze.lru import lru_cache
 from conf.appconfig import CONFIG_PROVIDERS, CONFIG_PROVIDER_LIST
 from orchestrator.cluster_config.effective import MergedConfigProvider
 from orchestrator.cluster_config.etcd import EtcdConfigProvider
+from orchestrator.services.errors import ConfigProviderNotFound
 
 __author__ = 'sukrit'
 
 
-@lru_cache(1)
 def get_providers():
-    """
-    Gets the list of all available config providers
-
-    :return: Provider list
-    :rtype: list
-    """
     for provider_type in CONFIG_PROVIDER_LIST:
         provider_type = provider_type.strip()
         if provider_type in CONFIG_PROVIDERS:
@@ -34,8 +27,8 @@ def _get_effective_config_provider():
             providers += get_provider(provider_type)
 
     if CONFIG_PROVIDERS['effective']['cache']['enabled']:
-        cache_provider = get_provider(
-            'etcd', ttl=CONFIG_PROVIDERS['effective']['cache']['ttl'])
+        cache_provider = _get_etcd_provider(
+            ttl=CONFIG_PROVIDERS['effective']['cache']['ttl'])
     else:
         cache_provider = None
     return MergedConfigProvider(providers, cache_provider=cache_provider)
@@ -54,13 +47,14 @@ def _get_etcd_provider(ttl=None):
         etcd_host=CONFIG_PROVIDERS['etcd']['host'],
         etcd_port=CONFIG_PROVIDERS['etcd']['port'],
         config_base=CONFIG_PROVIDERS['etcd']['base']+'/config',
+        ttl=ttl
     )
 
 
-@lru_cache(10)
-def get_provider(provider_type, *args, **kwargs):
+def get_provider(provider_type):
     """
     Factory method to create config provider instance.
+
     :param provider_type:
     :type provider_type: str
     :param args: Arguments for the provider
@@ -68,10 +62,13 @@ def get_provider(provider_type, *args, **kwargs):
     :return: AbstractConfigProvider instance.
     :rtype: AbstractConfigProvider
     """
-    if provider_type == 'etcd' and provider_type in CONFIG_PROVIDERS:
-        return _get_etcd_provider(*args, **kwargs)
+    if provider_type not in CONFIG_PROVIDERS or provider_type not in\
+            CONFIG_PROVIDER_LIST:
+        raise ConfigProviderNotFound(provider_type)
+    if provider_type == 'etcd':
+        return _get_etcd_provider()
     if provider_type == 'effective':
-        return _get_effective_config_provider(*args, **kwargs)
+        return _get_effective_config_provider()
 
 
 def load_config(*paths, provider_type='effective'):

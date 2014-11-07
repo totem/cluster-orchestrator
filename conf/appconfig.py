@@ -55,8 +55,6 @@ CONFIG_PROVIDERS = {
         }
     },
     'github': {
-        'enabled': os.getenv('CONFIG_GITHUB_ENABLED', 'false').strip()
-        .lower() in BOOLEAN_TRUE_VALUES,
         'token': os.getenv('GITHUB_TOKEN', None)
 
     }
