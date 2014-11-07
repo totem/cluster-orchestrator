@@ -7,19 +7,10 @@ from future.builtins import (  # noqa
 from nose.tools import eq_
 from orchestrator.cluster_config.etcd import EtcdConfigProvider
 from tests.helper import dict_compare
+from tests.integration.orchestrator.cluster_config import MOCK_CONFIG, \
+    MOCK_SERIALIZED_CONFIG
 
 __author__ = 'sukrit'
-
-MOCK_CONFIG = {
-    'mockkey1': 'mockvalue1',
-    'mockkey2': {
-        'mockkey3': 'mockvalue3'
-    }
-}
-
-MOCK_SERIALIZED_CONFIG = '''mockkey1: mockvalue1
-mockkey2: {mockkey3: mockvalue3}
-'''
 
 
 class TestEtcdConfigProvider:
