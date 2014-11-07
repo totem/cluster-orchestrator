@@ -9,7 +9,7 @@ class EtcdConfigProvider(AbstractConfigProvider):
     """
 
     def __init__(self, etcd_cl=None, etcd_port=None, etcd_host=None,
-                 config_base=None, ttl=None, config_name='.totem.yaml'):
+                 config_base=None, ttl=None, config_name='.totem.yml'):
         """
         Initializes etcd client.
 
@@ -29,20 +29,20 @@ class EtcdConfigProvider(AbstractConfigProvider):
         self.config_name = config_name
 
     def _etcd_path(self, *paths):
-        return '%s/%s/%s' % (self.config_base, ','.join(paths),
+        return '%s/%s/%s' % (self.config_base, '/'.join(paths),
                              self.config_name)
 
     def write(self, config, *paths):
         raw = yaml.dump(config)
-        path = '%s/%s' % (self.config_base, ','.join(paths))
-        self.etcd_cl.set(path, raw, ttl=self.ttl)
+        self.etcd_cl.set(self._etcd_path(*paths), raw, ttl=self.ttl)
 
     def delete(self, *paths):
         try:
             self.etcd_cl.delete(self._etcd_path(*paths))
+            return True
         except KeyError:
             # Ignore as it is safe delete operation
-            pass
+            return False
 
     def load(self, *paths):
         try:

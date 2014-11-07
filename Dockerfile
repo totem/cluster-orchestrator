@@ -3,7 +3,7 @@ FROM totem/python-base:3.4-trusty
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update --fix-missing
-RUN apt-get install -y openssh-server openssh-client libffi-dev gettext nano
+RUN apt-get install -y openssh-server openssh-client libffi-dev gettext libyaml-dev nano
 
 ##SSH Server (To troubleshoot issues with discover)
 RUN mkdir /var/run/sshd

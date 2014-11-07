@@ -3,10 +3,17 @@ python:
   - "2.7"
   - "3.4"
 
+before_install:
+  - "sudo apt-get update"
+
 # command to install dependencies
 install:
+  - "sudo apt-get install libyaml-dev"
   - "pip install -r requirements.txt"
   - "pip install -r dev-requirements.txt"
+  - "curl -L  https://github.com/coreos/etcd/releases/download/v0.4.6/etcd-v0.4.6-linux-amd64.tar.gz -o etcd-v0.4.6-linux-amd64.tar.gz"
+  - "tar xzvf etcd-v0.4.6-linux-amd64.tar.gz"
+  - "./etcd-v0.4.6-linux-amd64/etcd &"
 
 # commands to run tests and style check
 script:
