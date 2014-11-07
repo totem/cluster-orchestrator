@@ -16,5 +16,6 @@ export QUAY_ORGANIZATION='${QUAY_ORGANIZATION:-totem}'
 export QUAY_PREFIX='${QUAY_PREFIX:-totem-}'
 export SEARCH_ENABLED=true
 END
-/usr/local/bin/supervisord
+
+/bin/bash -lex -c /usr/local/bin/supervisord
 
