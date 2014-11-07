@@ -51,6 +51,17 @@ class MergedConfigProvider(AbstractConfigProvider):
         if self.write_provider:
             self.write_provider.write(config, *paths)
 
+    def delete(self, *paths):
+        """
+        Deletes config using write_provider (if set).
+
+        :param paths: Nested path list where config needs to be written to.
+        :return: None
+        """
+        # Delegate to write_provider if set. Else NOOP
+        if self.write_provider:
+            self.write_provider.delete(*paths)
+
     def load(self, *paths):
         """
         Loads config for given path list.

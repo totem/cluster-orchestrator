@@ -34,3 +34,14 @@ class TestAbstractConfigProvider:
         self.provider.write({}, 'path1')
 
         # Then: NotImplementedError is raised
+
+    @raises(NotImplementedError)
+    def test_delete(self):
+        """
+        Should raise NotImplementedError
+        """
+
+        # When I invoke the root endpoint
+        self.provider.delete('path1')
+
+        # Then: NotImplementedError is raised

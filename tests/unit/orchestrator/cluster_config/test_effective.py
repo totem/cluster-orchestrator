@@ -25,6 +25,9 @@ class InMemoryProvider(AbstractConfigProvider):
     def load(self, *paths):
         return copy.deepcopy(self.cache.get('/' + '/'.join(paths), {}))
 
+    def delete(self, *paths):
+        self.cache.pop('/' + '/'.join(paths))
+
 
 class TestMergedConfigProvider:
     """
@@ -69,6 +72,19 @@ class TestMergedConfigProvider:
 
         # Then: Config is written using write provider
         eq_(self.write_provider.load('path1', 'path2'), {})
+
+    def test_delete(self):
+        """
+        Should set the Link header for root endpoint.
+        """
+
+        self.write_provider.write({'deleteme': 'deleteme'}, 'path1')
+
+        # When: When I try to write a config
+        self.provider.delete('path1')
+
+        # Then: Config is written using write provider
+        eq_(self.write_provider.load('path1'), {})
 
     def test_write_when_no_write_provider_specified(self):
         """

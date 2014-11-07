@@ -13,7 +13,6 @@ TOTEM_ETCD_SETTINGS = {
     'base': os.getenv('ETCD_TOTEM_BASE', '/totem'),
     'host': os.getenv('ETCD_HOST', '172.17.42.1'),
     'port': int(os.getenv('ETCD_PORT', '4001')),
-    'yoda_base': os.getenv('ETCD_YODA_BASE', '/yoda'),
 }
 
 SEARCH_SETTINGS = {
@@ -37,3 +36,31 @@ SCHEMA_ROOT_V1 = 'root-v1'
 
 API_MAX_PAGE_SIZE = 1000
 API_DEFAULT_PAGE_SIZE = 10
+
+CONFIG_PROVIDERS = {
+    's3': {
+        'bucket':  os.getenv('CONFIG_S3_BUCKET', 'not_set'),
+        'bucket_base': os.getenv('CONFIG_S3_BUCKET_BASE', ''),
+    },
+    'etcd': {
+        'base': os.getenv('ETCD_TOTEM_BASE', '/totem'),
+        'host': os.getenv('ETCD_HOST', '172.17.42.1'),
+        'port': int(os.getenv('ETCD_PORT', '4001')),
+    },
+    'effective': {
+        'cache': {
+            'enabled': os.getenv('CONFIG_CACHE_ENABLED', 'true').strip()
+            .lower() in BOOLEAN_TRUE_VALUES,
+            'ttl': 120
+        }
+    },
+    'github': {
+        'enabled': os.getenv('CONFIG_GITHUB_ENABLED', 'false').strip()
+        .lower() in BOOLEAN_TRUE_VALUES,
+        'token': os.getenv('GITHUB_TOKEN', None)
+
+    }
+}
+
+CONFIG_PROVIDER_LIST = os.getenv('CONFIG_PROVIDER_LIST', 's3,etcd,github')\
+    .split(',')

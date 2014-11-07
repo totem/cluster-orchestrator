@@ -23,7 +23,36 @@ class AbstractConfigProvider:
             'Provider: %s does not support this operation' % self.__class__)
 
     def load(self, *paths):
+        """
+        Load config at given path.
+
+        :param paths: Tuple consisting of nested level path
+        :return: Parsed Config
+        :rtype: dict
+        :raise NotImplementedError: If provider does not support this method.
+        """
         self.not_supported()
 
     def write(self, config, *paths):
+        """
+        Writes config at given path.
+
+        :param config: Configuration
+        :type config: dict
+        :param paths: Nested level path
+        :type paths: tuple
+        :return: None
+        :raise NotImplementedError: If provider does not support this method.
+        """
+        self.not_supported()
+
+    def delete(self, *paths):
+        """
+        Performs safe delete of the configuration at given path.
+
+        :param paths: Nested level path
+        :type paths: tuple
+        :return: None
+        :raise NotImplementedError: If provider does not support this method.
+        """
         self.not_supported()
