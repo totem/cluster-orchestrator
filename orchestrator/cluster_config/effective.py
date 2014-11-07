@@ -16,7 +16,7 @@ class MergedConfigProvider(AbstractConfigProvider):
     Provider that merges the config from different providers and optionally
     caches it.
     """
-    def __init__(self, *providers, cache_provider=None, write_provider=None):
+    def __init__(self, *providers, **kwargs):
         """
         :param providers: List of Config providers.
         :keyword cache_provider: Config provider for caching the effective
@@ -25,8 +25,8 @@ class MergedConfigProvider(AbstractConfigProvider):
             None, then no write will be done.
         """
         self.providers = providers
-        self.cache_provider = cache_provider
-        self.write_provider = write_provider
+        self.cache_provider = kwargs.get('cache_provider', None)
+        self.write_provider = kwargs.get('write_provider', None)
 
     def _cached_config(self, func):
         """
