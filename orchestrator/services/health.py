@@ -3,6 +3,7 @@ import sys
 from etcd import client
 from conf.appconfig import HEALTH_OK, HEALTH_FAILED, TOTEM_ETCD_SETTINGS
 from orchestrator.elasticsearch import get_search_client
+from orchestrator.tasks.common import ping
 
 
 def _check(func):
@@ -55,8 +56,18 @@ def _check_etcd():
     }
 
 
+@_check
+def _check_celery():
+    """
+    Checks health for celery integration using ping-pong task output.
+    """
+    output = ping.delay().get(timeout=10)
+    return 'Celery ping:%s' % output
+
+
 def get_health():
     return {
         'elasticsearch': _check_elasticsearch(),
-        'etcd': _check_etcd()
+        'etcd': _check_etcd(),
+        'celery': _check_celery()
     }

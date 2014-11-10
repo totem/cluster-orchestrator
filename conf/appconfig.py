@@ -78,3 +78,9 @@ GITHUB_HOOK = {
 
 CONFIG_PROVIDER_LIST = os.getenv('CONFIG_PROVIDER_LIST', 's3,etcd,github')\
     .split(',')
+
+TASK_SETTINGS = {
+    'DEFAULT_GET_TIMEOUT': 600,
+    'DEFAULT_RETRIES': 5,
+    'DEFAULT_RETRY_DELAY': 10
+}

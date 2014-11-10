@@ -4,6 +4,7 @@ import traceback
 from flask import request, make_response
 import flask
 from werkzeug.exceptions import HTTPException
+from orchestrator.tasks.exceptions import TaskExecutionException
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,16 @@ def register(app, **kwargs):
                        % request.path,
             'code': 'NOT_FOUND',
             'status': 404
+        })
+
+    @app.errorhandler(TaskExecutionException)
+    def task_error(error):
+        return as_flask_error(error, **{
+            'code': error.code,
+            'message': error.message,
+            'details': error.details,
+            'traceback': error.traceback,
+            'status': 500,
         })
 
     @app.errorhandler(Exception)
