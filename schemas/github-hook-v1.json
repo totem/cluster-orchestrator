@@ -1,0 +1,9 @@
+{
+  "$schema": "http://json-schema.org/draft-04/hyper-schema#",
+  "type": "object",
+  "title": "Schema for githook payload",
+  "id": "#githook-v1",
+  "properties":{
+
+  }
+}

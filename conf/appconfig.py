@@ -31,10 +31,14 @@ CORS_SETTINGS = {
 
 MIME_JSON = 'application/json'
 MIME_ROOT_V1 = 'application/vnd.orch.root.v1+json'
-MIME_HEALTH_V1 = 'application/vnd.totem.health.v1+json'
+MIME_HEALTH_V1 = 'application/vnd.orch.health.v1+json'
+MIME_GITHUB_HOOK_V1 = 'application/vnd.orch.github.hook.v1+json'
+MIME_JOB_V1 = 'application/vnd.orch.job.v1+json'
 
 SCHEMA_ROOT_V1 = 'root-v1'
 SCHEMA_HEALTH_V1 = 'health-v1'
+SCHEMA_GITHUB_HOOK_V1 = 'github-hook-v1'
+SCHEMA_JOB_V1 = 'job-v1'
 
 API_MAX_PAGE_SIZE = 1000
 API_DEFAULT_PAGE_SIZE = 10
@@ -63,6 +67,11 @@ CONFIG_PROVIDERS = {
         'token': os.getenv('GITHUB_TOKEN', None)
 
     }
+}
+
+GITHUB_HOOK = {
+    'secret': os.getenv('GITHUB_HOOK_SECRET', 'changeit'),
+    'hint_secret_size': int(os.getenv('GITHUB_HOOK_SECRET_HINT', '2'))
 }
 
 CONFIG_PROVIDER_LIST = os.getenv('CONFIG_PROVIDER_LIST', 's3,etcd,github')\

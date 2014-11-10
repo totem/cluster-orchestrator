@@ -3,7 +3,6 @@ import functools
 import json
 
 from flask import jsonify, Response, request
-
 from conf.appconfig import MIME_JSON, API_DEFAULT_PAGE_SIZE
 
 
@@ -30,6 +29,15 @@ def build_response(output, status=200, mimetype=MIME_JSON, headers={}):
 
 
 def created(output, mimetype=MIME_JSON, location=None, status=201, headers={}):
+    headers = copy.deepcopy(headers or {})
+    if location:
+        headers.setdefault('Location', location)
+    return build_response(output, status=status, mimetype=mimetype,
+                          headers=headers)
+
+
+def accepted(output, mimetype=MIME_JSON, location=None, status=202,
+             headers={}):
     headers = copy.deepcopy(headers or {})
     if location:
         headers.setdefault('Location', location)
