@@ -92,15 +92,15 @@ class TestAuthorize:
 class TestGithubHookApi:
 
     mock_payload = '''{
-        "repository': {
-            "name': "mock_repo",
-            "owner': {
-                "name': "mock_owner"
+        "repository": {
+            "name": "mock_repo",
+            "owner": {
+                "name": "mock_owner"
             }
         },
         "ref": "refs/heads/mock-ref",
         "after": "7700ca29dd050d9adacc0803f866d9b539513535",
-        "deleted": False
+        "deleted": false
     }'''
 
     def setup(self):
@@ -117,7 +117,7 @@ class TestGithubHookApi:
             data=self.mock_payload,
             headers={
                 'Content-Type': MIME_JSON,
-                'X-Hub-Signature': '1d001feea1599b489f7b9d174fa7d595c224fec0'
+                'X-Hub-Signature': 'a5a580cce7bddd8dce4edff334361cd5c0c77968'
             }
         )
         logger.info('Response: %s', resp.data)
