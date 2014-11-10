@@ -91,17 +91,17 @@ class TestAuthorize:
 
 class TestGithubHookApi:
 
-    mock_payload = {
-        'repository': {
-            'name': 'mock_repo',
-            'owner': {
-                'name': 'mock_owner'
+    mock_payload = '''{
+        "repository': {
+            "name': "mock_repo",
+            "owner': {
+                "name': "mock_owner"
             }
         },
-        'ref': 'refs/heads/mock-ref',
-        'after': '7700ca29dd050d9adacc0803f866d9b539513535',
-        'deleted': False
-    }
+        "ref": "refs/heads/mock-ref",
+        "after": "7700ca29dd050d9adacc0803f866d9b539513535",
+        "deleted": False
+    }'''
 
     def setup(self):
         self.client = app.test_client()
@@ -114,10 +114,10 @@ class TestGithubHookApi:
         # When I post to github endpoint
         resp = self.client.post(
             '/external/github',
-            data=json.dumps(self.mock_payload),
+            data=self.mock_payload,
             headers={
                 'Content-Type': MIME_JSON,
-                'X-Hub-Signature': '85116ad01331e083539c559c967a84ccdf94293a'
+                'X-Hub-Signature': '1d001feea1599b489f7b9d174fa7d595c224fec0'
             }
         )
         logger.info('Response: %s', resp.data)
