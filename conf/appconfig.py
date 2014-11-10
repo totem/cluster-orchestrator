@@ -15,12 +15,14 @@ TOTEM_ETCD_SETTINGS = {
     'port': int(os.getenv('ETCD_PORT', '4001')),
 }
 
+CLUSTER_NAME = os.getenv('CLUSTER_NAME', 'local')
+
 SEARCH_SETTINGS = {
     'enabled': os.getenv('SEARCH_ENABLED', 'true').strip().lower() in
     BOOLEAN_TRUE_VALUES,
     'host': os.getenv('ELASTICSEARCH_HOST', '172.17.42.1'),
     'port': os.getenv('ELASTICSEARCH_PORT', '9200'),
-    'default-index': 'orchestrator-%s' % os.getenv('CLUSTER_NAME', 'local')
+    'default-index': 'orchestrator-%s' % CLUSTER_NAME
 }
 
 CORS_SETTINGS = {
