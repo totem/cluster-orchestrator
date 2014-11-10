@@ -22,7 +22,8 @@ from orchestrator.views.util import accepted
 
 def _get_digest(msg, secret=None):
     secret = secret or GITHUB_HOOK['secret']
-    return hmac.new(secret, msg, sha1).hexdigest()
+    return hmac.new(secret.encode('utf-8'), msg.encode('utf-8'), sha1)\
+        .hexdigest()
 
 
 def authorize(func):
