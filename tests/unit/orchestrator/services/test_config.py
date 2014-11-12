@@ -62,6 +62,7 @@ def test_get_etcd_provider(mock_provider_list):
     """
     # Given: Existing config provider list"
     mock_provider_list.__contains__.return_value = True
+    mock_provider_list.__iter__.return_value = ['etcd']
 
     # When: I fetch provider that does not exists
     provider = service.get_provider('etcd')
@@ -87,6 +88,7 @@ def test_get_s3_provider(mock_provider_list):
     """
     # Given: Existing config provider list"
     mock_provider_list.__contains__.return_value = True
+    mock_provider_list.__iter__.return_value = ['s3']
 
     # When: I fetch provider that does not exists
     provider = service.get_provider('s3')
@@ -122,6 +124,7 @@ def test_get_effective_provider(mock_provider_list):
     """
     # Given: Existing config provider list"
     mock_provider_list.__contains__.return_value = True
+    mock_provider_list.__iter__.return_value = ['effective', 'default']
 
     # When: I fetch provider that does not exists
     provider = service.get_provider('effective')
