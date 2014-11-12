@@ -1,5 +1,6 @@
 from celery import chain
-from conf.appconfig import TASK_SETTINGS, JOB_SETTINGS
+from conf.appconfig import TASK_SETTINGS, JOB_SETTINGS, JOB_STATE_NEW, \
+    JOB_STATE_SCHEDULED, JOB_STATE_DEPLOY_REQUESTED
 from conf.celeryconfig import CLUSTER_NAME
 from orchestrator.celery import app
 from orchestrator.etcd import using_etcd
@@ -120,15 +121,15 @@ def create_job(job_config, owner, repo, ref, commit=None, etcd_cl=None,
     try:
         state = etcd_cl.read(job_base+'/state').value
     except KeyError:
-        state = 'NEW'
+        state = JOB_STATE_NEW
 
-    if state == 'NEW':
+    if state == JOB_STATE_NEW:
         for hook_type in SUPPORTED_HOOK_TYPES:
             if hook_type in job_config and job_config[hook_type]['enabled']:
                 etcd_cl.write('%s/%s/expect' % (job_base, hook_type), 1)
         etcd_cl.write('%s/state' % job_base, 'SCHEDULED')
 
-    elif state == 'SCHEDULED':
+    elif state == JOB_STATE_SCHEDULED:
         for hook_type in SUPPORTED_HOOK_TYPES:
             if hook_type in job_config and job_config[hook_type]['enabled']:
                 expected = etcd_cl.read('%s/%s/expect' %
@@ -136,7 +137,7 @@ def create_job(job_config, owner, repo, ref, commit=None, etcd_cl=None,
                 etcd_cl.write('%s/%s/expect' % (job_base, hook_type), expected,
                               prevValue=expected-1)
 
-    elif state == 'DEPLOYING':
+    elif state == JOB_STATE_DEPLOY_REQUESTED:
         pass
 
 
