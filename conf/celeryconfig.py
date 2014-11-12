@@ -16,10 +16,12 @@ CELERY_QUEUES = (
     Queue(CELERY_DEFAULT_QUEUE, routing_key='default',
           queue_arguments={'x-message-ttl': MESSAGES_TTL}),
 )
+CELERY_DEFAULT_EXCHANGE = 'orchestrator-%s' % CLUSTER_NAME
 CELERY_DEFAULT_EXCHANGE_TYPE = 'direct'
 CELERY_DEFAULT_ROUTING_KEY = 'default'
 
 CELERY_RESULT_BACKEND = 'amqp'
+CELERY_RESULT_EXCHANGE = 'orchestrator-%s-results' % CLUSTER_NAME
 CELERY_IMPORTS = ('orchestrator.tasks', 'orchestrator.tasks.job',
                   'orchestrator.tasks.common', 'celery.task')
 CELERY_ACCEPT_CONTENT = ['json', 'pickle']
@@ -48,6 +50,11 @@ CELERY_TIMEZONE = 'UTC'
 
 # Task releated settings
 CELERY_ACKS_LATE = True
+CELERY_TASK_PUBLISH_RETRY_POLICY = {
+    'max_retries': 30,
+    'interval_step': 1,
+    'interval_max': 10
+}
 
 # Celery Beat settings
 CELERYBEAT_SCHEDULE = {

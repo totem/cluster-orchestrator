@@ -67,20 +67,44 @@ CONFIG_PROVIDERS = {
     },
     'github': {
         'token': os.getenv('GITHUB_TOKEN', None)
-
+    },
+    'default': {
+        'config': {
+            'ci': {
+                'type': 'travis',
+                'enabled': False,
+            },
+            'builder': {
+                'type': 'image-factory',
+                'enabled': True
+            },
+            'deployers': {
+                'default': {
+                    'url': os.getenv('CLUSTER_DEPLOYER_URL',
+                                     'http://localhost:9100'),
+                    'enabled': True
+                }
+            }
+        }
     }
 }
+
+CONFIG_PROVIDER_LIST = os.getenv(
+    'CONFIG_PROVIDER_LIST', 'etcd,github,default').split(',')
 
 GITHUB_HOOK = {
     'secret': os.getenv('GITHUB_HOOK_SECRET', 'changeit'),
     'hint_secret_size': int(os.getenv('GITHUB_HOOK_SECRET_HINT', '2'))
 }
 
-CONFIG_PROVIDER_LIST = os.getenv('CONFIG_PROVIDER_LIST', 's3,etcd,github')\
-    .split(',')
-
 TASK_SETTINGS = {
     'DEFAULT_GET_TIMEOUT': 600,
     'DEFAULT_RETRIES': 5,
-    'DEFAULT_RETRY_DELAY': 10
+    'DEFAULT_RETRY_DELAY': 10,
+    'LOCK_RETRY_DELAY': 5,
+    'LOCK_RETRIES': 20
+}
+
+JOB_SETTINGS = {
+    'DEFAULT_TTL': 600
 }

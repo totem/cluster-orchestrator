@@ -1,4 +1,5 @@
 from conf.appconfig import CONFIG_PROVIDERS, CONFIG_PROVIDER_LIST
+from orchestrator.cluster_config.default import DefaultConfigProvider
 from orchestrator.cluster_config.effective import MergedConfigProvider
 from orchestrator.cluster_config.etcd import EtcdConfigProvider
 from orchestrator.cluster_config.s3 import S3ConfigProvider
@@ -15,7 +16,7 @@ def get_providers():
     yield 'effective'
 
 
-def _get_effective_config_provider():
+def _get_effective_provider():
     """
     Gets the effective config provider.
 
@@ -25,14 +26,16 @@ def _get_effective_config_provider():
     providers = list()
     for provider_type in get_providers():
         if provider_type != 'effective':
-            providers += get_provider(provider_type)
+            provider = get_provider(provider_type)
+            if provider:
+                providers.append(provider)
 
     if CONFIG_PROVIDERS['effective']['cache']['enabled']:
         cache_provider = _get_etcd_provider(
             ttl=CONFIG_PROVIDERS['effective']['cache']['ttl'])
     else:
         cache_provider = None
-    return MergedConfigProvider(providers, cache_provider=cache_provider)
+    return MergedConfigProvider(*providers, cache_provider=cache_provider)
 
 
 def _get_etcd_provider(ttl=None):
@@ -65,6 +68,10 @@ def _get_s3_provider():
     )
 
 
+def _get_default_provider():
+    return DefaultConfigProvider()
+
+
 def get_provider(provider_type):
     """
     Factory method to create config provider instance.
@@ -76,15 +83,12 @@ def get_provider(provider_type):
     :return: AbstractConfigProvider instance.
     :rtype: AbstractConfigProvider
     """
-    if provider_type not in CONFIG_PROVIDERS or provider_type not in\
-            CONFIG_PROVIDER_LIST:
+    if provider_type not in get_providers():
         raise ConfigProviderNotFound(provider_type)
-    if provider_type == 'etcd':
-        return _get_etcd_provider()
-    if provider_type == 'effective':
-        return _get_effective_config_provider()
-    if provider_type == 's3':
-        return _get_s3_provider()
+
+    locator = '_get_%s_provider' % (provider_type)
+    if locator in globals():
+        return globals()[locator]()
 
 
 def load_config(*paths, **kwargs):

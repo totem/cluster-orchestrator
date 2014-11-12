@@ -13,11 +13,12 @@ from future.builtins import (  # noqa
     filter, map, zip)
 from conf.appconfig import GITHUB_HOOK, MIME_GITHUB_HOOK_V1, \
     SCHEMA_GITHUB_HOOK_V1, MIME_JSON, MIME_JOB_V1
+from orchestrator.tasks.job import start_job
 from orchestrator.views import hypermedia
 import hmac
 from hashlib import sha1
 from orchestrator.views.error import raise_error
-from orchestrator.views.util import accepted
+from orchestrator.views.util import created_task
 
 
 def _get_digest(msg, secret=None):
@@ -82,7 +83,8 @@ class GithubHookApi(MethodView):
 
         :return: Flask Json Response containing version.
         """
-        return accepted(output={})
+        result = start_job.delay('totem', 'spec-python', 'master', )
+        return created_task(result)
 
 
 def register(app, **kwargs):
