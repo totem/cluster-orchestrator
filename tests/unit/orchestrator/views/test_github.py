@@ -1,5 +1,6 @@
 import json
 from flask import Flask
+from mock import patch
 from nose.tools import eq_
 from conf.appconfig import MIME_JSON
 from orchestrator.server import app
@@ -106,7 +107,8 @@ class TestGithubHookApi:
     def setup(self):
         self.client = app.test_client()
 
-    def test_post(self):
+    @patch('orchestrator.tasks.job.start_job')
+    def test_post(self, mock_start_job):
         """
         Should return accepted response when a valid github hook is posted.
         """
