@@ -107,7 +107,7 @@ class TestGithubHookApi:
     def setup(self):
         self.client = app.test_client()
 
-    @patch('orchestrator.tasks.job.start_job')
+    @patch('orchestrator.views.github.start_job')
     def test_post(self, mock_start_job):
         """
         Should return accepted response when a valid github hook is posted.
