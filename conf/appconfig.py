@@ -70,13 +70,22 @@ CONFIG_PROVIDERS = {
     },
     'default': {
         'config': {
-            'ci': {
-                'type': 'travis',
-                'enabled': False,
-            },
-            'builder': {
-                'type': 'image-factory',
-                'enabled': True
+            'hooks': {
+                'ci': {
+                    'travis': {
+                        'enabled': False,
+                    }
+                },
+                'builders': {
+                    'image-factory': {
+                        'enabled': True,
+                    }
+                },
+                'scm': {
+                    'github': {
+                        'enabled': True
+                    }
+                }
             },
             'deployers': {
                 'default': {
@@ -102,7 +111,9 @@ TASK_SETTINGS = {
     'DEFAULT_RETRIES': 5,
     'DEFAULT_RETRY_DELAY': 10,
     'LOCK_RETRY_DELAY': 5,
-    'LOCK_RETRIES': 20
+    'LOCK_RETRIES': 20,
+    'JOB_WAIT_RETRIES': 10,
+    'JOB_WAIT_RETRY_DELAY': 10,
 }
 
 JOB_SETTINGS = {
@@ -112,3 +123,4 @@ JOB_SETTINGS = {
 JOB_STATE_NEW = 'NEW'
 JOB_STATE_SCHEDULED = 'SCHEDULED'
 JOB_STATE_DEPLOY_REQUESTED = 'DEPLOY_REQUESTED'
+JOB_STATE_NOOP = 'NOOP'
