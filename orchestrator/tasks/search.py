@@ -22,12 +22,13 @@ EVENT_BUILDER_FAILED = 'BUILDER_FAILED'
 
 @app.task
 @orch_search
-def index_job(deployment, es=None, idx=None):
+def index_job(job, ret_value=None, es=None, idx=None):
     """
     Creates a new deployment
     :param deployment: Dictionary containing deployment parameters
     """
-    return es.index(idx, TYPE_JOBS, deployment, id=deployment['id'])
+    return ret_value or \
+        es.index(idx, TYPE_JOBS, job, id=job['meta-info']['job-id'])
 
 
 @app.task

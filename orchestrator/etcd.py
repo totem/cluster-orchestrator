@@ -32,3 +32,20 @@ def using_etcd(func):
         kwargs.setdefault('etcd_base', TOTEM_ETCD_SETTINGS['base'])
         return func(*args, **kwargs)
     return outer
+
+
+def safe_delete(etcd_cl, key, **kwargs):
+    """
+    Performs safe deleteion of a given etcd key.
+
+    :param func:
+    :param key:
+    :param kwargs:
+    :return:
+    """
+
+    try:
+        etcd_cl.delete(key, **kwargs)
+    except KeyError:
+        # Ignore non existent key
+        pass
