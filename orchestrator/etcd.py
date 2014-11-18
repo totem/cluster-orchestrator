@@ -36,12 +36,12 @@ def using_etcd(func):
 
 def safe_delete(etcd_cl, key, **kwargs):
     """
-    Performs safe deleteion of a given etcd key.
+    Performs safe deletion of a given etcd key.
 
-    :param func:
-    :param key:
-    :param kwargs:
-    :return:
+    :param etcd_cl: Etcd Client
+    :param key: Key to be deleted
+    :param kwargs: Additional arguments for delete.
+    :return: None
     """
 
     try:
@@ -49,3 +49,24 @@ def safe_delete(etcd_cl, key, **kwargs):
     except KeyError:
         # Ignore non existent key
         pass
+
+
+def get_or_insert(etcd_cl, key, value, **kwargs):
+    """
+    Performs atomic insert for a value if and only if it does not exists.
+    If the value exists, no insert/update is performed.
+    No exception is raised if value already exists.
+
+    :param etcd_cl:
+    :param key:
+    :param value:
+    :param kwargs:
+    :return: None
+    """
+    try:
+        etcd_cl.write(key, value, prevExist=False, **kwargs)
+        return value
+    except KeyError:
+        # Ignore existing key.
+        return etcd_cl.read(key, prevExist=True).value
+

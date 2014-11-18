@@ -1,45 +1,76 @@
 import copy
+import json
 import uuid
+import requests
+from os.path import basename
 from celery import chain
+from requests.exceptions import ConnectionError
 from conf.appconfig import TASK_SETTINGS, JOB_SETTINGS, JOB_STATE_NEW, \
-    JOB_STATE_SCHEDULED, JOB_STATE_DEPLOY_REQUESTED, JOB_STATE_NOOP
+    JOB_STATE_SCHEDULED, JOB_STATE_DEPLOY_REQUESTED, JOB_STATE_NOOP, \
+    JOB_STATE_FAILED
 from conf.celeryconfig import CLUSTER_NAME
 from orchestrator.celery import app
-from orchestrator.etcd import using_etcd, safe_delete
+from orchestrator.etcd import using_etcd, safe_delete, get_or_insert
 from orchestrator.services import config
 from orchestrator.services.distributed_lock import LockService, \
     ResourceLockedException
-from orchestrator.tasks.search import index_job
+from orchestrator.tasks.exceptions import DeploymentFailed
+from orchestrator.tasks.search import index_job, create_search_parameters, \
+    add_search_event, EVENT_DEPLOY_REQUESTED
 from orchestrator.tasks.common import async_wait
 
 __author__ = 'sukrit'
 
 
 @app.task
-def start_job(owner, repo, ref, scm_type='github', commit=None):
-    """
-    Start the Continuous Deployment job
-
-    :return:
-    """
+def handle_callback_hook(owner, repo, ref, hook_type, hook,
+                         hook_status='success', hook_result=None, commit=None):
     job_config = config.load_config(CLUSTER_NAME, owner, repo, ref)
     return _using_lock.si(
         name='%s-%s-%s-%s' % (CLUSTER_NAME, owner, repo, ref),
         do_task=(
-            update_job_ttl.si(owner, repo, ref) |
-            create_job.si(job_config, owner, repo, ref, scm_type) |
+            _update_job_ttl.si(owner, repo, ref, commit=commit) |
+            _handle_hook.si(job_config, owner, repo, ref, hook_type, hook,
+                            commit=commit, hook_status=hook_status,
+                            hook_result=hook_result) |
+            async_wait.s(
+                default_retry_delay=TASK_SETTINGS[
+                    'JOB_WAIT_RETRY_DELAY'],
+                max_retries=TASK_SETTINGS['JOB_WAIT_RETRIES']
+            ) |
+            _check_and_fire_deploy.s() |
             async_wait.s(
                 default_retry_delay=TASK_SETTINGS[
                     'JOB_WAIT_RETRY_DELAY'],
                 max_retries=TASK_SETTINGS['JOB_WAIT_RETRIES']
             )
+
         )
     ).apply_async()
 
 
-def _job_base_location(owner, repo, ref, etcd_base):
-    return '%s/orchestrator/jobs/%s/%s/%s/%s' % \
-           (etcd_base, CLUSTER_NAME, owner, repo, ref)
+@app.task
+def undeploy(owner, repo, ref):
+    """
+    Undeploys the application using git meta data.
+
+    :param git_meta: Dictionary containing git metadata attributes owner, repo
+        and ref.
+    :type git_meta: dict
+    :return: None
+    """
+    job_config = config.load_config(CLUSTER_NAME, owner, repo, ref)
+
+    return _using_lock.si(
+        name='%s-%s-%s-%s' % (CLUSTER_NAME, owner, repo, ref),
+        do_task=_undeploy.si(job_config, owner, repo, ref)
+    ).apply_async()
+
+
+def _job_base_location(owner, repo, ref, etcd_base, commit=None):
+    commit = commit or 'not_set'
+    return '%s/orchestrator/jobs/%s/%s/%s/%s/%s' % \
+           (etcd_base, CLUSTER_NAME, owner, repo, ref, commit)
 
 
 @app.task(bind=True, default_retry_delay=TASK_SETTINGS['LOCK_RETRY_DELAY'],
@@ -92,7 +123,8 @@ def _release_lock(lock):
 
 @app.task
 @using_etcd
-def update_job_ttl(owner, repo, ref, ttl=None, etcd_cl=None, etcd_base=None):
+def _update_job_ttl(owner, repo, ref, commit=None, ttl=None, etcd_cl=None,
+                    etcd_base=None):
     """
     Updates the job ttl.
 
@@ -108,7 +140,7 @@ def update_job_ttl(owner, repo, ref, ttl=None, etcd_cl=None, etcd_base=None):
     :return: None
     """
     ttl = ttl or JOB_SETTINGS['DEFAULT_TTL']
-    job_base = _job_base_location(owner, repo, ref, etcd_base)
+    job_base = _job_base_location(owner, repo, ref, etcd_base, commit=commit)
 
     def update_ttl(prev_exist=True):
         etcd_cl.write(job_base, None, ttl=ttl, dir=True, prevExist=prev_exist)
@@ -119,15 +151,16 @@ def update_job_ttl(owner, repo, ref, ttl=None, etcd_cl=None, etcd_base=None):
         update_ttl(False)
 
 
-@app.task(bind=True)
+@app.task
 @using_etcd
-def create_job(self, job_config, owner, repo, ref, scm_type, commit=None,
-               etcd_cl=None, etcd_base=None):
-    job_base = _job_base_location(owner, repo, ref, etcd_base)
+def _handle_hook(job_config, owner, repo, ref, hook_type, hook,
+                 hook_status='success', hook_result=None, commit=None,
+                 etcd_cl=None, etcd_base=None):
+    job_base = _job_base_location(owner, repo, ref, etcd_base, commit=commit)
 
     # If we can not get branch, in that case we can not guarantee the
     # co-relation of ci jobs with builder, but hooks can still be received.
-    commit = commit or ''
+    commit = commit or 'not_set'
 
     try:
         state = etcd_cl.read(job_base+'/state').value
@@ -136,33 +169,19 @@ def create_job(self, job_config, owner, repo, ref, scm_type, commit=None,
         state = JOB_STATE_NEW
         job_id = str(uuid.uuid4())
 
-    job = _as_job(job_config, job_id, owner, repo, ref, scm_type, commit)
+    job = _as_job(job_config, job_id, owner, repo, ref, commit=commit,
+                  state=state)
 
-    if state in (JOB_STATE_NEW, JOB_STATE_SCHEDULED):
+    builder_hooks = [name for name, hook_obj in job_config['hooks']['builders']
+                     .items() if hook_obj['enabled']]
 
-        scm_hooks = [name for name, hook in job_config['hooks']['scm'].items()
-                     if hook['enabled']]
+    if not builder_hooks:
+        return _handle_noop.si(job)()
 
-        builder_hooks = [name for name, hook in job_config['hooks']['builders']
-                         .items() if hook['enabled']]
-
-        if not scm_hooks or not builder_hooks or \
-                (state in (JOB_STATE_NEW, JOB_STATE_SCHEDULED) and
-                    scm_type not in scm_hooks):
-            return _handle_noop.si(job)()
-
-        else:
-            # Reset/ Create the new job
-            return _reset_job.si(job)()
-
-    elif state == JOB_STATE_DEPLOY_REQUESTED:
-        # Can not reset as deploy has started.  Let the current job get
-        # processed before starting new one. Processed job does not mean
-        # successful deployment. It simply means that deployer has acknowledged
-        # the new deployment request.
-        self.retry(exc=ValueError(
-            'Job exists is in %s state. Can not create new '
-            'job until existing one gets removed.'))
+    else:
+        # Reset/ Create the new job
+        return _update_job.si(job, hook_type, hook, hook_status=hook_status,
+                              hook_result=hook_result)()
 
 
 @app.task
@@ -170,50 +189,201 @@ def create_job(self, job_config, owner, repo, ref, scm_type, commit=None,
 def _handle_noop(job, etcd_cl=None, etcd_base=None):
     job = copy.deepcopy(job)
     job['state'] = JOB_STATE_NOOP
-    meta = job['meta-info']
-    job_base = _job_base_location(meta['owner'], meta['repo'], meta['ref'],
-                                  etcd_base)
+    git = job['meta-info']['git']
+    job_base = _job_base_location(git['owner'], git['repo'], git['ref'],
+                                  etcd_base, commit=git['commit'])
     safe_delete(etcd_cl, job_base, recursive=True)
     return index_job.si(job, ret_value=job)
 
 
 @app.task
-def _reset_job(job):
+def _update_job(job, hook_type, hook, hook_result=None, hook_status='success'):
     job = copy.deepcopy(job)
     job['state'] = JOB_STATE_SCHEDULED
     return (
-        _save_job.si(job) |
-        index_job.si(job, ret_value=job)
+        _update_etcd_job.si(job, hook_type, hook, hook_result=hook_result,
+                            hook_status=hook_status) |
+        index_job.s()
     )()
 
 
 @app.task
 @using_etcd
-def _save_job(job, etcd_cl=None, etcd_base=None):
-    meta = job['meta-info']
+def _update_etcd_job(job, hook_type, hook, hook_status='success',
+                     hook_result=None, etcd_cl=None, etcd_base=None):
+    job = copy.deepcopy(job)
+    hook_result = hook_result or {}
+    git = job['meta-info']['git']
     job_config = job['config']
-    job_base = _job_base_location(meta['owner'], meta['repo'], meta['ref'],
-                                  etcd_base)
-    etcd_cl.write(job_base+'/job-id', meta['job-id'])
-    # We will now expect to receive callbacks for new commit.
-    etcd_cl.write(job_base+'/commit', meta['commit'])
-    ci_hooks = [name for name, hook in job_config['hooks']['ci']
-                .items() if hook['enabled']]
+    job_base = _job_base_location(git['owner'], git['repo'], git['ref'],
+                                  etcd_base, commit=git['commit'])
+    etcd_cl.write(job_base+'/job-id', job['meta-info']['job-id'])
+
+    ci_hooks = [name for name, hook_obj in job_config['hooks']['ci']
+                .items() if hook_obj['enabled']]
+
+    # Update done status for all CI Hooks. Set value to True, if current
+    # hook matches, else update to False (if existing value is not found)
     for ci_hook in ci_hooks:
-        etcd_cl.write('%s/hooks/ci/%s/done' % (job_base, ci_hook),
-                      False)
+        if hook_type == 'ci' and ci_hook == hook:
+            etcd_cl.write('%s/hooks/ci/%s/status' % (job_base, ci_hook),
+                          hook_status)
+            job['hooks']['ci'][ci_hook] = {
+                'status': hook_status
+            }
+        else:
+            # Set value to 'pending' if not already set
+            status = get_or_insert(
+                etcd_cl, '%s/hooks/ci/%s/status' % (job_base, ci_hook),
+                'pending')
+            job['hooks']['ci'][ci_hook] = {
+                'status': status
+            }
+
+    if hook_type == 'builder' and hook in job_config['hooks']['builders']:
+        etcd_cl.write('%s/hooks/builder/status' % job_base, hook_status)
+        if hook_status == 'success':
+            image = hook_result['image']
+            etcd_cl.write('%s/hooks/builder/image' % job_base,
+                          image)
+        else:
+            image = ''
+        job['hooks']['builder'] = {
+            'status': hook_status,
+            'image': image
+        }
+    else:
+        # Set value to False if not already set
+        status = get_or_insert(etcd_cl, '%s/hooks/builder/status' % job_base,
+                               'pending')
+        image = get_or_insert(etcd_cl, '%s/hooks/builder/image' % job_base, '')
+        job['hooks']['builder'] = {
+            'status': status,
+            'image': image
+        }
     etcd_cl.write(job_base+'/state', job['state'])
+    return job
 
 
-def _as_job(job_config, job_id,  owner, repo, ref, scm_type, commit=None):
+@app.task
+@using_etcd
+def _check_and_fire_deploy(job, etcd_cl=None, etcd_base=None):
+    # Check and fires deploy
+    git = job['meta-info']['git']
+    job_config = job['config']
+    job_base = _job_base_location(git['owner'], git['repo'], git['ref'],
+                                  etcd_base, commit=git['commit'])
+
+    hooks = etcd_cl.read(job_base+'/hooks', recursive=True)
+    failed = False
+    for hook_obj in hooks.leaves:
+        done_key = basename(hook_obj.key)
+        if done_key == 'status':
+            if hook_obj.value == 'pending':
+                # Hooks not yet completed. return
+                return job
+            elif hook_obj.value == 'failed':
+                failed = True
+
+    if failed:
+        return (
+            _delete.si(job_base, ret_value=job, recursive=True) |
+            _failed.si(job)
+        )()
+    else:
+        return (
+            _delete.si(job_base, ret_value=job, recursive=True) |
+            _deploy.si(job)
+        )()
+
+
+@app.task
+@using_etcd
+def _delete(job_base, ret_value=None, etcd_cl=None, **kwargs):
+    safe_delete(etcd_cl, job_base, recursive=True)
+    return ret_value
+
+
+@app.task(bind=True, default_retry_delay=TASK_SETTINGS['DEFAULT_RETRY_DELAY'],
+          max_retries=TASK_SETTINGS['DEFAULT_RETRIES'])
+def _deploy(self, job):
+    job = copy.deepcopy(job)
+    job_config = job['config']
+    job['state'] = JOB_STATE_DEPLOY_REQUESTED
+    deployer = job_config['deployer']
+    apps_url = '%s/apps' % deployer['url']
+    headers = {
+        'content-type': 'application/vnd.deployer.app.version.create.v1+json',
+        'accept': 'application/vnd.deployer.task.v1+json'
+    }
+    data = {
+        'meta-info': job['meta-info'],
+        'proxy': deployer['proxy'],
+        'templates': deployer['templates'],
+        'deployment': deployer['deployment']
+    }
+    try:
+        response = requests.post(apps_url, data=json.dumps(data),
+                                 headers=headers)
+    except ConnectionError as error:
+        self.retry(exc=error)
+
+
+    search_params = create_search_parameters(job)
+    deploy_response = {
+        'request': data,
+        'response': response.json(),
+        'status': response.status_code
+    }
+    return (
+        add_search_event.si(
+            EVENT_DEPLOY_REQUESTED,
+            details=deploy_response,
+            search_params=search_params) |
+        _check_deploy_failed.si(deploy_response, ret_value=job)
+    )()
+
+
+@app.task
+def _check_deploy_failed(deploy_response, ret_value=None):
+    if deploy_response['status'] >= 400:
+        raise DeploymentFailed(deploy_response)
+    return ret_value
+
+
+@app.task(bind=True, default_retry_delay=TASK_SETTINGS['DEFAULT_RETRY_DELAY'],
+          max_retries=TASK_SETTINGS['DEFAULT_RETRIES'])
+def _undeploy(self, job_config, owner, repo, ref):
+    app_name = '%s-%s-%s' % (owner, repo, ref)
+    app_url = '%s/apps/%s' % (job_config['deployer']['url'], app_name)
+    try:
+        requests.delete(app_url)
+    except ConnectionError as error:
+        self.retry(exc=error)
+
+
+@app.task
+def _failed(job):
+    job['state'] = JOB_STATE_FAILED
+    return job
+
+
+def _as_job(job_config, job_id,  owner, repo, ref, state=JOB_STATE_SCHEDULED,
+            commit=None):
     return {
         'config': copy.deepcopy(job_config),
         'meta-info': {
-            'owner': owner,
-            'repo': repo,
-            'ref': ref,
-            'commit': commit,
-            'scm': scm_type,
+            'git': {
+                'owner': owner,
+                'repo': repo,
+                'ref': ref,
+                'commit': commit
+            },
             'job-id': job_id
+        },
+        'state': state,
+        'hooks': {
+            'ci':{},
+            'builder':{}
         }
     }

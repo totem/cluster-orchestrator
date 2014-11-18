@@ -32,15 +32,19 @@ CORS_SETTINGS = {
 }
 
 MIME_JSON = 'application/json'
+MIME_TASK_V1 = 'application/vnd.orch.task.v1+json'
 MIME_ROOT_V1 = 'application/vnd.orch.root.v1+json'
 MIME_HEALTH_V1 = 'application/vnd.orch.health.v1+json'
 MIME_GITHUB_HOOK_V1 = 'application/vnd.orch.github.hook.v1+json'
+MIME_GENERIC_HOOK_V1 = 'application/vnd.orch.generic.hook.v1+json'
 MIME_JOB_V1 = 'application/vnd.orch.job.v1+json'
 
 SCHEMA_ROOT_V1 = 'root-v1'
 SCHEMA_HEALTH_V1 = 'health-v1'
 SCHEMA_GITHUB_HOOK_V1 = 'github-hook-v1'
+SCHEMA_GENERIC_HOOK_V1 = 'generic-hook-v1'
 SCHEMA_JOB_V1 = 'job-v1'
+SCHEMA_TASK_V1 = 'task-v1'
 
 API_MAX_PAGE_SIZE = 1000
 API_DEFAULT_PAGE_SIZE = 10
@@ -80,19 +84,14 @@ CONFIG_PROVIDERS = {
                     'image-factory': {
                         'enabled': True,
                     }
-                },
-                'scm': {
-                    'github': {
-                        'enabled': True
-                    }
                 }
             },
-            'deployers': {
-                'default': {
-                    'url': os.getenv('CLUSTER_DEPLOYER_URL',
-                                     'http://localhost:9100'),
-                    'enabled': True
-                }
+            'deployer': {
+                'url': os.getenv('CLUSTER_DEPLOYER_URL',
+                                 'http://localhost:9000'),
+                'proxy': {},
+                'templates': {},
+                'deployment': {}
             }
         }
     }
@@ -101,9 +100,9 @@ CONFIG_PROVIDERS = {
 CONFIG_PROVIDER_LIST = os.getenv(
     'CONFIG_PROVIDER_LIST', 'etcd,github,default').split(',')
 
-GITHUB_HOOK = {
-    'secret': os.getenv('GITHUB_HOOK_SECRET', 'changeit'),
-    'hint_secret_size': int(os.getenv('GITHUB_HOOK_SECRET_HINT', '2'))
+HOOK_SETTINGS = {
+    'secret': os.getenv('HOOK_SECRET', 'changeit'),
+    'hint_secret_size': int(os.getenv('HOOK_SECRET_HINT', '2'))
 }
 
 TASK_SETTINGS = {
@@ -112,8 +111,8 @@ TASK_SETTINGS = {
     'DEFAULT_RETRY_DELAY': 10,
     'LOCK_RETRY_DELAY': 5,
     'LOCK_RETRIES': 20,
-    'JOB_WAIT_RETRIES': 10,
-    'JOB_WAIT_RETRY_DELAY': 10,
+    'JOB_WAIT_RETRIES': 20,
+    'JOB_WAIT_RETRY_DELAY': 2
 }
 
 JOB_SETTINGS = {
@@ -124,3 +123,4 @@ JOB_STATE_NEW = 'NEW'
 JOB_STATE_SCHEDULED = 'SCHEDULED'
 JOB_STATE_DEPLOY_REQUESTED = 'DEPLOY_REQUESTED'
 JOB_STATE_NOOP = 'NOOP'
+JOB_STATE_FAILED = 'FAILED'

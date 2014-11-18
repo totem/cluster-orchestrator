@@ -18,7 +18,7 @@ EVENT_CI_SUCCESS = 'CI_SUCCESS'
 EVENT_CI_FAILED = 'CI_FAILED'
 EVENT_BUILDER_SUCCESS = 'BUILDER_SUCCESS'
 EVENT_BUILDER_FAILED = 'BUILDER_FAILED'
-
+EVENT_DEPLOY_REQUESTED = 'DEPLOY_REQUESTED'
 
 @app.task
 @orch_search
@@ -27,8 +27,8 @@ def index_job(job, ret_value=None, es=None, idx=None):
     Creates a new deployment
     :param deployment: Dictionary containing deployment parameters
     """
-    return ret_value or \
-        es.index(idx, TYPE_JOBS, job, id=job['meta-info']['job-id'])
+    es.index(idx, TYPE_JOBS, job, id=job['meta-info']['job-id'])
+    return ret_value or job
 
 
 @app.task
@@ -73,7 +73,7 @@ def create_search_parameters(job, defaults=None):
 @app.task
 @orch_search
 def add_search_event(event_type, details=None, search_params={}, es=None,
-                     idx=None):
+                     idx=None, ret_value=None, next_task=None):
     """
     Adds search event for the job in elasticsearch.
 
@@ -90,4 +90,5 @@ def add_search_event(event_type, details=None, search_params={}, es=None,
         'details': details,
         'date': datetime.datetime.utcnow(),
     })
-    return es.create(idx, TYPE_EVENTS, event_upd)
+    es.create(idx, TYPE_EVENTS, event_upd)
+    return ret_value

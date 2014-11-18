@@ -23,3 +23,17 @@ class TaskExecutionException(Exception):
             'details': self.details,
             'traceback': self.traceback
         }
+
+
+class DeploymentFailed(Exception):
+
+    def __init__(self, deploy_response):
+        self.response = deploy_response
+        super(DeploymentFailed, self).__init__(deploy_response)
+
+    def to_dict(self):
+        return {
+            'message': 'Deployment request failed',
+            'code': 'INTERNAL',
+            'details': self.response
+        }

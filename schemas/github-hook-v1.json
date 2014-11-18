@@ -4,6 +4,46 @@
   "title": "Schema for githook payload",
   "id": "#githook-v1",
   "properties":{
-
+    "deleted": {
+      "description": "Boolean value indicated if this is payload for delete hook",
+      "type": "boolean"
+    },
+    "ref":{
+      "description": "Boolean value indicated if this is payload for delete hook",
+      "type": "string",
+      "maxLength": 255
+    },
+    "repository": {
+      "$ref": "#/definitions/repository"
+    }
+  },
+  "additionalProperties": true,
+  "required": ["deleted", "ref", "repository"],
+  "definitions": {
+    "repository": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Name of the repository",
+          "maxLength": 100
+        },
+        "owner": {
+          "$ref": "#/definitions/owner"
+        }
+      },
+      "additionalProperties": true,
+      "required": ["name", "owner"]
+    },
+    "owner": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Name of the repository owner",
+          "maxLength": 100
+        }
+      },
+      "additionalProperties": true,
+      "required": ["name"]
+    }
   }
 }
