@@ -20,6 +20,7 @@ EVENT_BUILDER_SUCCESS = 'BUILDER_SUCCESS'
 EVENT_BUILDER_FAILED = 'BUILDER_FAILED'
 EVENT_DEPLOY_REQUESTED = 'DEPLOY_REQUESTED'
 
+
 @app.task
 @orch_search
 def index_job(job, ret_value=None, es=None, idx=None):

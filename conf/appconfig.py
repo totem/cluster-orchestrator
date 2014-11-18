@@ -18,7 +18,7 @@ TOTEM_ETCD_SETTINGS = {
 CLUSTER_NAME = os.getenv('CLUSTER_NAME', 'local')
 
 SEARCH_SETTINGS = {
-    'enabled': os.getenv('SEARCH_ENABLED', 'true').strip().lower() in
+    'enabled': os.getenv('SEARCH_ENABLED', 'false').strip().lower() in
     BOOLEAN_TRUE_VALUES,
     'host': os.getenv('ELASTICSEARCH_HOST', '172.17.42.1'),
     'port': os.getenv('ELASTICSEARCH_PORT', '9200'),

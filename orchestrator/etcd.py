@@ -69,4 +69,3 @@ def get_or_insert(etcd_cl, key, value, **kwargs):
     except KeyError:
         # Ignore existing key.
         return etcd_cl.read(key, prevExist=True).value
-

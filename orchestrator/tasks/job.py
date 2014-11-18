@@ -37,12 +37,6 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook,
                 default_retry_delay=TASK_SETTINGS[
                     'JOB_WAIT_RETRY_DELAY'],
                 max_retries=TASK_SETTINGS['JOB_WAIT_RETRIES']
-            ) |
-            _check_and_fire_deploy.s() |
-            async_wait.s(
-                default_retry_delay=TASK_SETTINGS[
-                    'JOB_WAIT_RETRY_DELAY'],
-                max_retries=TASK_SETTINGS['JOB_WAIT_RETRIES']
             )
 
         )
@@ -203,7 +197,7 @@ def _update_job(job, hook_type, hook, hook_result=None, hook_status='success'):
     return (
         _update_etcd_job.si(job, hook_type, hook, hook_result=hook_result,
                             hook_status=hook_status) |
-        index_job.s()
+        _check_and_fire_deploy.s()
     )()
 
 
@@ -262,7 +256,7 @@ def _update_etcd_job(job, hook_type, hook, hook_status='success',
             'image': image
         }
     etcd_cl.write(job_base+'/state', job['state'])
-    return job
+    return index_job.si(job, ret_value=job)()
 
 
 @app.task
@@ -270,7 +264,6 @@ def _update_etcd_job(job, hook_type, hook, hook_status='success',
 def _check_and_fire_deploy(job, etcd_cl=None, etcd_base=None):
     # Check and fires deploy
     git = job['meta-info']['git']
-    job_config = job['config']
     job_base = _job_base_location(git['owner'], git['repo'], git['ref'],
                                   etcd_base, commit=git['commit'])
 
@@ -328,7 +321,6 @@ def _deploy(self, job):
     except ConnectionError as error:
         self.retry(exc=error)
 
-
     search_params = create_search_parameters(job)
     deploy_response = {
         'request': data,
@@ -383,7 +375,7 @@ def _as_job(job_config, job_id,  owner, repo, ref, state=JOB_STATE_SCHEDULED,
         },
         'state': state,
         'hooks': {
-            'ci':{},
-            'builder':{}
+            'ci': {},
+            'builder': {}
         }
     }

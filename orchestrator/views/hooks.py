@@ -1,12 +1,11 @@
 import functools
 import hmac
 from os.path import basename
-from flask import request, url_for
+from flask import request
 from flask.views import MethodView
 from conf.appconfig import HOOK_SETTINGS, MIME_GENERIC_HOOK_V1, \
     SCHEMA_GENERIC_HOOK_V1, MIME_JSON, MIME_JOB_V1, SCHEMA_JOB_V1, \
-    SCHEMA_TASK_V1, MIME_TASK_V1, MIME_GITHUB_HOOK_V1, SCHEMA_GITHUB_HOOK_V1, \
-    BOOLEAN_TRUE_VALUES
+    SCHEMA_TASK_V1, MIME_TASK_V1, MIME_GITHUB_HOOK_V1, SCHEMA_GITHUB_HOOK_V1
 from orchestrator.views import hypermedia, task_client
 from orchestrator.views.error import raise_error
 from hashlib import sha1

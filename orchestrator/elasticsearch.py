@@ -28,7 +28,7 @@ def orch_search(fun):
         else:
             logger.info('Elasticsearch is disabled. Skipping %s call',
                         fun.__name__)
-            return None
+            return kwargs.get('ret_value', None)
     return outer
 
 
