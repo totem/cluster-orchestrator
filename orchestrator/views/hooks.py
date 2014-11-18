@@ -13,9 +13,9 @@ from orchestrator.tasks.job import handle_callback_hook, undeploy
 from orchestrator.views.util import created_task, created, build_response
 
 
-def authorize(sig_header):
+def authorize(sig_header='X-Hook-Signature'):
     """
-    Function wrapper for authorizing github web hooks
+    Function wrapper for authorizing web hooks
 
     :param func: Function to be wrapped
     :return: Wrapped function

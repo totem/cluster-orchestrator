@@ -4,7 +4,7 @@ from mock import patch
 from nose.tools import eq_
 from conf.appconfig import MIME_JSON
 from orchestrator.server import app
-from orchestrator.views.github import authorize
+from orchestrator.views.hooks import authorize
 
 import logging
 
@@ -23,7 +23,7 @@ class TestAuthorize:
     def _create_test_route(self):
 
         @self.app.route('/test', methods=['POST'])
-        @authorize
+        @authorize()
         def test_route():
             return 'OK'
 
@@ -83,7 +83,7 @@ class TestAuthorize:
             data=json.dumps(self.mock_payload),
             headers={
                 'Content-Type': MIME_JSON,
-                'X-Hub-Signature': '5bf6caadb33275bf0f740f204f6176deff9465e7'
+                'X-Hook-Signature': '5bf6caadb33275bf0f740f204f6176deff9465e7'
             })
 
         # Success response is returned
@@ -101,13 +101,13 @@ class TestGithubHookApi:
         },
         "ref": "refs/heads/mock-ref",
         "after": "7700ca29dd050d9adacc0803f866d9b539513535",
-        "deleted": false
+        "deleted": true
     }'''
 
     def setup(self):
         self.client = app.test_client()
 
-    @patch('orchestrator.views.github.start_job')
+    @patch('orchestrator.views.hooks.undeploy')
     def test_post(self, mock_start_job):
         """
         Should return accepted response when a valid github hook is posted.
@@ -115,11 +115,11 @@ class TestGithubHookApi:
 
         # When I post to github endpoint
         resp = self.client.post(
-            '/external/github',
+            '/external/hooks/github',
             data=self.mock_payload,
             headers={
                 'Content-Type': MIME_JSON,
-                'X-Hub-Signature': 'a5a580cce7bddd8dce4edff334361cd5c0c77968'
+                'X-Hub-Signature': '2d7c671dfefb80b398b45d643ce6bded2ca07bd4'
             }
         )
         logger.info('Response: %s', resp.data)
