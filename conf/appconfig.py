@@ -32,6 +32,7 @@ CORS_SETTINGS = {
 }
 
 MIME_JSON = 'application/json'
+MIME_HTML = 'text/html'
 MIME_TASK_V1 = 'application/vnd.orch.task.v1+json'
 MIME_ROOT_V1 = 'application/vnd.orch.root.v1+json'
 MIME_HEALTH_V1 = 'application/vnd.orch.health.v1+json'
