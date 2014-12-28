@@ -86,6 +86,7 @@ sudo docker run -it --rm -h cluster-orchestrator-${USER} --name cluster-orchestr
 | ETCD_PORT | Etcd server port. | 4001 | 4001 |
 | ETCD_TOTEM_BASE | Base path for totem configurations | /totem | /totem |
 | API_EXECUTORS | No. of uwsgi processes to be created for serving API | Not Used | 2 |
+| FLASK_DEBUG | Reloadable flask flag (true/false) | false | Not Used |
 
  
 
