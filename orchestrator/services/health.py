@@ -1,9 +1,13 @@
 from functools import wraps
 import sys
 from etcd import client
-from conf.appconfig import HEALTH_OK, HEALTH_FAILED, TOTEM_ETCD_SETTINGS
+from conf.appconfig import HEALTH_OK, HEALTH_FAILED, TOTEM_ETCD_SETTINGS, \
+    SEARCH_SETTINGS
 from orchestrator.elasticsearch import get_search_client
 from orchestrator.tasks.common import ping
+from orchestrator.util import timeout
+
+HEALTH_TIMEOUT_SECONDS = 10
 
 
 def _check(func):
@@ -37,6 +41,7 @@ def _check(func):
     return inner
 
 
+@timeout(HEALTH_TIMEOUT_SECONDS)
 @_check
 def _check_elasticsearch():
     """
@@ -45,6 +50,7 @@ def _check_elasticsearch():
     return get_search_client().info()
 
 
+@timeout(HEALTH_TIMEOUT_SECONDS)
 @_check
 def _check_etcd():
     etcd_cl = client.Client(
@@ -56,18 +62,30 @@ def _check_etcd():
     }
 
 
+@timeout(HEALTH_TIMEOUT_SECONDS)
 @_check
 def _check_celery():
     """
     Checks health for celery integration using ping-pong task output.
     """
-    output = ping.delay().get(timeout=10)
+    output = ping.delay().get(timeout=HEALTH_TIMEOUT_SECONDS)
     return 'Celery ping:%s' % output
 
 
 def get_health():
-    return {
-        'elasticsearch': _check_elasticsearch(),
+    """
+    Gets the health of the all the external services.
+
+    :return: dictionary with
+        key: service name like etcd, celery, elasticsearch
+        value: dictionary of health status
+    :rtype: dict
+    """
+
+    health_status = {
         'etcd': _check_etcd(),
         'celery': _check_celery()
     }
+    if SEARCH_SETTINGS['enabled']:
+        health_status['elasticsearch'] = _check_elasticsearch()
+    return health_status
