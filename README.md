@@ -6,7 +6,7 @@ Provides orchestration for continuous deployment to Totem Cluster.
 This project is currently under development.
 
 ## Documentation
-Project uses Sphinx for code/api dpcumentation
+Project uses Sphinx for code/api documentation.
 
 ### Location
 The latest code/api documentation can be found at:
@@ -87,6 +87,8 @@ sudo docker run -it --rm -h cluster-orchestrator-${USER} --name cluster-orchestr
 | ETCD_TOTEM_BASE | Base path for totem configurations | /totem | /totem |
 | API_EXECUTORS | No. of uwsgi processes to be created for serving API | Not Used | 2 |
 | FLASK_DEBUG | Reloadable flask flag (true/false) | false | Not Used |
+| HOOK_SECRET | The secret to be used for web hooks | changeit | changeit |
+| HOOK_SECRET_HINT | No. of characters to be displayed for signature when secret is invalid. This is useful for development and should be set to 0 for production | 2 | 
 
  
 

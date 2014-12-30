@@ -1,0 +1,65 @@
+{
+	"id": "bb2d72de-4c4e-ab95-6bbb-deb2dd7b46b2",
+	"name": "TOTEM_LOCAL",
+	"values": [
+		{
+			"key": "ORCHESTRATOR_URL",
+			"value": "http://localhost:8080",
+			"type": "text",
+			"name": "ORCHESTRATOR_URL",
+			"enabled": true
+		},
+		{
+			"key": "COMPTROLLER_URL",
+			"value": "http://localhost:7800",
+			"type": "text",
+			"name": "COMPTROLLER_URL",
+			"enabled": true
+		},
+		{
+			"key": "PROXY_URL",
+			"value": "http://localhost:8181",
+			"type": "text",
+			"name": "PROXY_URL",
+			"enabled": true
+		},
+		{
+			"key": "DASHBOARD_URL",
+			"value": "http://localhost:8080",
+			"type": "text",
+			"name": "DASHBOARD_URL",
+			"enabled": true
+		},
+		{
+			"key": "IMAGE_FACTORY_URL",
+			"value": "http://localhost:8082",
+			"type": "text",
+			"name": "IMAGE_FACTORY_URL",
+			"enabled": true
+		},
+		{
+			"key": "ETCD_URL",
+			"value": "http://localhost:4001",
+			"type": "text",
+			"name": "ETCD_URL",
+			"enabled": true
+		},
+		{
+			"key": "CLUSTER_DEPLOYER_URL",
+			"value": "http://localhost:9000",
+			"type": "text",
+			"name": "CLUSTER_DEPLOYER_URL",
+			"enabled": true
+		},
+		{
+			"key": "CLUSTER_ORCH_URL",
+			"value": "http://localhost:9400",
+			"type": "text",
+			"name": "CLUSTER_ORCH_URL",
+			"enabled": true
+		}
+	],
+	"timestamp": 1415229752136,
+	"synced": false,
+	"syncedFilename": ""
+}

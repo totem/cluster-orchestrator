@@ -32,6 +32,7 @@ CORS_SETTINGS = {
 }
 
 MIME_JSON = 'application/json'
+MIME_FORM_URL_ENC = 'application/x-www-form-urlencoded'
 MIME_HTML = 'text/html'
 MIME_TASK_V1 = 'application/vnd.orch.task.v1+json'
 MIME_ROOT_V1 = 'application/vnd.orch.root.v1+json'
@@ -44,6 +45,7 @@ SCHEMA_ROOT_V1 = 'root-v1'
 SCHEMA_HEALTH_V1 = 'health-v1'
 SCHEMA_GITHUB_HOOK_V1 = 'github-hook-v1'
 SCHEMA_GENERIC_HOOK_V1 = 'generic-hook-v1'
+SCHEMA_TRAVIS_HOOK_V1 = 'travis-hook-v1'
 SCHEMA_JOB_V1 = 'job-v1'
 SCHEMA_TASK_V1 = 'task-v1'
 
@@ -102,6 +104,9 @@ CONFIG_PROVIDER_LIST = os.getenv(
     'CONFIG_PROVIDER_LIST', 'etcd,github,default').split(',')
 
 HOOK_SETTINGS = {
+    'travis': {
+        'token': os.getenv('TRAVIS_TOKEN', 'changeit'),
+    },
     'secret': os.getenv('HOOK_SECRET', 'changeit'),
     'hint_secret_size': int(os.getenv('HOOK_SECRET_HINT', '2'))
 }

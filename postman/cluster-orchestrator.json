@@ -1,0 +1,177 @@
+{
+	"id": "1c48b139-fd7b-5a04-7e31-80aa099935d9",
+	"name": "cluster-orchestrator",
+	"description": "",
+	"order": [
+		"98e6c829-612a-aeb9-9e30-70e704a2cedd",
+		"4eb93e1e-f151-f802-ca0a-98f0bb4542c9"
+	],
+	"folders": [
+		{
+			"id": "4235ceb6-df6b-8e2d-9858-48fcb5f6408f",
+			"name": "jobs",
+			"description": "",
+			"order": [
+				"438b2726-723b-b045-0cfe-8f641483429e",
+				"3a3096a7-7680-9081-a8eb-5655784e4fa0",
+				"8d7c10c7-b3da-a047-9e0c-633c69cd0d58",
+				"6afc8ff8-72cc-3b70-b572-6ec486dbf4dd"
+			],
+			"collection_name": "cluster-orchestrator",
+			"collection_id": "1c48b139-fd7b-5a04-7e31-80aa099935d9"
+		},
+		{
+			"id": "a848bfd7-8062-089f-810b-f4924d4ca1fd",
+			"name": "tasks",
+			"description": "",
+			"order": [
+				"a16abc54-d4d5-ec37-fd2e-f24a9aa1818f"
+			],
+			"collection_name": "cluster-orchestrator",
+			"collection_id": "1c48b139-fd7b-5a04-7e31-80aa099935d9"
+		}
+	],
+	"timestamp": 1415229694934,
+	"synced": false,
+	"remoteLink": "",
+	"requests": [
+		{
+			"id": "3a3096a7-7680-9081-a8eb-5655784e4fa0",
+			"headers": "Accept: application/vnd.orch.task.v1+json\nX-Hook-Signature: 89197b34fab147655965e03f460fb9f47c692bae\nContent-Type: application/vnd.orch.generic.hook.v1+json\n",
+			"url": "{{CLUSTER_ORCH_URL}}/external/hooks/generic",
+			"preRequestScript": "",
+			"pathVariables": {},
+			"method": "POST",
+			"data": [],
+			"dataMode": "raw",
+			"version": 2,
+			"tests": "",
+			"time": 1416252810924,
+			"name": "GenericHook: POST (Async)",
+			"description": "",
+			"collectionId": "1c48b139-fd7b-5a04-7e31-80aa099935d9",
+			"responses": [],
+			"synced": false,
+			"rawModeData": "{\n  \"git\":{\n    \"owner\": \"totem\",\n    \"repo\": \"spec-python\",\n    \"ref\": \"master\",\n    \"commit\": \"somecommit\"\n  },\n  \"type\": \"builder\",\n  \"name\": \"image-factory\"\n}"
+		},
+		{
+			"id": "438b2726-723b-b045-0cfe-8f641483429e",
+			"headers": "X-Hub-Signature: 55a0111144a2ad3f9e1c4daa927532b5d45e0df3\nContent-Type: application/json\n",
+			"url": "{{CLUSTER_ORCH_URL}}/external/hooks/github",
+			"preRequestScript": "",
+			"pathVariables": {},
+			"method": "POST",
+			"data": [],
+			"dataMode": "raw",
+			"version": 2,
+			"tests": "",
+			"time": 1416270856040,
+			"name": "Github: POST (Delete Branch)",
+			"description": "",
+			"collectionId": "1c48b139-fd7b-5a04-7e31-80aa099935d9",
+			"responses": [],
+			"synced": false,
+			"rawModeData": "{\n  \"deleted\": true,\n  \"repository\":{\n    \"name\": \"spec-python\",\n    \"owner\":{\n      \"name\": \"totem\"\n    }\n  },\n  \"ref\": \"refs/heads/master\"\n}"
+		},
+		{
+			"id": "4eb93e1e-f151-f802-ca0a-98f0bb4542c9",
+			"headers": "Accept: application/vnd.orch.health.v1+json\n",
+			"url": "{{CLUSTER_ORCH_URL}}/health",
+			"preRequestScript": "",
+			"pathVariables": {},
+			"method": "GET",
+			"data": [],
+			"dataMode": "params",
+			"version": 2,
+			"tests": "",
+			"time": 1415650898042,
+			"name": "Health: GET",
+			"description": "",
+			"collectionId": "1c48b139-fd7b-5a04-7e31-80aa099935d9",
+			"responses": [],
+			"synced": false
+		},
+		{
+			"id": "6afc8ff8-72cc-3b70-b572-6ec486dbf4dd",
+			"headers": "Accept: application/vnd.orch.task.v1+json\nX-Hook-Signature: 89197b34fab147655965e03f460fb9f47c692bae\nContent-Type: application/vnd.orch.generic.hook.v1+json\nAuthorization: 5cb1fba67d95c3ab36d88604dede0ccba72dd15e7d00479f552d7251ecc3c735\n",
+			"url": "{{CLUSTER_ORCH_URL}}/external/hooks/travis",
+			"preRequestScript": "",
+			"pathVariables": {},
+			"method": "POST",
+			"data": [
+				{
+					"key": "payload",
+					"value": "{   \"repository\":{  \"owner_name\": \"totem\",  \"name\": \"spec-python\"},     \"branch\": \"master\",     \"commit\": \"somecommit\", \"status\": 0}",
+					"type": "text",
+					"enabled": true
+				}
+			],
+			"dataMode": "urlencoded",
+			"version": 2,
+			"tests": "",
+			"currentHelper": "normal",
+			"helperAttributes": {},
+			"time": 1419929651574,
+			"name": "Travis: POST (Async)",
+			"description": "",
+			"collectionId": "1c48b139-fd7b-5a04-7e31-80aa099935d9",
+			"responses": [],
+			"synced": false
+		},
+		{
+			"id": "8d7c10c7-b3da-a047-9e0c-633c69cd0d58",
+			"headers": "Accept: application/vnd.orch.job.v1+json\nX-Hook-Signature: f11c9762b716f47180fdfa4faf9174012a194199\nContent-Type: application/vnd.orch.generic.hook.v1+json\n",
+			"url": "{{CLUSTER_ORCH_URL}}/external/hooks/generic",
+			"preRequestScript": "",
+			"pathVariables": {},
+			"method": "POST",
+			"data": [],
+			"dataMode": "raw",
+			"version": 2,
+			"tests": "",
+			"time": 1416292416639,
+			"name": "GenericHook: POST (Sync)",
+			"description": "",
+			"collectionId": "1c48b139-fd7b-5a04-7e31-80aa099935d9",
+			"responses": [],
+			"synced": false,
+			"rawModeData": "{\n  \"git\":{\n    \"owner\": \"totem\",\n    \"repo\": \"spec-python\",\n    \"ref\": \"master\",\n    \"commit\": \"somecommit\"\n  },\n  \"type\": \"builder\",\n  \"name\": \"image-factory\",\n  \"status\": \"success\",\n  \"result\": {\n    \"image\": \"totem/totem-spec-python:latest\"\n  }\n}"
+		},
+		{
+			"id": "98e6c829-612a-aeb9-9e30-70e704a2cedd",
+			"headers": "Accept: application/vnd.orch.root.v1+json\nX-Hub-Signature: 1bc40d1a2f7073fe7878d366d1df2084ea73f088c\nContent-Type: application/json\n",
+			"url": "{{CLUSTER_ORCH_URL}}/",
+			"preRequestScript": "",
+			"pathVariables": {},
+			"method": "GET",
+			"data": [],
+			"dataMode": "params",
+			"version": 2,
+			"tests": "",
+			"time": 1415604767938,
+			"name": "Root: GET",
+			"description": "",
+			"collectionId": "1c48b139-fd7b-5a04-7e31-80aa099935d9",
+			"responses": [],
+			"synced": false
+		},
+		{
+			"id": "a16abc54-d4d5-ec37-fd2e-f24a9aa1818f",
+			"headers": "Content-Type: application/json\n",
+			"url": "{{CLUSTER_ORCH_URL}}/tasks/5b4eab72-7818-4393-8ff6-92c13a4a921b?wait=true",
+			"preRequestScript": "",
+			"pathVariables": {},
+			"method": "GET",
+			"data": [],
+			"dataMode": "params",
+			"version": 2,
+			"tests": "",
+			"time": 1416271596662,
+			"name": "Task: GET",
+			"description": "",
+			"collectionId": "1c48b139-fd7b-5a04-7e31-80aa099935d9",
+			"responses": [],
+			"synced": false
+		}
+	]
+}
