@@ -178,7 +178,6 @@ class TravisHookApi(MethodView):
         })
     @hypermedia.produces(
         {
-            MIME_JOB_V1: SCHEMA_JOB_V1,
             MIME_JSON: SCHEMA_TASK_V1,
             MIME_TASK_V1: SCHEMA_TASK_V1
         }, default=MIME_TASK_V1)
@@ -197,16 +196,9 @@ class TravisHookApi(MethodView):
         result = handle_callback_hook.delay(
             owner, repo, ref, 'ci', 'travis', commit=commit,
             hook_status=status, hook_result=request_data)
-        if accept_mimetype == MIME_JOB_V1:
-            # Synchronous call is just added for testing.
-            result = task_client.ready(result.id, wait=True, raise_error=True)
-            job = result['output']
-            location = '/jobs/%s' % (job['meta-info']['job-id'])
-            return created(job, location=location)
-        else:
-            # Asynchronously handle the task creation.
-            return created_task(result)
-        pass
+
+        # Asynchronously handle the task creation.
+        return created_task(result)
 
 
 def register(app, **kwargs):
