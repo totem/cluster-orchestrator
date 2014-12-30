@@ -150,7 +150,7 @@ class TravisHookApi(MethodView):
     def _get_travis_digest(owner, repo,
                            token=HOOK_SETTINGS['travis']['token']):
         msg = '%s/%s%s' % (owner, repo, token)
-        return sha256(msg).hexdigest()
+        return sha256(msg.encode('utf-8')).hexdigest()
 
     @staticmethod
     def _assert_digest(expected_digest, actual_digest, owner, repo):
