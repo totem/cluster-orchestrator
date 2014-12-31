@@ -120,7 +120,8 @@ class TestGithubHookApi:
             data=self.mock_payload,
             headers={
                 'Content-Type': MIME_JSON,
-                'X-Hub-Signature': '2d7c671dfefb80b398b45d643ce6bded2ca07bd4'
+                'X-Hub-Signature':
+                'sha1=2d7c671dfefb80b398b45d643ce6bded2ca07bd4'
             }
         )
         logger.info('Response: %s', resp.data)

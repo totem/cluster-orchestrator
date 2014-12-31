@@ -1,5 +1,6 @@
 import functools
 import hmac
+import re
 import logging
 from os.path import basename
 from flask import request
@@ -28,7 +29,8 @@ def authorize(sig_header='X-Hook-Signature'):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             expected_digest = _get_digest(request.data)
-            actual_digest = request.headers.get(sig_header, '')
+            actual_digest = re.sub('^sha1=(.*)', '\\1',
+                                   request.headers.get(sig_header, ''))
             if actual_digest != expected_digest:
                 hint_secret_size = max(
                     0, min((HOOK_SETTINGS['hint_secret_size'],
