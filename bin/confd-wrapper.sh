@@ -1,4 +1,4 @@
-#!/bin/bash -lex
+#!/bin/bash -le
 
 export ETCD_URL="$ETCD_HOST:$ETCD_PORT"
 export ETCDCTL="etcdctl --peers $ETCD_URL"
