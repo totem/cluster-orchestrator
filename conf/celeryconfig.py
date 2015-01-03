@@ -60,7 +60,7 @@ CELERY_TASK_PUBLISH_RETRY_POLICY = {
 CELERYBEAT_SCHEDULE = {
     'celery.task.backend_cleanup': {
         'task': 'orchestrator.tasks.backend_cleanup',
-        'schedule': crontab(hour="*/2"),
+        'schedule': crontab(hour="*/2", minute="0"),
         'args': (),
     }
 }
