@@ -23,7 +23,7 @@ autorestart=true
 redirect_stderr=true
 
 [program:uwsgi]
-command=/usr/local/bin/uwsgi --master --catch-exceptions --processes %(ENV_API_EXECUTORS)s --gevent 100 --http :9400 --http-timeout 610 --module orchestrator.server --callable app
+command=/usr/local/bin/uwsgi --master --catch-exceptions --processes %(ENV_API_EXECUTORS)s --gevent 100 --http :9400 --http-timeout 610 --gevent-monkey-patch --module orchestrator.server --callable app
 autorestart=true
 startsecs=5
 redirect_stderr=true
