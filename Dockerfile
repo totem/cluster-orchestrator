@@ -54,6 +54,8 @@ RUN pip install -r /opt/cluster-orchestrator/requirements.txt
 
 EXPOSE 9400 5556 22
 
+ENV DISCOVER_PORTS 9400 5556
+
 WORKDIR /opt/cluster-orchestrator
 
 ENTRYPOINT ["/usr/sbin/supervisord-wrapper.sh"]
