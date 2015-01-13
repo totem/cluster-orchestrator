@@ -11,6 +11,7 @@ MESSAGES_TTL = 7200
 
 # Broker and Queue Settings
 BROKER_URL = os.getenv('BROKER_URL', 'amqp://guest:guest@localhost:5672/')
+BROKER_HEARTBEAT = int(os.getenv('BROKER_HEARTBEAT', '60'))
 CELERY_DEFAULT_QUEUE = 'orchestrator-%s-default' % CLUSTER_NAME
 CELERY_QUEUES = (
     Queue(CELERY_DEFAULT_QUEUE, routing_key='default',
