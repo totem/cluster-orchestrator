@@ -12,6 +12,7 @@ from orchestrator.cluster_config.etcd import EtcdConfigProvider
 from orchestrator.cluster_config.s3 import S3ConfigProvider
 import orchestrator.services.config as service
 from orchestrator.services.errors import ConfigProviderNotFound
+from tests.helper import dict_compare
 
 __author__ = 'sukrit'
 
@@ -96,7 +97,7 @@ def test_get_s3_provider(mock_provider_list):
     # Then: Etcd Config Provider is returned
     eq_(isinstance(provider, S3ConfigProvider), True)
     eq_(provider.bucket, 'mockbucket')
-    eq_(provider.config_base, '/mock/config')
+    eq_(provider.config_base, '/mock')
 
 
 @patch.dict('orchestrator.services.config.CONFIG_PROVIDERS', {
@@ -132,3 +133,87 @@ def test_get_effective_provider(mock_provider_list):
     # Then: Etcd Config Provider is returned
     eq_(isinstance(provider, MergedConfigProvider), True)
     eq_(len(provider.providers), 1)
+
+
+def test_evaluate_value():
+    """
+    Should evaluate value by parsing templates.
+    :return:
+    """
+
+    # Given: Object that needs to be evaluated
+    obj = {
+        'str-key': 'str-value',
+        'int-key': 2,
+        'nested-key': {
+            'nested-key1': 'template#{{ var1 }}'
+        },
+        'list-key': [
+            'list-value1',
+            'template#{{ var1 }}',
+            ['nested-list-value1', 'template#{{ var2 }}'],
+            {
+                'nested-key2': 'template#{{ var2 }}'
+            },
+        ],
+        'line-comment': 'template#       '
+                        '# if var1 \n'
+                        '{{ var1 }} \n'
+                        '# endif'
+    }
+
+    # And: variables that needs to be applied
+    variables = {
+        'var1': 'var1-value',
+        'var2': 'var2-value'
+    }
+
+    # When: I evaluate object
+    result = service.evaluate_value(obj, variables)
+
+    # Then: Expected result with evaluated values is returned
+
+    dict_compare(result, {
+        'str-key': 'str-value',
+        'int-key': 2,
+        'nested-key': {
+            'nested-key1': 'var1-value'
+        },
+        'list-key': [
+            'list-value1',
+            'var1-value',
+            ['nested-list-value1', 'var2-value'],
+            {
+                'nested-key2': 'var2-value'
+            },
+        ],
+        'line-comment': 'var1-value'
+    })
+
+
+def test_evaluate():
+    """
+    Should evaluate config as expected
+    :return: None
+    """
+
+    # Given: Config that needs to be evaluated
+    config = {
+        'variables': {
+            'var1': 'value1',
+            'var2': 'value2'
+        },
+        'key': '   template#   test-{{ var1 }}-{{ var2 }}-{{ var3 }}   '
+    }
+
+    # When: I evaluate the config
+    result = service.evaluate_config(config, {
+        'var1': 'default1',
+        'var2': 'default2',
+        'var3': 'default3'
+    })
+
+    # Then: Expected config is returned
+    dict_compare(result, {
+        'key': 'test-value1-value2-default3'
+    })

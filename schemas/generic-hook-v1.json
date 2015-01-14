@@ -23,6 +23,10 @@
     "result": {
       "description": "Result object",
       "type": "object"
+    },
+    "force-deploy": {
+      "description": "Force deploy the image on receiving this hook (ignore status)",
+      "type": "boolean"
     }
   },
   "additionalProperties": false,

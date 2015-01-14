@@ -93,7 +93,8 @@ class GenericPostHookApi(MethodView):
             git['owner'], git['repo'], git['ref'], request_data['type'],
             request_data['name'], commit=git['commit'],
             hook_status=request_data['status'],
-            hook_result=request_data['result'])
+            hook_result=request_data['result'],
+            force_deploy=request_data.get('force-deploy', False))
         if accept_mimetype == MIME_JOB_V1:
             result = task_client.ready(result.id, wait=True, raise_error=True)
             job = result['output']

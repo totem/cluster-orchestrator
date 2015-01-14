@@ -7,7 +7,7 @@ from celery import chain
 from requests.exceptions import ConnectionError
 from conf.appconfig import TASK_SETTINGS, JOB_SETTINGS, JOB_STATE_NEW, \
     JOB_STATE_SCHEDULED, JOB_STATE_DEPLOY_REQUESTED, JOB_STATE_NOOP, \
-    JOB_STATE_FAILED
+    JOB_STATE_FAILED, BOOLEAN_TRUE_VALUES
 from conf.celeryconfig import CLUSTER_NAME
 from orchestrator.celery import app
 from orchestrator.etcd import using_etcd, safe_delete, get_or_insert
@@ -18,21 +18,45 @@ from orchestrator.tasks.exceptions import DeploymentFailed
 from orchestrator.tasks.search import index_job, create_search_parameters, \
     add_search_event, EVENT_DEPLOY_REQUESTED
 from orchestrator.tasks.common import async_wait
+from orchestrator.util import dict_merge
 
 __author__ = 'sukrit'
 
 
+def _template_variables(owner, repo, ref, commit=None):
+    ref_number = ref.lower().replace('feature_', '').replace('patch_', '')
+    commit = commit or 'na'
+    return {
+        'owner': owner,
+        'repo': repo,
+        'ref': ref,
+        'commit': commit,
+        'ref-number': ref_number
+    }
+
+
 @app.task
-def handle_callback_hook(owner, repo, ref, hook_type, hook,
-                         hook_status='success', hook_result=None, commit=None):
-    job_config = config.load_config(CLUSTER_NAME, owner, repo, ref)
+def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
+                         hook_status='success', hook_result=None, commit=None,
+                         force_deploy=False):
+    template_vars = _template_variables(owner, repo, ref, commit=commit,)
+    job_config = config.load_config(
+        CLUSTER_NAME, owner, repo, ref, default_variables=template_vars)
+    job_config['enabled'] = str(job_config.get('enabled', 'false')).lower()\
+        in BOOLEAN_TRUE_VALUES
+    for hooks in job_config['hooks'].itervalues():
+        for hook in hooks.itervalues():
+            hook['enabled'] = str(hook.get('enabled', False)).lower() in \
+                BOOLEAN_TRUE_VALUES
+
     return _using_lock.si(
         name='%s-%s-%s-%s' % (CLUSTER_NAME, owner, repo, ref),
         do_task=(
             _update_job_ttl.si(owner, repo, ref, commit=commit) |
-            _handle_hook.si(job_config, owner, repo, ref, hook_type, hook,
+            _handle_hook.si(job_config, owner, repo, ref, hook_type, hook_name,
                             commit=commit, hook_status=hook_status,
-                            hook_result=hook_result) |
+                            hook_result=hook_result,
+                            force_deploy=force_deploy) |
             async_wait.s(
                 default_retry_delay=TASK_SETTINGS[
                     'JOB_WAIT_RETRY_DELAY'],
@@ -53,7 +77,9 @@ def undeploy(owner, repo, ref):
     :type git_meta: dict
     :return: None
     """
-    job_config = config.load_config(CLUSTER_NAME, owner, repo, ref)
+    template_vars = _template_variables(owner, repo, ref)
+    job_config = config.load_config(
+        CLUSTER_NAME, owner, repo, ref, default_variables=template_vars)
 
     return _using_lock.si(
         name='%s-%s-%s-%s' % (CLUSTER_NAME, owner, repo, ref),
@@ -147,9 +173,9 @@ def _update_job_ttl(owner, repo, ref, commit=None, ttl=None, etcd_cl=None,
 
 @app.task
 @using_etcd
-def _handle_hook(job_config, owner, repo, ref, hook_type, hook,
+def _handle_hook(job_config, owner, repo, ref, hook_type, hook_name,
                  hook_status='success', hook_result=None, commit=None,
-                 etcd_cl=None, etcd_base=None):
+                 etcd_cl=None, etcd_base=None, force_deploy=False):
     job_base = _job_base_location(owner, repo, ref, etcd_base, commit=commit)
 
     # If we can not get branch, in that case we can not guarantee the
@@ -164,17 +190,18 @@ def _handle_hook(job_config, owner, repo, ref, hook_type, hook,
         job_id = str(uuid.uuid4())
 
     job = _as_job(job_config, job_id, owner, repo, ref, commit=commit,
-                  state=state)
+                  state=state, force_deploy=force_deploy)
 
     builder_hooks = [name for name, hook_obj in job_config['hooks']['builders']
                      .items() if hook_obj['enabled']]
 
-    if not builder_hooks:
+    if not job_config['enabled'] or not builder_hooks:
         return _handle_noop.si(job)()
 
     else:
         # Reset/ Create the new job
-        return _update_job.si(job, hook_type, hook, hook_status=hook_status,
+        return _update_job.si(job, hook_type, hook_name,
+                              hook_status=hook_status,
                               hook_result=hook_result)()
 
 
@@ -191,11 +218,12 @@ def _handle_noop(job, etcd_cl=None, etcd_base=None):
 
 
 @app.task
-def _update_job(job, hook_type, hook, hook_result=None, hook_status='success'):
+def _update_job(job, hook_type, hook_name, hook_result=None,
+                hook_status='success'):
     job = copy.deepcopy(job)
     job['state'] = JOB_STATE_SCHEDULED
     return (
-        _update_etcd_job.si(job, hook_type, hook, hook_result=hook_result,
+        _update_etcd_job.si(job, hook_type, hook_name, hook_result=hook_result,
                             hook_status=hook_status) |
         _check_and_fire_deploy.s()
     )()
@@ -203,7 +231,7 @@ def _update_job(job, hook_type, hook, hook_result=None, hook_status='success'):
 
 @app.task
 @using_etcd
-def _update_etcd_job(job, hook_type, hook, hook_status='success',
+def _update_etcd_job(job, hook_type, hook_name, hook_status='success',
                      hook_result=None, etcd_cl=None, etcd_base=None):
     job = copy.deepcopy(job)
     hook_result = hook_result or {}
@@ -219,7 +247,7 @@ def _update_etcd_job(job, hook_type, hook, hook_status='success',
     # Update done status for all CI Hooks. Set value to True, if current
     # hook matches, else update to False (if existing value is not found)
     for ci_hook in ci_hooks:
-        if hook_type == 'ci' and ci_hook == hook:
+        if hook_type == 'ci' and ci_hook == hook_name:
             etcd_cl.write('%s/hooks/ci/%s/status' % (job_base, ci_hook),
                           hook_status)
             job['hooks']['ci'][ci_hook] = {
@@ -234,27 +262,29 @@ def _update_etcd_job(job, hook_type, hook, hook_status='success',
                 'status': status
             }
 
-    if hook_type == 'builder' and hook in job_config['hooks']['builders']:
+    def _update_job(job_status, image):
+        job['hooks']['builder'] = {
+            'status': job_status,
+            }
+        if image:
+            job['hooks']['builder']['image'] = image
+            job['config']['deployer']['templates']['app']['args']['image'] = \
+                image
+
+    if hook_type == 'builder' and hook_name in job_config['hooks']['builders']:
         etcd_cl.write('%s/hooks/builder/status' % job_base, hook_status)
         if hook_status == 'success':
-            image = hook_result['image']
-            etcd_cl.write('%s/hooks/builder/image' % job_base,
-                          image)
+            image = hook_result.get('image', '')
+            etcd_cl.write('%s/hooks/builder/image' % job_base, image)
         else:
             image = ''
-        job['hooks']['builder'] = {
-            'status': hook_status,
-            'image': image
-        }
+        _update_job(hook_status, image)
     else:
         # Set value to False if not already set
         status = get_or_insert(etcd_cl, '%s/hooks/builder/status' % job_base,
                                'pending')
         image = get_or_insert(etcd_cl, '%s/hooks/builder/image' % job_base, '')
-        job['hooks']['builder'] = {
-            'status': status,
-            'image': image
-        }
+        _update_job(status, image)
     etcd_cl.write(job_base+'/state', job['state'])
     return index_job.si(job, ret_value=job)()
 
@@ -269,14 +299,17 @@ def _check_and_fire_deploy(job, etcd_cl=None, etcd_base=None):
 
     hooks = etcd_cl.read(job_base+'/hooks', recursive=True)
     failed = False
-    for hook_obj in hooks.leaves:
-        done_key = basename(hook_obj.key)
-        if done_key == 'status':
-            if hook_obj.value == 'pending':
-                # Hooks not yet completed. return
-                return job
-            elif hook_obj.value == 'failed':
-                failed = True
+
+    # If it is force deploy, status check is ignored
+    if not job['force-deploy']:
+        for hook_obj in hooks.leaves:
+            done_key = basename(hook_obj.key)
+            if done_key == 'status':
+                if hook_obj.value == 'pending':
+                    # Hooks not yet completed. return
+                    return job
+                elif hook_obj.value == 'failed':
+                    failed = True
 
     if failed:
         return (
@@ -313,7 +346,7 @@ def _deploy(self, job):
         'meta-info': job['meta-info'],
         'proxy': deployer['proxy'],
         'templates': deployer['templates'],
-        'deployment': deployer['deployment']
+        'deployment': dict_merge(deployer['deployment'])
     }
     try:
         response = requests.post(apps_url, data=json.dumps(data),
@@ -361,7 +394,7 @@ def _failed(job):
 
 
 def _as_job(job_config, job_id,  owner, repo, ref, state=JOB_STATE_SCHEDULED,
-            commit=None):
+            commit=None, force_deploy=False):
     return {
         'config': copy.deepcopy(job_config),
         'meta-info': {
@@ -377,5 +410,6 @@ def _as_job(job_config, job_id,  owner, repo, ref, state=JOB_STATE_SCHEDULED,
         'hooks': {
             'ci': {},
             'builder': {}
-        }
+        },
+        'force-deploy': force_deploy
     }
