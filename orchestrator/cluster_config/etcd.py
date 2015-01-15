@@ -37,8 +37,11 @@ class EtcdConfigProvider(AbstractConfigProvider):
         self.config_name = config_name
 
     def _etcd_path(self, *paths):
-        return '%s/%s/%s' % (self.config_base, '/'.join(paths),
-                             self.config_name)
+        if paths:
+            return '%s/%s/%s' % (self.config_base, '/'.join(paths),
+                                 self.config_name)
+        else:
+            return '%s/%s' % (self.config_base, self.config_name)
 
     def write(self, config, *paths):
         raw = yaml.dump(config)

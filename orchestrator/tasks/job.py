@@ -31,7 +31,8 @@ def _template_variables(owner, repo, ref, commit=None):
         'repo': repo,
         'ref': ref,
         'commit': commit,
-        'ref-number': ref_number
+        'ref-number': ref_number,
+        'cluster': CLUSTER_NAME
     }
 
 
@@ -42,12 +43,12 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
     template_vars = _template_variables(owner, repo, ref, commit=commit,)
     job_config = config.load_config(
         CLUSTER_NAME, owner, repo, ref, default_variables=template_vars)
-    job_config['enabled'] = str(job_config.get('enabled', 'false')).lower()\
-        in BOOLEAN_TRUE_VALUES
+    job_config['enabled'] = \
+        str(job_config['enabled']).lower() in BOOLEAN_TRUE_VALUES
     for hooks in job_config['hooks'].itervalues():
         for hook in hooks.itervalues():
-            hook['enabled'] = str(hook.get('enabled', False)).lower() in \
-                BOOLEAN_TRUE_VALUES
+            hook['enabled'] = str(hook['enabled']).lower()\
+                in BOOLEAN_TRUE_VALUES
 
     return _using_lock.si(
         name='%s-%s-%s-%s' % (CLUSTER_NAME, owner, repo, ref),
@@ -330,8 +331,9 @@ def _delete(job_base, ret_value=None, etcd_cl=None, **kwargs):
     return ret_value
 
 
-@app.task(bind=True, default_retry_delay=TASK_SETTINGS['DEFAULT_RETRY_DELAY'],
-          max_retries=TASK_SETTINGS['DEFAULT_RETRIES'])
+@app.task(bind=True,
+          default_retry_delay=TASK_SETTINGS['DEPLOY_WAIT_RETRY_DELAY'],
+          max_retries=TASK_SETTINGS['DEPLOY_WAIT_RETRIES'])
 def _deploy(self, job):
     job = copy.deepcopy(job)
     job_config = job['config']

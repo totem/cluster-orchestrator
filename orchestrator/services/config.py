@@ -131,7 +131,13 @@ def write_config(config, *paths, **kwargs):
         provider.write(config)
 
 
-def evaluate_value(value, variables={}, identifier='template#'):
+def evaluate_template(template_value, variables={}):
+    env = get_spontaneous_environment()
+    env.line_statement_prefix = '#'
+    return env.from_string(template_value).render(**variables).strip()
+
+
+def evaluate_value(value, variables={}):
     """
     Renders tokenized values (using nested strategy)
     :param value: Value that needs to be evaluated (str , list, dict, int etc)
@@ -140,27 +146,62 @@ def evaluate_value(value, variables={}, identifier='template#'):
         values that begin with identifier are evaluated.
     :return: Evaluated object.
     """
-    if isinstance(value, (str, unicode)):
-        value = value.strip()
-        if value.startswith(identifier):
-            env = get_spontaneous_environment()
-            env.line_statement_prefix = '#'
-            return env.from_string(value[len(identifier):]).render(**variables)
-        return value
+    if hasattr(value, 'iteritems'):
+        if 'value' in value:
+            value = copy.deepcopy(value)
+            value.setdefault('encrypted', False)
+            value.setdefault('template', False)
+            if value['template']:
+                value['value'] = evaluate_template(value['value'], variables)
+            del(value['template'])
+            if not value['encrypted']:
+                value = value['value']
+            return value
 
-    elif hasattr(value, 'iteritems'):
-        for each_k, each_v in value.iteritems():
-            value[each_k] = evaluate_value(each_v, variables, identifier)
-        return {
-            each_k: evaluate_value(each_v, variables, identifier)
-            for each_k, each_v in value.iteritems()
-        }
+        else:
+            for each_k, each_v in value.iteritems():
+                value[each_k] = evaluate_value(each_v, variables)
+            return {
+                each_k: evaluate_value(each_v, variables)
+                for each_k, each_v in value.iteritems()
+            }
 
     elif hasattr(value, '__iter__'):
-        return [evaluate_value(each_v, variables, identifier)
+        return [evaluate_value(each_v, variables)
                 for each_v in value]
 
-    return value
+    return value.strip() if isinstance(value, (basestring,)) else value
+
+
+def evaluate_variables(variables, default_variables={}):
+
+    merged_vars = dict_merge({}, default_variables)
+
+    def get_sort_key(item):
+        return item[1]['priority']
+
+    def as_tuple(vars):
+        for variable_name, variable_val in vars.iteritems():
+            variable_val = copy.deepcopy(variable_val)
+            if not hasattr(variable_val, 'iteritems'):
+                variable_val = {
+                    'value': variable_val
+                }
+            variable_val.setdefault('template', False)
+            variable_val.setdefault('priority', 1)
+            variable_val.setdefault('value', '')
+            yield (variable_name, variable_val)
+
+    def expand(var_name, var_value):
+        merged_vars[var_name] = evaluate_template(
+            var_value['value'], merged_vars) if var_value['template'] \
+            else var_value['value']
+
+    sorted_vars = sorted(as_tuple(variables), key=get_sort_key)
+    for sorted_var_name, sorted_var_value in sorted_vars:
+        expand(sorted_var_name, sorted_var_value)
+
+    return merged_vars
 
 
 def evaluate_config(config, default_variables={}, var_key='variables'):
@@ -177,8 +218,6 @@ def evaluate_config(config, default_variables={}, var_key='variables'):
     updated_config = copy.deepcopy(config)
     updated_config.setdefault(var_key, {})
 
-    variables = evaluate_value(copy.deepcopy(updated_config[var_key]),
-                               default_variables)
-    variables = dict_merge(variables, default_variables)
+    variables = evaluate_variables(config[var_key], default_variables)
     del(updated_config[var_key])
     return evaluate_value(updated_config, variables)

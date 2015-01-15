@@ -106,7 +106,7 @@ CONFIG_PROVIDERS = {
 }
 
 CONFIG_PROVIDER_LIST = os.getenv(
-    'CONFIG_PROVIDER_LIST', 'etcd,github,default').split(',')
+    'CONFIG_PROVIDER_LIST', 'etcd,default').split(',')
 
 HOOK_SETTINGS = {
     'travis': {
@@ -122,8 +122,10 @@ TASK_SETTINGS = {
     'DEFAULT_RETRY_DELAY': 10,
     'LOCK_RETRY_DELAY': 5,
     'LOCK_RETRIES': 20,
-    'JOB_WAIT_RETRIES': 20,
-    'JOB_WAIT_RETRY_DELAY': 2
+    'JOB_WAIT_RETRIES': 30,
+    'JOB_WAIT_RETRY_DELAY': 10,
+    'DEPLOY_WAIT_RETRY_DELAY': 20,
+    'DEPLOY_WAIT_RETRIES': 10
 }
 
 JOB_SETTINGS = {

@@ -143,23 +143,26 @@ def test_evaluate_value():
 
     # Given: Object that needs to be evaluated
     obj = {
-        'str-key': 'str-value',
+        'str-key': '{{ var1 }}',
         'int-key': 2,
         'nested-key': {
-            'nested-key1': 'template#{{ var1 }}'
+            'nested-key1': {
+                'value': '{{ var1 }}',
+                'template': True
+            }
         },
         'list-key': [
             'list-value1',
-            'template#{{ var1 }}',
-            ['nested-list-value1', 'template#{{ var2 }}'],
             {
-                'nested-key2': 'template#{{ var2 }}'
-            },
+                'value': '\n\n{{ var2 }}\n\n',
+                'template': True
+            }
         ],
-        'line-comment': 'template#       '
-                        '# if var1 \n'
-                        '{{ var1 }} \n'
-                        '# endif'
+        'value-key': {
+            'value': '{{ var1 }}',
+            'encrypted': True,
+            'template': True
+        }
     }
 
     # And: variables that needs to be applied
@@ -174,24 +177,62 @@ def test_evaluate_value():
     # Then: Expected result with evaluated values is returned
 
     dict_compare(result, {
-        'str-key': 'str-value',
+        'str-key': '{{ var1 }}',
         'int-key': 2,
         'nested-key': {
             'nested-key1': 'var1-value'
         },
         'list-key': [
             'list-value1',
-            'var1-value',
-            ['nested-list-value1', 'var2-value'],
-            {
-                'nested-key2': 'var2-value'
-            },
+            'var2-value',
         ],
-        'line-comment': 'var1-value'
+        'value-key': {
+            'value': 'var1-value',
+            'encrypted': True
+        }
     })
 
 
-def test_evaluate():
+def test_evaluate_variables():
+    """
+    Should evaluate config variables
+    :return: None
+    """
+
+    # Given: Variables that needs to be expanded
+    variables = {
+        'var1': {
+            'value': 'var1value'
+        },
+        'var2': {
+            'value': '{{var1}}-var2value',
+            'template': True,
+            'priority': 2,
+        },
+        'var3': {
+            'value': '{{default1}}-var3value',
+            'template': True,
+            'priority': 1,
+        },
+        'var4': 'var4value'
+    }
+
+    # When: I evaluate the config
+    result = service.evaluate_variables(variables, {
+        'default1': 'default1value'
+    })
+
+    # Then: Expected config is returned
+    dict_compare(result, {
+        'var1': 'var1value',
+        'var2': 'var1value-var2value',
+        'var3': 'default1value-var3value',
+        'default1': 'default1value',
+        'var4': 'var4value'
+    })
+
+
+def test_evaluate_config():
     """
     Should evaluate config as expected
     :return: None
@@ -201,9 +242,16 @@ def test_evaluate():
     config = {
         'variables': {
             'var1': 'value1',
-            'var2': 'value2'
+            'var2': {
+                'value': '{{var1}}-var2value',
+                'template': True,
+                'priority': 2,
+            },
         },
-        'key': '   template#   test-{{ var1 }}-{{ var2 }}-{{ var3 }}   '
+        'key1': {
+            'value': 'test-{{var1}}-{{var2}}-{{var3}}',
+            'template': True
+        }
     }
 
     # When: I evaluate the config
@@ -215,5 +263,5 @@ def test_evaluate():
 
     # Then: Expected config is returned
     dict_compare(result, {
-        'key': 'test-value1-value2-default3'
+        'key1': 'test-value1-value1-var2value-default3'
     })
