@@ -3,6 +3,7 @@ from future.builtins import (  # noqa
     ascii, chr, hex, input, next, oct, open,
     pow, round, filter, map, zip)
 import copy
+import types
 from jinja2 import TemplateSyntaxError
 from jinja2.environment import get_spontaneous_environment
 from conf.appconfig import CONFIG_PROVIDERS, CONFIG_PROVIDER_LIST, \
@@ -180,7 +181,7 @@ def evaluate_value(value, variables={}, location='/'):
                 for each_k, each_v in value.items()
             }
 
-    elif hasattr(value, '__iter__'):
+    elif isinstance(value, (list, tuple, set, types.GeneratorType)):
         return [evaluate_value(each_v, variables, '%s[]/' % (location, ))
                 for each_v in value]
 
@@ -263,7 +264,8 @@ def transform_string_values(config):
                     elif hasattr(each_v, 'items'):
                         convert_enabled_keys(each_v, '%s%s/' %
                                              (location, each_k))
-                    elif hasattr(each_v, '__iter__'):
+                    elif isinstance(each_v,
+                                    (list, tuple, set, types.GeneratorType)):
                         for idx, val in enumerate(each_v):
                             convert_enabled_keys(
                                 val, '%s%s[%d]/' % (location, each_k, idx))
