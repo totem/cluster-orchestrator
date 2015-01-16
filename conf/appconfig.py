@@ -69,7 +69,7 @@ CONFIG_PROVIDERS = {
         'cache': {
             'enabled': os.getenv('CONFIG_CACHE_ENABLED', 'true').strip()
             .lower() in BOOLEAN_TRUE_VALUES,
-            'ttl': 120
+            'ttl': int(os.getenv('CONFIG_CACHE_TTL', '120'))
         }
     },
     'github': {
