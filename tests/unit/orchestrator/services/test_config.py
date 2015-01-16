@@ -265,3 +265,57 @@ def test_evaluate_config():
     dict_compare(result, {
         'key1': 'test-value1-value1-var2value-default3'
     })
+
+
+def test_transform_string_values():
+    """
+    Should transform string values inside config as expected.
+    :return:
+    """
+
+    # Given: Config that needs to be transformed
+    config = {
+        'key1': 'value1',
+        'port': 1212,
+        'enabled': 'true',
+        'nested-port-key': {
+            'port': '2321',
+            'nodes': '12',
+            'min-nodes': '13',
+            'enabled': 'false'
+        },
+        'array-config': [
+            {
+                'port': '123',
+                'nodes': '13',
+                'min-nodes': '14',
+                'enabled': False
+            }
+        ],
+        'null-key': None
+    }
+
+    # When: I transform string values in config
+    result = service.transform_string_values(config)
+
+    # Then: Transformed config is returned
+    dict_compare(result, {
+        'key1': 'value1',
+        'port': 1212,
+        'enabled': True,
+        'nested-port-key': {
+            'port': 2321,
+            'nodes': 12,
+            'min-nodes': 13,
+            'enabled': False
+        },
+        'array-config': [
+            {
+                'port': 123,
+                'nodes': 13,
+                'min-nodes': 14,
+                'enabled': False
+            }
+        ],
+        'null-key': None
+    })

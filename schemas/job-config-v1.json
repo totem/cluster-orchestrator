@@ -1,0 +1,123 @@
+{
+  "$schema": "http://json-schema.org/draft-03/hyper-schema#",
+  "type": "object",
+  "title": "Schema for Job Config",
+  "id": "#generic-hook-v1",
+  "type": "object",
+  "properties": {
+    "enabled": {
+      "oneOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/definitions/template-type"
+        }
+      ]
+    },
+    "hooks": {
+      "$ref": "#/definitions/hooks"
+    },
+    "deployer": {
+      "type": "object",
+      "$ref": "#/definitions/deployer"
+    }
+  },
+  "required": ["enabled"],
+  "additionalProperties": false,
+  "definitions": {
+    "template-type": {
+      "type": "object",
+      "properties": {
+        "template": {
+          "type": "boolean"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": ["value"]
+    },
+    "encrypted-type": {
+      "type": "object",
+      "properties": {
+        "template": {
+          "$ref": "#/definitions/template-type/properties/template"
+        },
+        "value": {
+          "$ref": "#/definitions/template-type/properties/value"
+        },
+        "encrypted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": ["value"]
+    },
+    "hooks": {
+      "type": "object",
+      "properties": {
+        "ci": {
+          "$ref": "#/definitions/ci"
+        },
+        "builders": {
+          "$ref": "#/definitions/builders"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ci": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "ref": "#/definitions/hook-type"
+        }
+      }
+    },
+    "builders": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "ref": "#/definitions/hook-type"
+        }
+      }
+    },
+    "hook-type": {
+      "enabled": {
+        "oneOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "$ref": "#/definitions/template-type"
+          }
+        ]
+      }
+    },
+    "deployer": {
+      "type": "object",
+      "properties": {
+        "proxy": {
+          "type": "object"
+        },
+        "url": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/template-type"
+            }
+          ]
+        },
+        "templates": {
+          "type": "object"
+        },
+        "deployment": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

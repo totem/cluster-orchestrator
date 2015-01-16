@@ -7,7 +7,7 @@ from celery import chain
 from requests.exceptions import ConnectionError
 from conf.appconfig import TASK_SETTINGS, JOB_SETTINGS, JOB_STATE_NEW, \
     JOB_STATE_SCHEDULED, JOB_STATE_DEPLOY_REQUESTED, JOB_STATE_NOOP, \
-    JOB_STATE_FAILED, BOOLEAN_TRUE_VALUES
+    JOB_STATE_FAILED
 from conf.celeryconfig import CLUSTER_NAME
 from orchestrator.celery import app
 from orchestrator.etcd import using_etcd, safe_delete, get_or_insert
@@ -43,12 +43,6 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
     template_vars = _template_variables(owner, repo, ref, commit=commit,)
     job_config = config.load_config(
         CLUSTER_NAME, owner, repo, ref, default_variables=template_vars)
-    job_config['enabled'] = \
-        str(job_config['enabled']).lower() in BOOLEAN_TRUE_VALUES
-    for hooks in job_config['hooks'].itervalues():
-        for hook in hooks.itervalues():
-            hook['enabled'] = str(hook['enabled']).lower()\
-                in BOOLEAN_TRUE_VALUES
 
     return _using_lock.si(
         name='%s-%s-%s-%s' % (CLUSTER_NAME, owner, repo, ref),

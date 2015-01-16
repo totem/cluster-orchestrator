@@ -1,6 +1,7 @@
 import copy
 from jinja2.environment import get_spontaneous_environment
-from conf.appconfig import CONFIG_PROVIDERS, CONFIG_PROVIDER_LIST
+from conf.appconfig import CONFIG_PROVIDERS, CONFIG_PROVIDER_LIST, \
+    BOOLEAN_TRUE_VALUES
 from orchestrator.cluster_config.default import DefaultConfigProvider
 from orchestrator.cluster_config.effective import MergedConfigProvider
 from orchestrator.cluster_config.etcd import EtcdConfigProvider
@@ -220,4 +221,36 @@ def evaluate_config(config, default_variables={}, var_key='variables'):
 
     variables = evaluate_variables(config[var_key], default_variables)
     del(updated_config[var_key])
-    return evaluate_value(updated_config, variables)
+    return transform_string_values(evaluate_value(updated_config, variables))
+
+
+def transform_string_values(config):
+    """
+    Transforms the string values to appropriate type in config
+
+    :param config: dictionary configuration with evaluated template parameters
+    :type config: dict
+    :return: transformed config
+    :rtype: dict
+    """
+    new_config = copy.deepcopy(config)
+
+    # Convert 'enabled' keys to boolean
+    def convert_enabled_keys(use_config, location='/'):
+        for each_k, each_v in use_config.iteritems():
+            if each_v is None:
+                continue
+            elif each_k == 'enabled' and isinstance(each_v, basestring):
+                use_config[each_k] = each_v in BOOLEAN_TRUE_VALUES
+            elif each_k in ('port', 'nodes', 'min-nodes') and \
+                    isinstance(each_v, basestring):
+                use_config[each_k] = int(each_v)
+            elif hasattr(each_v, 'iteritems'):
+                convert_enabled_keys(each_v, '%s%s/' % (location, each_k))
+            elif hasattr(each_v, '__iter__'):
+                for idx, val in enumerate(each_v):
+                    convert_enabled_keys(
+                        val, '%s%s[%d]/' % (location, each_k, idx))
+
+    convert_enabled_keys(new_config)
+    return new_config
