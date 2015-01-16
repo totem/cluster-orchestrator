@@ -1,9 +1,9 @@
 from future.builtins import (  # noqa
     bytes, dict, int, list, object, range, str,
     ascii, chr, hex, input, next, oct, open,
-    pow, round, super,
-    filter, map, zip)
+    pow, round, filter, map, zip)
 import copy
+from jinja2 import TemplateSyntaxError
 from jinja2.environment import get_spontaneous_environment
 from conf.appconfig import CONFIG_PROVIDERS, CONFIG_PROVIDER_LIST, \
     BOOLEAN_TRUE_VALUES
@@ -12,10 +12,12 @@ from orchestrator.cluster_config.effective import MergedConfigProvider
 from orchestrator.cluster_config.etcd import EtcdConfigProvider
 from orchestrator.cluster_config.s3 import S3ConfigProvider
 from orchestrator.services.errors import ConfigProviderNotFound
+from orchestrator.services.exceptions import ConfigValueError
 from orchestrator.util import dict_merge
 
 
 __author__ = 'sukrit'
+
 
 
 def get_providers():
@@ -143,37 +145,44 @@ def evaluate_template(template_value, variables={}):
     return env.from_string(template_value).render(**variables).strip()
 
 
-def evaluate_value(value, variables={}):
+def evaluate_value(value, variables={}, location='/'):
     """
     Renders tokenized values (using nested strategy)
+
     :param value: Value that needs to be evaluated (str , list, dict, int etc)
     :param variables: Variables to be used for Jinja2 templates
     :param identifier: Identifier used to identify tokenized values. Only str
         values that begin with identifier are evaluated.
     :return: Evaluated object.
     """
-    if hasattr(value, 'iteritems'):
+    if hasattr(value, 'items'):
         if 'value' in value:
             value = copy.deepcopy(value)
             value.setdefault('encrypted', False)
             value.setdefault('template', False)
             if value['template']:
-                value['value'] = evaluate_template(value['value'], variables)
+                try:
+                    value['value'] = evaluate_template(value['value'],
+                                                       variables)
+                except TemplateSyntaxError as error:
+                    raise ConfigValueError(location, value['value'],
+                                           reason=error.message)
             del(value['template'])
             if not value['encrypted']:
                 value = value['value']
             return value
 
         else:
-            for each_k, each_v in value.iteritems():
-                value[each_k] = evaluate_value(each_v, variables)
+            for each_k, each_v in value.items():
+                value[each_k] = evaluate_value(each_v, variables,
+                                               '%s%s/' % (location, each_k))
             return {
                 each_k: evaluate_value(each_v, variables)
-                for each_k, each_v in value.iteritems()
+                for each_k, each_v in value.items()
             }
 
     elif hasattr(value, '__iter__'):
-        return [evaluate_value(each_v, variables)
+        return [evaluate_value(each_v, variables, '%s[]/' % (location, ))
                 for each_v in value]
 
     return value.strip() if isinstance(value, (str,)) else value
@@ -244,19 +253,24 @@ def transform_string_values(config):
     def convert_enabled_keys(use_config, location='/'):
         if hasattr(use_config, 'items'):
             for each_k, each_v in use_config.items():
-                if each_v is None:
-                    continue
-                elif each_k == 'enabled' and isinstance(each_v, str):
-                    use_config[each_k] = each_v in BOOLEAN_TRUE_VALUES
-                elif each_k in ('port', 'nodes', 'min-nodes') and \
-                        isinstance(each_v, str):
-                    use_config[each_k] = int(each_v)
-                elif hasattr(each_v, 'items'):
-                    convert_enabled_keys(each_v, '%s%s/' % (location, each_k))
-                elif hasattr(each_v, '__iter__'):
-                    for idx, val in enumerate(each_v):
-                        convert_enabled_keys(
-                            val, '%s%s[%d]/' % (location, each_k, idx))
+                try:
+                    if each_v is None:
+                        continue
+                    elif each_k == 'enabled' and isinstance(each_v, str):
+                        use_config[each_k] = each_v in BOOLEAN_TRUE_VALUES
+                    elif each_k in ('port', 'nodes', 'min-nodes') and \
+                            isinstance(each_v, str):
+                        use_config[each_k] = int(each_v)
+                    elif hasattr(each_v, 'items'):
+                        convert_enabled_keys(each_v, '%s%s/' %
+                                             (location, each_k))
+                    elif hasattr(each_v, '__iter__'):
+                        for idx, val in enumerate(each_v):
+                            convert_enabled_keys(
+                                val, '%s%s[%d]/' % (location, each_k, idx))
+                except ValueError as error:
+                    raise ConfigValueError(location + each_k, each_v,
+                                           error.message)
 
     convert_enabled_keys(new_config)
     return new_config

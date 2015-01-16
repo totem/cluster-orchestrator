@@ -4,6 +4,7 @@ import traceback
 from flask import request, make_response
 import flask
 from werkzeug.exceptions import HTTPException
+from orchestrator.services.exceptions import ConfigValueError
 from orchestrator.tasks.exceptions import TaskExecutionException
 
 logger = logging.getLogger(__name__)
@@ -62,6 +63,15 @@ def register(app, **kwargs):
             'traceback': error.traceback,
             'status': 500,
         })
+
+    @app.errorhandler(ConfigValueError)
+    def task_error(error):
+        return as_flask_error(error, **{
+            'code': error.code,
+            'message': error.message,
+            'details': error.to_dict()['details'],
+            'status': 400,
+            })
 
     @app.errorhandler(Exception)
     @app.errorhandler(500)
