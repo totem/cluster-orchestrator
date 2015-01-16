@@ -279,8 +279,8 @@ def test_transform_string_values():
         'port': 1212,
         'enabled': 'true',
         'nested-port-key': {
-            'port': '2321',
-            'nodes': '12',
+            'port': u'2321',
+            'nodes': u'12',
             'min-nodes': '13',
             'enabled': 'false'
         },

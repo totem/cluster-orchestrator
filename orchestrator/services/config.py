@@ -1,3 +1,8 @@
+from future.builtins import (  # noqa
+    bytes, dict, int, list, object, range, str,
+    ascii, chr, hex, input, next, oct, open,
+    pow, round, super,
+    filter, map, zip)
 import copy
 from jinja2.environment import get_spontaneous_environment
 from conf.appconfig import CONFIG_PROVIDERS, CONFIG_PROVIDER_LIST, \
@@ -171,7 +176,7 @@ def evaluate_value(value, variables={}):
         return [evaluate_value(each_v, variables)
                 for each_v in value]
 
-    return value.strip() if isinstance(value, (basestring,)) else value
+    return value.strip() if isinstance(value, (str,)) else value
 
 
 def evaluate_variables(variables, default_variables={}):
@@ -240,10 +245,10 @@ def transform_string_values(config):
         for each_k, each_v in use_config.iteritems():
             if each_v is None:
                 continue
-            elif each_k == 'enabled' and isinstance(each_v, basestring):
+            elif each_k == 'enabled' and isinstance(each_v, str):
                 use_config[each_k] = each_v in BOOLEAN_TRUE_VALUES
             elif each_k in ('port', 'nodes', 'min-nodes') and \
-                    isinstance(each_v, basestring):
+                    isinstance(each_v, str):
                 use_config[each_k] = int(each_v)
             elif hasattr(each_v, 'iteritems'):
                 convert_enabled_keys(each_v, '%s%s/' % (location, each_k))
