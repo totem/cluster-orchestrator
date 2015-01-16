@@ -290,7 +290,8 @@ def test_transform_string_values():
                 'nodes': '13',
                 'min-nodes': '14',
                 'enabled': False
-            }
+            },
+            'testval'
         ],
         'null-key': None
     }
@@ -315,7 +316,8 @@ def test_transform_string_values():
                 'nodes': 13,
                 'min-nodes': 14,
                 'enabled': False
-            }
+            },
+            'testval'
         ],
         'null-key': None
     })
