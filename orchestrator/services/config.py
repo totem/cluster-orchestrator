@@ -187,9 +187,9 @@ def evaluate_variables(variables, default_variables={}):
         return item[1]['priority']
 
     def as_tuple(vars):
-        for variable_name, variable_val in vars.iteritems():
+        for variable_name, variable_val in vars.items():
             variable_val = copy.deepcopy(variable_val)
-            if not hasattr(variable_val, 'iteritems'):
+            if not hasattr(variable_val, 'items'):
                 variable_val = {
                     'value': variable_val
                 }
@@ -242,7 +242,7 @@ def transform_string_values(config):
 
     # Convert 'enabled' keys to boolean
     def convert_enabled_keys(use_config, location='/'):
-        for each_k, each_v in use_config.iteritems():
+        for each_k, each_v in use_config.items():
             if each_v is None:
                 continue
             elif each_k == 'enabled' and isinstance(each_v, str):
@@ -250,7 +250,7 @@ def transform_string_values(config):
             elif each_k in ('port', 'nodes', 'min-nodes') and \
                     isinstance(each_v, str):
                 use_config[each_k] = int(each_v)
-            elif hasattr(each_v, 'iteritems'):
+            elif hasattr(each_v, 'items'):
                 convert_enabled_keys(each_v, '%s%s/' % (location, each_k))
             elif hasattr(each_v, '__iter__'):
                 for idx, val in enumerate(each_v):

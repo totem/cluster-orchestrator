@@ -31,7 +31,7 @@ def _template_variables(owner, repo, ref, commit=None):
         'repo': repo,
         'ref': ref,
         'commit': commit,
-        'ref-number': ref_number,
+        'ref_number': ref_number,
         'cluster': CLUSTER_NAME
     }
 
