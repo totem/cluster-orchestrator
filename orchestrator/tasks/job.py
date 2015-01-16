@@ -209,7 +209,7 @@ def _handle_noop(job, etcd_cl=None, etcd_base=None):
     job_base = _job_base_location(git['owner'], git['repo'], git['ref'],
                                   etcd_base, commit=git['commit'])
     safe_delete(etcd_cl, job_base, recursive=True)
-    return index_job.si(job, ret_value=job)
+    return index_job.si(job, ret_value=job)()
 
 
 @app.task
