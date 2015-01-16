@@ -19,7 +19,6 @@ from orchestrator.util import dict_merge
 __author__ = 'sukrit'
 
 
-
 def get_providers():
     for provider_type in CONFIG_PROVIDER_LIST:
         provider_type = provider_type.strip()

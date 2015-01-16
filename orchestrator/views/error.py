@@ -65,7 +65,7 @@ def register(app, **kwargs):
         })
 
     @app.errorhandler(ConfigValueError)
-    def task_error(error):
+    def job_config_error(error):
         return as_flask_error(error, **{
             'code': error.code,
             'message': error.message,
