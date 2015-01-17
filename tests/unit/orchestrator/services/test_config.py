@@ -155,7 +155,6 @@ def test_evaluate_value():
             'list-value1',
             {
                 'value': '\n\n{{ var2 }}\n\n',
-                'template': True
             }
         ],
         'value-key': {

@@ -159,7 +159,7 @@ def evaluate_value(value, variables={}, location='/'):
         if 'value' in value:
             value = copy.deepcopy(value)
             value.setdefault('encrypted', False)
-            value.setdefault('template', False)
+            value.setdefault('template', True)
             if value['template']:
                 try:
                     value['value'] = evaluate_template(value['value'],
@@ -200,9 +200,10 @@ def evaluate_variables(variables, default_variables={}):
             variable_val = copy.deepcopy(variable_val)
             if not hasattr(variable_val, 'items'):
                 variable_val = {
-                    'value': variable_val
+                    'value': variable_val,
+                    'template': True
                 }
-            variable_val.setdefault('template', False)
+            variable_val.setdefault('template', True)
             variable_val.setdefault('priority', 1)
             variable_val.setdefault('value', '')
             yield (variable_name, variable_val)
