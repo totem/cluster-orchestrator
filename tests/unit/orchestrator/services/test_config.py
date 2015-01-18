@@ -201,7 +201,7 @@ def test_evaluate_variables():
     # Given: Variables that needs to be expanded
     variables = {
         'var1': {
-            'value': 'var1value'
+            'value': True
         },
         'var2': {
             'value': '{{var1}}-var2value',
@@ -213,7 +213,7 @@ def test_evaluate_variables():
             'template': True,
             'priority': 1,
         },
-        'var4': 'var4value'
+        'var4': False
     }
 
     # When: I evaluate the config
@@ -223,11 +223,11 @@ def test_evaluate_variables():
 
     # Then: Expected config is returned
     dict_compare(result, {
-        'var1': 'var1value',
-        'var2': 'var1value-var2value',
+        'var1': 'true',
+        'var2': 'true-var2value',
         'var3': 'default1value-var3value',
         'default1': 'default1value',
-        'var4': 'var4value'
+        'var4': 'false'
     })
 
 

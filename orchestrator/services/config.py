@@ -142,7 +142,7 @@ def write_config(config, *paths, **kwargs):
 def evaluate_template(template_value, variables={}):
     env = get_spontaneous_environment()
     env.line_statement_prefix = '#'
-    return env.from_string(template_value).render(**variables).strip()
+    return env.from_string(str(template_value)).render(**variables).strip()
 
 
 def evaluate_value(value, variables={}, location='/'):
@@ -201,17 +201,25 @@ def evaluate_variables(variables, default_variables={}):
             if not hasattr(variable_val, 'items'):
                 variable_val = {
                     'value': variable_val,
-                    'template': True
+                    'template': False,
+                    'priority': 0
                 }
             variable_val.setdefault('template', True)
             variable_val.setdefault('priority', 1)
             variable_val.setdefault('value', '')
+            val = variable_val['value']
+            if isinstance(val, bool):
+                variable_val['value'] = str(val).lower()
             yield (variable_name, variable_val)
 
     def expand(var_name, var_value):
-        merged_vars[var_name] = evaluate_template(
-            var_value['value'], merged_vars) if var_value['template'] \
-            else var_value['value']
+        try:
+            merged_vars[var_name] = evaluate_template(
+                var_value['value'], merged_vars) if var_value['template'] \
+                else var_value['value']
+        except Exception as exc:
+            raise ConfigValueError('/variables/%s/' % var_name, var_value,
+                                   str(exc))
 
     sorted_vars = sorted(as_tuple(variables), key=get_sort_key)
     for sorted_var_name, sorted_var_value in sorted_vars:

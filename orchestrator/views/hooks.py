@@ -59,14 +59,13 @@ def _get_digest(msg, secret=None):
         .hexdigest()
 
 
-class GenericPostHookApi(MethodView):
+class GenericInternalPostHookApi(MethodView):
     """
     API for post hook for orchestrator. The post hook is invoked from CI/image
     builder services to update the status of the build.
 
     """
 
-    @authorize('X-Hook-Signature')
     @hypermedia.consumes(
         {
             MIME_GENERIC_HOOK_V1: SCHEMA_GENERIC_HOOK_V1,
@@ -105,6 +104,17 @@ class GenericPostHookApi(MethodView):
             return created(job, location=location)
         else:
             return created_task(result)
+
+
+class GenericPostHookApi(GenericInternalPostHookApi):
+    """
+    API for post hook for orchestrator that accepts signed hook.
+    """
+
+    @authorize('X-Hook-Signature')
+    def post(self, request_data=None, accept_mimetype=None, **kwargs):
+        super(GenericPostHookApi, self).post(request_data, accept_mimetype,
+                                             **kwargs)
 
 
 class GithubHookApi(MethodView):
@@ -214,6 +224,9 @@ def register(app, **kwargs):
     app.add_url_rule('/external/hooks/generic',
                      view_func=GenericPostHookApi.as_view('generic-hook'),
                      methods=['POST'])
+    app.add_url_rule('/hooks/generic',
+                     view_func=GenericInternalPostHookApi.as_view(
+                         'generic-internal-hook'), methods=['POST'])
     app.add_url_rule('/external/hooks/github',
                      view_func=GithubHookApi.as_view('github'),
                      methods=['POST'])
