@@ -113,7 +113,7 @@ class GenericPostHookApi(GenericInternalPostHookApi):
 
     @authorize('X-Hook-Signature')
     def post(self, *args, **kwargs):
-        super(GenericPostHookApi, self).post(*args, **kwargs)
+        return super(GenericPostHookApi, self).post(*args, **kwargs)
 
 
 class GithubHookApi(MethodView):
