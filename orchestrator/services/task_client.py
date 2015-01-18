@@ -5,6 +5,7 @@ processing)
 """
 from celery.result import ResultBase, AsyncResult
 from conf.appconfig import TASK_SETTINGS
+from orchestrator import util
 from orchestrator.tasks.exceptions import TaskExecutionException
 
 
@@ -36,34 +37,40 @@ class TaskClient:
 
     def ready(self, id, wait=False, raise_error=False,
               timeout=TASK_SETTINGS['DEFAULT_GET_TIMEOUT']):
-        status = 'READY'
-        output = self.celery_app.AsyncResult(id)
-        error_task = self.find_error_task(output, raise_error=raise_error,
-                                          wait=wait, timeout=timeout)
 
-        if error_task:
-            output, status = \
-                error_task.result, error_task.status
-            if not isinstance(output, TaskExecutionException):
-                output = TaskExecutionException(output, error_task.traceback)
-        else:
-            while isinstance(output, AsyncResult) and status is 'READY':
-                if wait:
-                    output.get(timeout=timeout, propagate=raise_error)
-                if output.ready():
-                    output = output.result
-                else:
-                    status = 'PENDING'
-                    output = None
-        if output:
-            try:
-                output = output.to_dict()
-            except AttributeError:
-                if not isinstance(output, dict) \
-                        and not isinstance(output, list):
-                    output = str(output)
+        @util.timeout(seconds=timeout)
+        @util.retry(10, delay=5, backoff=1, except_on=(IOError,))
+        def get_result():
+            status = 'READY'
+            output = self.celery_app.AsyncResult(id)
+            error_task = self.find_error_task(output, raise_error=raise_error,
+                                              wait=wait, timeout=timeout)
 
-        return {
-            'status': status,
-            'output': output
-        }
+            if error_task:
+                output, status = \
+                    error_task.result, error_task.status
+                if not isinstance(output, TaskExecutionException):
+                    output = TaskExecutionException(output,
+                                                    error_task.traceback)
+            else:
+                while isinstance(output, AsyncResult) and status is 'READY':
+                    if wait:
+                        output.get(timeout=timeout, propagate=raise_error)
+                    if output.ready():
+                        output = output.result
+                    else:
+                        status = 'PENDING'
+                        output = None
+            if output:
+                try:
+                    output = output.to_dict()
+                except AttributeError:
+                    if not isinstance(output, dict) \
+                            and not isinstance(output, list):
+                        output = str(output)
+
+            return {
+                'status': status,
+                'output': output
+            }
+        return get_result()

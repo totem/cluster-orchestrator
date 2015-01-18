@@ -14,6 +14,8 @@ from future.builtins import (  # noqa
 
 import copy
 import signal
+import time
+import math
 
 
 def dict_merge(*dictionaries):
@@ -86,3 +88,38 @@ def timeout(seconds=10, error_message=os.strerror(errno.ETIME)):
 
         return wrapper
     return decorator
+
+
+def function_retry(tries, delay, backoff, except_on, fn, *args, **kwargs):
+    mtries, mdelay = tries, delay  # make mutable
+
+    while True:
+        try:
+            return fn(*args, **kwargs)
+        except except_on:
+            pass
+
+        mtries -= 1         # consume an attempt
+        if mtries > 0:
+            time.sleep(mdelay)  # wait...
+            mdelay *= backoff   # make future wait longer
+
+    # Re-raise last exception
+    raise
+
+
+# Retry decorator with backoff
+def retry(tries, delay=3, backoff=2, except_on=(Exception, )):
+    """Retries a function or method until it returns True.
+    delay sets the initial delay in seconds, and backoff sets the factor by
+    which the delay should lengthen after each failure.
+    tries must be at least 0, and delay greater than 0."""
+
+    tries = math.floor(tries)
+
+    def decorator(f):
+        def f_retry(*args, **kwargs):
+            return function_retry(
+                tries, delay, backoff, except_on, f, *args, **kwargs)
+        return f_retry  # true decorator -> decorated function
+    return decorator    # @retry(arg[, ...]) -> true decorator
