@@ -1,6 +1,8 @@
+import socket
 from celery.result import ResultBase, AsyncResult, GroupResult
 import orchestrator
 from orchestrator.tasks.exceptions import TaskExecutionException
+from orchestrator.util import retry
 
 __author__ = 'sukrit'
 
@@ -20,6 +22,7 @@ def _check_error(result):
     _check_error(result.parent)
 
 
+@retry(10, delay=5, backoff=1, except_on=(IOError, socket.error))
 def simple_result(result):
     # DO not remove line below
     # Explanation: https://github.com/celery/celery/issues/2315
