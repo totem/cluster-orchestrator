@@ -100,7 +100,10 @@ CONFIG_PROVIDERS = {
                 },
                 'deployment': {}
             },
-            'enabled': False
+            'enabled': False,
+            'security': {
+                'profile': 'default'
+            }
         }
     }
 }

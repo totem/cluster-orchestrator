@@ -67,9 +67,6 @@ def undeploy(owner, repo, ref):
     """
     Undeploys the application using git meta data.
 
-    :param git_meta: Dictionary containing git metadata attributes owner, repo
-        and ref.
-    :type git_meta: dict
     :return: None
     """
     template_vars = _template_variables(owner, repo, ref)
@@ -101,7 +98,7 @@ def _using_lock(self, name, do_task, cleanup_tasks=None,
     try:
         lock = LockService().apply_lock(name)
     except ResourceLockedException as lock_error:
-        self.retry(exc=lock_error)
+        raise self.retry(exc=lock_error)
 
     _release_lock_s = _release_lock.si(lock)
     cleanup_tasks = cleanup_tasks or []
@@ -342,13 +339,14 @@ def _deploy(self, job):
         'meta-info': job['meta-info'],
         'proxy': deployer['proxy'],
         'templates': deployer['templates'],
-        'deployment': dict_merge(deployer['deployment'])
+        'deployment': dict_merge(deployer['deployment']),
+        'security': job_config.get('security', {})
     }
     try:
         response = requests.post(apps_url, data=json.dumps(data),
                                  headers=headers)
     except ConnectionError as error:
-        self.retry(exc=error)
+        raise self.retry(exc=error)
 
     search_params = create_search_parameters(job)
     deploy_response = {
@@ -380,7 +378,7 @@ def _undeploy(self, job_config, owner, repo, ref):
     try:
         requests.delete(app_url)
     except ConnectionError as error:
-        self.retry(exc=error)
+        raise self.retry(exc=error)
 
 
 @app.task
