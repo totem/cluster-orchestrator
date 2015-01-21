@@ -120,7 +120,7 @@ def add_search_event(event_type, details=None, search_params={}, es=None,
     event_upd = copy.deepcopy(search_params)
     event_upd.update({
         'type': event_type,
-        'details': details,
+        'details': massage_config(details),
         'date': datetime.datetime.utcnow(),
     })
     es.create(idx, TYPE_EVENTS, event_upd)
