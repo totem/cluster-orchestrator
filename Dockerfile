@@ -52,9 +52,7 @@ ADD etc /etc
 ADD . /opt/cluster-orchestrator
 RUN pip install -r /opt/cluster-orchestrator/requirements.txt
 
-EXPOSE 9400 5556 22
-
-ENV DISCOVER_PORTS 9400,5556
+EXPOSE 9400 22
 
 WORKDIR /opt/cluster-orchestrator
 

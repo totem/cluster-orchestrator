@@ -45,10 +45,4 @@ startsecs=5
 redirect_stderr=true
 stdout_logfile=syslog
 
-[program:celery-flower]
-command=/usr/local/bin/celery --loglevel=info -A orchestrator -P gevent  flower --port=5556
-autorestart=true
-startsecs=5
-redirect_stderr=true
-stdout_logfile=syslog
 
