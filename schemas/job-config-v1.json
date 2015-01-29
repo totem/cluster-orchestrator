@@ -102,15 +102,8 @@
         "proxy": {
           "type": "object"
         },
-        "url": {
-          "oneOf": [
-            {
-              "type": "string"
-            },
-            {
-              "$ref": "#/definitions/template-type"
-            }
-          ]
+        "endpoints": {
+          "type": "object"
         },
         "templates": {
           "type": "object"

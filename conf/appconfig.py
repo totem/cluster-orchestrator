@@ -90,8 +90,13 @@ CONFIG_PROVIDERS = {
                 }
             },
             'deployer': {
-                'url': os.getenv('CLUSTER_DEPLOYER_URL',
-                                 'http://localhost:9000'),
+                'endpoints': {
+                    'default': {
+                        'url': os.getenv('CLUSTER_DEPLOYER_URL',
+                                         'http://localhost:9000'),
+                        'enabled': True
+                    }
+                },
                 'proxy': {},
                 'templates': {
                     'app': {

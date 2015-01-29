@@ -3,7 +3,7 @@ import json
 import uuid
 import requests
 from os.path import basename
-from celery import chain
+from celery import chain, chord, group
 from requests.exceptions import ConnectionError
 from conf.appconfig import TASK_SETTINGS, JOB_SETTINGS, JOB_STATE_NEW, \
     JOB_STATE_SCHEDULED, JOB_STATE_DEPLOY_REQUESTED, JOB_STATE_NOOP, \
@@ -16,7 +16,7 @@ from orchestrator.services.distributed_lock import LockService, \
     ResourceLockedException
 from orchestrator.tasks.exceptions import DeploymentFailed
 from orchestrator.tasks.search import index_job, create_search_parameters, \
-    add_search_event, EVENT_DEPLOY_REQUESTED
+    add_search_event, EVENT_DEPLOY_REQUESTED, EVENT_DEPLOY_REQUEST_COMPLETE
 from orchestrator.tasks.common import async_wait
 from orchestrator.util import dict_merge
 
@@ -311,7 +311,7 @@ def _check_and_fire_deploy(job, etcd_cl=None, etcd_base=None):
     else:
         return (
             _delete.si(job_base, ret_value=job, recursive=True) |
-            _deploy.si(job)
+            _deploy_all.si(job)
         )()
 
 
@@ -322,15 +322,33 @@ def _delete(job_base, ret_value=None, etcd_cl=None, **kwargs):
     return ret_value
 
 
-@app.task(bind=True,
-          default_retry_delay=TASK_SETTINGS['DEPLOY_WAIT_RETRY_DELAY'],
-          max_retries=TASK_SETTINGS['DEPLOY_WAIT_RETRIES'])
-def _deploy(self, job):
+@app.task
+def _deploy_all(job):
     job = copy.deepcopy(job)
     job_config = job['config']
     job['state'] = JOB_STATE_DEPLOY_REQUESTED
     deployer = job_config['deployer']
-    apps_url = '%s/apps' % deployer['url']
+    endpoints = deployer['endpoints']
+    search_params = create_search_parameters(job)
+    return chord(
+        group(
+            _deploy.si(job, deployer_name, endpoint['url'])
+            for deployer_name, endpoint in endpoints.items()
+            if endpoint.get('enabled') and endpoint.get('url')
+        ),
+        add_search_event.si(
+            EVENT_DEPLOY_REQUEST_COMPLETE, search_params=search_params,
+            ret_value=job),
+    ).apply_async(interval=TASK_SETTINGS['DEPLOY_WAIT_RETRY_DELAY'])
+
+
+@app.task(bind=True,
+          default_retry_delay=TASK_SETTINGS['DEPLOY_WAIT_RETRY_DELAY'],
+          max_retries=TASK_SETTINGS['DEPLOY_WAIT_RETRIES'])
+def _deploy(self, job, deployer_name, deployer_url):
+    job_config = job['config']
+    deployer = job_config['deployer']
+    apps_url = '%s/apps' % deployer_url
     headers = {
         'content-type': 'application/vnd.deployer.app.version.create.v1+json',
         'accept': 'application/vnd.deployer.task.v1+json'
@@ -350,6 +368,8 @@ def _deploy(self, job):
 
     search_params = create_search_parameters(job)
     deploy_response = {
+        'name': deployer_name,
+        'url': deployer_url,
         'request': data,
         'response': response.json(),
         'status': response.status_code
@@ -359,7 +379,7 @@ def _deploy(self, job):
             EVENT_DEPLOY_REQUESTED,
             details=deploy_response,
             search_params=search_params) |
-        _check_deploy_failed.si(deploy_response, ret_value=job)
+        _check_deploy_failed.si(deploy_response)
     )()
 
 
