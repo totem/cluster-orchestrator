@@ -7,7 +7,7 @@ import types
 from jinja2 import TemplateSyntaxError
 from jinja2.environment import get_spontaneous_environment
 from conf.appconfig import CONFIG_PROVIDERS, CONFIG_PROVIDER_LIST, \
-    BOOLEAN_TRUE_VALUES
+    BOOLEAN_TRUE_VALUES, DEFAULT_DEPLOYER_CONFIG
 from orchestrator.cluster_config.default import DefaultConfigProvider
 from orchestrator.cluster_config.effective import MergedConfigProvider
 from orchestrator.cluster_config.etcd import EtcdConfigProvider
@@ -241,6 +241,11 @@ def evaluate_config(config, default_variables={}, var_key='variables'):
     """
     updated_config = copy.deepcopy(config)
     updated_config.setdefault(var_key, {})
+    updated_config.setdefault('deployers', {})
+
+    for deployer_name, deployer in updated_config.get('deployers').items():
+        updated_config['deployers'][deployer_name] = dict_merge(
+            deployer, DEFAULT_DEPLOYER_CONFIG)
 
     variables = evaluate_variables(config[var_key], default_variables)
     del(updated_config[var_key])

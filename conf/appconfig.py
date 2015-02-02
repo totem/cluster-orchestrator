@@ -49,11 +49,26 @@ SCHEMA_TRAVIS_HOOK_V1 = 'travis-hook-v1'
 SCHEMA_JOB_V1 = 'job-v1'
 SCHEMA_TASK_V1 = 'task-v1'
 
+DEFAULT_DEPLOYER_URL = os.getenv('CLUSTER_DEPLOYER_URL',
+                                 'http://localhost:9000')
+
 API_MAX_PAGE_SIZE = 1000
 API_DEFAULT_PAGE_SIZE = 10
 
 HEALTH_OK = 'ok'
 HEALTH_FAILED = 'failed'
+
+DEFAULT_DEPLOYER_CONFIG = {
+    'url': os.getenv('CLUSTER_DEPLOYER_URL', DEFAULT_DEPLOYER_URL),
+    'enabled': True,
+    'proxy': {},
+    'templates': {
+        'app': {
+            'args': {}
+        }
+    },
+    'deployment': {}
+}
 
 CONFIG_PROVIDERS = {
     's3': {
@@ -77,6 +92,9 @@ CONFIG_PROVIDERS = {
     },
     'default': {
         'config': {
+            'deployers': {
+                'default': DEFAULT_DEPLOYER_CONFIG
+            },
             'hooks': {
                 'ci': {
                     'travis': {
@@ -88,22 +106,6 @@ CONFIG_PROVIDERS = {
                         'enabled': True,
                     }
                 }
-            },
-            'deployer': {
-                'endpoints': {
-                    'default': {
-                        'url': os.getenv('CLUSTER_DEPLOYER_URL',
-                                         'http://localhost:9000'),
-                        'enabled': True
-                    }
-                },
-                'proxy': {},
-                'templates': {
-                    'app': {
-                        'args': {}
-                    }
-                },
-                'deployment': {}
             },
             'enabled': False,
             'security': {

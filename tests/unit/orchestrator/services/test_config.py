@@ -7,6 +7,7 @@ from future.builtins import (  # noqa
     filter, map, zip)
 from mock import patch
 from nose.tools import eq_, raises
+from conf.appconfig import DEFAULT_DEPLOYER_URL
 from orchestrator.cluster_config.effective import MergedConfigProvider
 from orchestrator.cluster_config.etcd import EtcdConfigProvider
 from orchestrator.cluster_config.s3 import S3ConfigProvider
@@ -231,7 +232,7 @@ def test_evaluate_variables():
     })
 
 
-def test_evaluate_config():
+def test_evaluate_config_with_no_deployers():
     """
     Should evaluate config as expected
     :return: None
@@ -262,7 +263,74 @@ def test_evaluate_config():
 
     # Then: Expected config is returned
     dict_compare(result, {
-        'key1': 'test-value1-value1-var2value-default3'
+        'key1': 'test-value1-value1-var2value-default3',
+        'deployers': {}
+    })
+
+
+def test_evaluate_config_with_deployers():
+    """
+    Should evaluate config as expected
+    :return: None
+    """
+
+    # Given: Config that needs to be evaluated
+    config = {
+        'variables': {
+            'var1': 'value1',
+            'var2': {
+                'value': '{{var1}}-var2value',
+                'template': True,
+                'priority': 2,
+                },
+            },
+        'key1': {
+            'value': 'test-{{var1}}-{{var2}}-{{var3}}',
+            'template': True
+        },
+        'deployers': {
+            'default': {},
+            'deployer2': {
+                'url': 'deployer2-url',
+                'enabled': False
+            }
+        }
+    }
+
+    # When: I evaluate the config
+    result = service.evaluate_config(config, {
+        'var1': 'default1',
+        'var2': 'default2',
+        'var3': 'default3'
+    })
+
+    # Then: Expected config is returned
+    dict_compare(result, {
+        'key1': 'test-value1-value1-var2value-default3',
+        'deployers': {
+            'default': {
+                'url': DEFAULT_DEPLOYER_URL,
+                'enabled': True,
+                'proxy': {},
+                'templates': {
+                    'app': {
+                        'args': {}
+                    }
+                },
+                'deployment': {}
+            },
+            'deployer2': {
+                'url': 'deployer2-url',
+                'enabled': False,
+                'proxy': {},
+                'templates': {
+                    'app': {
+                        'args': {}
+                    }
+                },
+                'deployment': {}
+            }
+        }
     })
 
 

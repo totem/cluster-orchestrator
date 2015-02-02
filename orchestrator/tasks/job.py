@@ -7,7 +7,7 @@ from celery import chain, chord, group
 from requests.exceptions import ConnectionError
 from conf.appconfig import TASK_SETTINGS, JOB_SETTINGS, JOB_STATE_NEW, \
     JOB_STATE_SCHEDULED, JOB_STATE_DEPLOY_REQUESTED, JOB_STATE_NOOP, \
-    JOB_STATE_FAILED
+    JOB_STATE_FAILED, DEFAULT_DEPLOYER_URL
 from conf.celeryconfig import CLUSTER_NAME
 from orchestrator.celery import app
 from orchestrator.etcd import using_etcd, safe_delete, get_or_insert
@@ -75,7 +75,7 @@ def undeploy(owner, repo, ref):
 
     return _using_lock.si(
         name='%s-%s-%s-%s' % (CLUSTER_NAME, owner, repo, ref),
-        do_task=_undeploy.si(job_config, owner, repo, ref)
+        do_task=_undeploy_all.si(job_config, owner, repo, ref)
     ).apply_async()
 
 
@@ -257,11 +257,11 @@ def _update_etcd_job(job, hook_type, hook_name, hook_status='success',
     def _update_job(job_status, image):
         job['hooks']['builder'] = {
             'status': job_status,
-            }
+        }
         if image:
             job['hooks']['builder']['image'] = image
-            job['config']['deployer']['templates']['app']['args']['image'] = \
-                image
+            for deployer in job['config']['deployers'].values():
+                deployer['templates']['app']['args']['image'] = image
 
     if hook_type == 'builder' and hook_name in job_config['hooks']['builders']:
         etcd_cl.write('%s/hooks/builder/status' % job_base, hook_status)
@@ -327,14 +327,13 @@ def _deploy_all(job):
     job = copy.deepcopy(job)
     job_config = job['config']
     job['state'] = JOB_STATE_DEPLOY_REQUESTED
-    deployer = job_config['deployer']
-    endpoints = deployer['endpoints']
+    deployers = job_config.get('deployers', {})
     search_params = create_search_parameters(job)
     return chord(
         group(
-            _deploy.si(job, deployer_name, endpoint['url'])
-            for deployer_name, endpoint in endpoints.items()
-            if endpoint.get('enabled') and endpoint.get('url')
+            _deploy.si(job, deployer_name)
+            for deployer_name, deployer in deployers.items()
+            if deployer.get('enabled') and deployer.get('url')
         ),
         add_search_event.si(
             EVENT_DEPLOY_REQUEST_COMPLETE, search_params=search_params,
@@ -345,10 +344,10 @@ def _deploy_all(job):
 @app.task(bind=True,
           default_retry_delay=TASK_SETTINGS['DEPLOY_WAIT_RETRY_DELAY'],
           max_retries=TASK_SETTINGS['DEPLOY_WAIT_RETRIES'])
-def _deploy(self, job, deployer_name, deployer_url):
+def _deploy(self, job, deployer_name):
     job_config = job['config']
-    deployer = job_config['deployer']
-    apps_url = '%s/apps' % deployer_url
+    deployer = job_config['deployers'][deployer_name]
+    apps_url = '%s/apps' % deployer.get('url', DEFAULT_DEPLOYER_URL)
     headers = {
         'content-type': 'application/vnd.deployer.app.version.create.v1+json',
         'accept': 'application/vnd.deployer.task.v1+json'
@@ -369,7 +368,7 @@ def _deploy(self, job, deployer_name, deployer_url):
     search_params = create_search_parameters(job)
     deploy_response = {
         'name': deployer_name,
-        'url': deployer_url,
+        'url': apps_url,
         'request': data,
         'response': response.json(),
         'status': response.status_code
@@ -390,11 +389,24 @@ def _check_deploy_failed(deploy_response, ret_value=None):
     return ret_value
 
 
+@app.task(default_retry_delay=TASK_SETTINGS['DEFAULT_RETRY_DELAY'],
+          max_retries=TASK_SETTINGS['DEFAULT_RETRIES'])
+def _undeploy_all(job_config, owner, repo, ref):
+    deployers = job_config.get('deployers', {})
+    return group(
+        _undeploy.si(job_config, owner, repo, ref, deployer_name)
+        for deployer_name, deployer in deployers.items()
+        if deployer.get('enabled') and deployer.get('url')
+    )()
+
+
 @app.task(bind=True, default_retry_delay=TASK_SETTINGS['DEFAULT_RETRY_DELAY'],
           max_retries=TASK_SETTINGS['DEFAULT_RETRIES'])
-def _undeploy(self, job_config, owner, repo, ref):
+def _undeploy(self, job_config, owner, repo, ref, deployer_name):
     app_name = '%s-%s-%s' % (owner, repo, ref)
-    app_url = '%s/apps/%s' % (job_config['deployer']['url'], app_name)
+    deployer = job_config['deployers'][deployer_name]
+    app_url = '%s/apps/%s' % (
+        deployer.get('url', DEFAULT_DEPLOYER_URL), app_name)
     try:
         requests.delete(app_url)
     except ConnectionError as error:

@@ -18,9 +18,12 @@
     "hooks": {
       "$ref": "#/definitions/hooks"
     },
-    "deployer": {
-      "type": "object",
-      "$ref": "#/definitions/deployer"
+    "deployers": {
+      "patternProperties": {
+        ".*": {
+          "ref": "#/definitions/deployer"
+        }
+      }
     }
   },
   "required": ["enabled"],
@@ -110,8 +113,16 @@
         },
         "deployment": {
           "type": "object"
+        },
+        "url": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
         }
-      }
+      },
+      "additionalProperties": false,
+      "required": ["proxy", "endpoints", "tempates", "deployment", "url"]
     }
   }
 }
