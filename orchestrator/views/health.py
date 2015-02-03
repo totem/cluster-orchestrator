@@ -1,5 +1,6 @@
 from __future__ import (absolute_import, division,
                         print_function)
+from flask import request
 from future.builtins import (  # noqa
     bytes, dict, int, list, object, range, str,
     ascii, chr, hex, input, next, oct, open,
@@ -8,7 +9,7 @@ from future.builtins import (  # noqa
 
 from flask.views import MethodView
 from conf.appconfig import MIME_HEALTH_V1, SCHEMA_HEALTH_V1, MIME_JSON, \
-    HEALTH_OK
+    HEALTH_OK, BOOLEAN_TRUE_VALUES, MIME_HTML
 from orchestrator.services.health import get_health
 from orchestrator.views import hypermedia
 from orchestrator.views.util import build_response
@@ -22,7 +23,8 @@ class HealthApi(MethodView):
     @hypermedia.produces(
         {
             MIME_HEALTH_V1: SCHEMA_HEALTH_V1,
-            MIME_JSON: SCHEMA_HEALTH_V1
+            MIME_JSON: SCHEMA_HEALTH_V1,
+            MIME_HTML: SCHEMA_HEALTH_V1,
         }, default=MIME_HEALTH_V1)
     def get(self, **kwargs):
         """
@@ -30,8 +32,9 @@ class HealthApi(MethodView):
 
         :return: Flask Json Response containing version.
         """
-
-        health = get_health()
+        check_celery = request.args.get('celery', 'false').lower() in \
+            BOOLEAN_TRUE_VALUES
+        health = get_health(check_celery)
         failed_checks = [
             health_status['status'] for health_status in health.values()
             if health_status['status'] != HEALTH_OK
