@@ -292,6 +292,9 @@ def test_evaluate_config_with_deployers():
             'default': {},
             'deployer2': {
                 'url': 'deployer2-url',
+                'enabled': True
+            },
+            'deployer3': {
                 'enabled': False
             }
         }
@@ -321,7 +324,7 @@ def test_evaluate_config_with_deployers():
             },
             'deployer2': {
                 'url': 'deployer2-url',
-                'enabled': False,
+                'enabled': True,
                 'proxy': {},
                 'templates': {
                     'app': {
@@ -329,6 +332,9 @@ def test_evaluate_config_with_deployers():
                     }
                 },
                 'deployment': {}
+            },
+            'deployer3': {
+                'enabled': False
             }
         }
     })
