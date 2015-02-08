@@ -6,12 +6,12 @@ from future.builtins import (  # noqa
     ascii, chr, hex, input, next, oct, open,
     pow, round, super,
     filter, map, zip)
-__author__ = 'sukrit'
-
 from tests.helper import dict_compare
 from orchestrator.cluster_config.base import AbstractConfigProvider
 from orchestrator.cluster_config.effective import MergedConfigProvider
 from nose.tools import eq_
+
+__author__ = 'sukrit'
 
 
 class InMemoryProvider(AbstractConfigProvider):

@@ -3,10 +3,9 @@ import flask
 from flask.views import MethodView
 from conf.appconfig import TASK_SETTINGS, BOOLEAN_TRUE_VALUES
 from orchestrator.views import task_client
+from flask import request
 
 logger = logging.getLogger(__name__)
-
-from flask import request
 
 
 class TaskApi(MethodView):

@@ -1,8 +1,7 @@
 from orchestrator.cluster_config.base import AbstractConfigProvider
+from nose.tools import raises
 
 __author__ = 'sukrit'
-
-from nose.tools import raises
 
 
 class TestAbstractConfigProvider:

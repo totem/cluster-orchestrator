@@ -5,9 +5,9 @@ from future.builtins import (  # noqa
     ascii, chr, hex, input, next, oct, open,
     pow, round, super,
     filter, map, zip)
+from nose.tools import ok_, eq_
 
 __author__ = 'sukrit'
-from nose.tools import ok_, eq_
 
 
 def dict_compare(actual, expected, key_path='',):
