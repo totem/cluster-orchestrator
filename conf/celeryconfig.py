@@ -7,7 +7,7 @@ from kombu import Queue
 
 CLUSTER_NAME = os.getenv('CLUSTER_NAME', 'local')
 
-MESSAGES_TTL = 7200
+MESSAGES_TTL = 7200 * 1000
 
 # Broker and Queue Settings
 BROKER_URL = os.getenv('BROKER_URL',

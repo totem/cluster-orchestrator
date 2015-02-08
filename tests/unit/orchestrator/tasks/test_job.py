@@ -158,10 +158,9 @@ def test_deploy_all(m_deploy, m_add_search_event, m_chord, m_group):
     })
 
 
-@patch('orchestrator.tasks.job._check_deploy_failed')
 @patch('orchestrator.tasks.job.add_search_event')
 @patch('orchestrator.tasks.job.requests')
-def test_deploy(m_requests, m_add_search_event, m_check_deploy_failed):
+def test_deploy(m_requests, m_add_search_event):
     """
     Should successfully request deployment to cluster deployer.
     """
@@ -185,12 +184,14 @@ def test_deploy(m_requests, m_add_search_event, m_check_deploy_failed):
 
     # And: Mock instance for post for successful deploy
     m_requests.post.return_value.status_code = 202
+    m_requests.post.return_value.headers.__getitem__.return_value = \
+        'application/json'
     m_requests.post.return_value.json.return_value = {
         'task_id': 'mock-task-id'
     }
 
     # When: I deploy the job to a deployer with given name.
-    _deploy(job, 'default')
+    deploy_response = _deploy(job, 'default')
 
     # Then: Job gets deployed successfully
     eq_(m_add_search_event.si.call_count, 1)
@@ -220,5 +221,4 @@ def test_deploy(m_requests, m_add_search_event, m_check_deploy_failed):
             }
         }
     })
-    dict_compare(m_check_deploy_failed.si.call_args[0][0],
-                 expected_deploy_response)
+    dict_compare(deploy_response, expected_deploy_response)

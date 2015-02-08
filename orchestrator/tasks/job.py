@@ -370,23 +370,22 @@ def _deploy(self, job, deployer_name):
         'name': deployer_name,
         'url': apps_url,
         'request': data,
-        'response': response.json(),
+        'response': response.json() if 'json' in
+        response.headers['content-type'] else {'raw': response.text},
         'status': response.status_code
     }
-    return (
-        add_search_event.si(
-            EVENT_DEPLOY_REQUESTED,
-            details=deploy_response,
-            search_params=search_params) |
-        _check_deploy_failed.si(deploy_response)
+    add_search_event.si(
+        EVENT_DEPLOY_REQUESTED,
+        details=deploy_response,
+        search_params=search_params
     )()
+    if response.status_code in (502, 503):
+        raise self.retry(exc=DeploymentFailed(deploy_response))
 
-
-@app.task
-def _check_deploy_failed(deploy_response, ret_value=None):
     if deploy_response['status'] >= 400:
         raise DeploymentFailed(deploy_response)
-    return ret_value
+
+    return deploy_response
 
 
 @app.task(default_retry_delay=TASK_SETTINGS['DEFAULT_RETRY_DELAY'],
