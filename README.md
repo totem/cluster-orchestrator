@@ -66,6 +66,12 @@ To run the server locally , run command:
 python local-server.py
 ```
 
+To run celery locally, run command:
+
+```
+python local-celery.py
+```
+
 Once server is up you can access the root api using:  
 [http://localhost:9400](http://localhost:9400)
 
