@@ -43,15 +43,17 @@ class TaskClient:
         def get_result():
             status = 'READY'
             output = self.celery_app.AsyncResult(id)
-            error_task = self.find_error_task(output, raise_error=raise_error,
+            error_task = self.find_error_task(output, raise_error=False,
                                               wait=wait, timeout=timeout)
 
             if error_task:
                 output, status = \
                     error_task.result, error_task.status
-                if not isinstance(output, TaskExecutionException):
+                if not isinstance(output, (TaskExecutionException,)):
                     output = TaskExecutionException(output,
                                                     error_task.traceback)
+                    if raise_error:
+                        raise output
             else:
                 while isinstance(output, AsyncResult) and status is 'READY':
                     if wait:

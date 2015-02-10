@@ -218,7 +218,7 @@ def _update_job(job, hook_type, hook_name, hook_result=None,
         _update_etcd_job.si(job, hook_type, hook_name, hook_result=hook_result,
                             hook_status=hook_status) |
         _check_and_fire_deploy.s()
-    )()
+    ).delay()
 
 
 @app.task
@@ -278,7 +278,8 @@ def _update_etcd_job(job, hook_type, hook_name, hook_status='success',
         image = get_or_insert(etcd_cl, '%s/hooks/builder/image' % job_base, '')
         _update_job(status, image)
     etcd_cl.write(job_base+'/state', job['state'])
-    return index_job.si(job, ret_value=job)()
+    index_job.si(job).delay()
+    return job
 
 
 @app.task
@@ -307,12 +308,12 @@ def _check_and_fire_deploy(job, etcd_cl=None, etcd_base=None):
         return (
             _delete.si(job_base, ret_value=job, recursive=True) |
             _failed.si(job)
-        )()
+        ).delay()
     else:
         return (
             _delete.si(job_base, ret_value=job, recursive=True) |
             _deploy_all.si(job)
-        )()
+        ).delay()
 
 
 @app.task
@@ -378,7 +379,7 @@ def _deploy(self, job, deployer_name):
         EVENT_DEPLOY_REQUESTED,
         details=deploy_response,
         search_params=search_params
-    )()
+    ).delay()
     if response.status_code in (502, 503):
         raise self.retry(exc=DeploymentFailed(deploy_response))
 
@@ -396,7 +397,7 @@ def _undeploy_all(job_config, owner, repo, ref):
         _undeploy.si(job_config, owner, repo, ref, deployer_name)
         for deployer_name, deployer in deployers.items()
         if deployer.get('enabled') and deployer.get('url')
-    )()
+    ).delay()
 
 
 @app.task(bind=True, default_retry_delay=TASK_SETTINGS['DEFAULT_RETRY_DELAY'],

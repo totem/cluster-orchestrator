@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/draft-03/hyper-schema#",
+  "$schema": "http://json-schema.org/draft-04/hyper-schema#",
   "type": "object",
   "title": "Schema for Job Config",
   "id": "#generic-hook-v1",
@@ -24,6 +24,34 @@
           "ref": "#/definitions/deployer"
         }
       }
+    },
+    "variables": {
+      "patternProperties": {
+        ".*": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/variable-type"
+            }
+          ]
+        }
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "description": "Defaults for YAML substitution"
+    },
+    "security": {
+      "type": "object",
+      "$ref": "#/definitions/security"
     }
   },
   "required": ["enabled"],
@@ -54,6 +82,24 @@
         "encrypted": {
           "type": "boolean",
           "default": false
+        }
+      },
+      "additionalProperties": false,
+      "required": ["value"]
+    },
+    "variable-type": {
+      "type": "object",
+      "properties": {
+        "template": {
+          "$ref": "#/definitions/template-type/properties/template"
+        },
+        "value": {
+          "$ref": "#/definitions/template-type/properties/value"
+        },
+        "priority": {
+          "type": "number",
+          "default": 0,
+          "description": "Order in which variable is evaluated."
         }
       },
       "additionalProperties": false,
@@ -123,6 +169,14 @@
       },
       "additionalProperties": false,
       "required": ["proxy", "endpoints", "tempates", "deployment", "url"]
+    },
+    "security": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "type": "string"
+        }
+      }
     }
   }
 }

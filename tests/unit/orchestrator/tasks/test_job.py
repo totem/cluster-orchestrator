@@ -50,7 +50,7 @@ def test_undeploy_all(m_group):
 
     # Then: Deployments get decommissioned
     eq_(m_group.call_count, 1)
-    eq_(m_group.return_value.call_count, 1)
+    eq_(m_group.return_value.delay.call_count, 1)
     eq_(next(m_group.call_args[0][0]),
         _undeploy.si(job_config, MOCK_OWNER, MOCK_REPO, MOCK_REF, 'deployer1'))
 

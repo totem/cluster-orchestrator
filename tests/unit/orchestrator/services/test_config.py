@@ -5,6 +5,7 @@ from future.builtins import (  # noqa
     ascii, chr, hex, input, next, oct, open,
     pow, round, super,
     filter, map, zip)
+from jsonschema import ValidationError
 from mock import patch
 from nose.tools import eq_, raises
 from conf.appconfig import DEFAULT_DEPLOYER_URL
@@ -13,6 +14,7 @@ from orchestrator.cluster_config.etcd import EtcdConfigProvider
 from orchestrator.cluster_config.s3 import S3ConfigProvider
 import orchestrator.services.config as service
 from orchestrator.services.errors import ConfigProviderNotFound
+from orchestrator.services.exceptions import ConfigValidationError
 from tests.helper import dict_compare
 
 __author__ = 'sukrit'
@@ -338,6 +340,61 @@ def test_evaluate_config_with_deployers():
             }
         }
     })
+
+
+@patch('orchestrator.services.config.validate')
+@patch('orchestrator.services.config.open')
+def test_validate_schema_for_successful_validation(m_open, m_validate):
+
+    # Given: Existing schema
+    m_open().__enter__().read.return_value = '''{
+    "title": "Schema for Job Config",
+    "id": "#generic-hook-v1"
+}'''
+
+    # And: Validator that succeeds validation
+    m_validate.return_value = None
+
+    # And: Config that needs to be validated
+    config = {
+        'mock-obj': 'mock-value'
+    }
+
+    # When: I validate against existing schema
+    ret_value = service.validate_schema(config)
+
+    # Then: Validation succeeds
+    dict_compare(ret_value, config)
+    dict_compare(m_validate.call_args[0][0], config)
+    dict_compare(m_validate.call_args[0][1], {
+        'title': 'Schema for Job Config',
+        'id': '#generic-hook-v1'
+    })
+
+
+@raises(ConfigValidationError)
+@patch('orchestrator.services.config.validate')
+@patch('orchestrator.services.config.open')
+def test_validate_schema_for_failed_validation(m_open, m_validate):
+
+        # Given: Existing schema
+        m_open().__enter__().read.return_value = '''{
+        "title": "Schema for Job Config",
+        "id": "#generic-hook-v1"
+}'''
+
+        # And: Validator that succeeds validation
+        m_validate.side_effect = ValidationError('MockError')
+
+        # And: Config that needs to be validated
+        config = {
+            'mock-obj': 'mock-value'
+        }
+
+        # When: I validate against existing schema
+        service.validate_schema(config)
+
+    # Then: ConfigValidationError is raised
 
 
 def test_transform_string_values():

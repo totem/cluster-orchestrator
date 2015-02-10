@@ -97,10 +97,10 @@ class GenericInternalPostHookApi(MethodView):
         if accept_mimetype == MIME_JOB_V1:
             result = task_client.ready(result.id, wait=True, raise_error=True)
             job = result['output']
+            job.setdefault('meta-info', {
+                'job-id': 'NA'
+            })
             location = '/jobs/%s' % (job['meta-info']['job-id'])
-            # location = url_for(
-            #     '.versions', name=deployment['deployment']['name'],
-            #     version=deployment['deployment']['version'])
             return created(job, location=location)
         else:
             return created_task(result)

@@ -1,3 +1,4 @@
+import json
 from future.builtins import (  # noqa
     bytes, dict, int, list, object, range, str,
     ascii, chr, hex, input, next, oct, open,
@@ -6,14 +7,17 @@ import copy
 import types
 from jinja2 import TemplateSyntaxError
 from jinja2.environment import get_spontaneous_environment
+from jsonschema import validate, ValidationError
+from repoze.lru import lru_cache
 from conf.appconfig import CONFIG_PROVIDERS, CONFIG_PROVIDER_LIST, \
-    BOOLEAN_TRUE_VALUES, DEFAULT_DEPLOYER_CONFIG
+    BOOLEAN_TRUE_VALUES, DEFAULT_DEPLOYER_CONFIG, API_PORT
 from orchestrator.cluster_config.default import DefaultConfigProvider
 from orchestrator.cluster_config.effective import MergedConfigProvider
 from orchestrator.cluster_config.etcd import EtcdConfigProvider
 from orchestrator.cluster_config.s3 import S3ConfigProvider
 from orchestrator.services.errors import ConfigProviderNotFound
-from orchestrator.services.exceptions import ConfigValueError
+from orchestrator.services.exceptions import ConfigValueError, \
+    ConfigValidationError
 from orchestrator.util import dict_merge
 
 
@@ -84,6 +88,21 @@ def _get_default_provider():
     return DefaultConfigProvider()
 
 
+@lru_cache(1)
+def _load_job_schema():
+    """
+    Helper function that loads given schema
+
+    :param schema_name:
+    :return:
+    """
+    base_url = 'http://localhost:%d' % API_PORT
+    fname = 'schemas/job-config-v1.json'
+    with open(fname) as file:
+        data = file.read().replace('${base_url}', base_url)
+        return json.loads(data)
+
+
 def get_provider(provider_type):
     """
     Factory method to create config provider instance.
@@ -103,6 +122,24 @@ def get_provider(provider_type):
         return globals()[locator]()
 
 
+def validate_schema(config):
+    """
+    Validates schema for given configuration.
+
+    :param config: Config dictionary
+    :type config: dict
+    :return: config if validation passes
+    :rtype: dict
+    """
+    schema = _load_job_schema()
+    try:
+        validate(config, schema)
+    except ValidationError as ex:
+        raise ConfigValidationError(ex.message, '/'.join(ex.schema_path),
+                                    ex.schema)
+    return config
+
+
 def load_config(*paths, **kwargs):
     """
     Loads config for given path and provider type.
@@ -120,7 +157,9 @@ def load_config(*paths, **kwargs):
     default_variables = kwargs.get('default_variables', {})
     provider_type = kwargs.get('provider_type', 'effective')
     provider = get_provider(provider_type)
-    return evaluate_config(provider.load(*paths), default_variables)
+    return evaluate_config(
+        validate_schema(provider.load(*paths)),
+        default_variables)
 
 
 def write_config(config, *paths, **kwargs):
