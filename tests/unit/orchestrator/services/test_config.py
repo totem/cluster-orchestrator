@@ -407,12 +407,12 @@ def test_transform_string_values():
     config = {
         'key1': 'value1',
         'port': 1212,
-        'enabled': 'true',
+        'enabled': 'True',
         'nested-port-key': {
             'port': u'2321',
             'nodes': u'12',
             'min-nodes': '13',
-            'enabled': 'false'
+            'enabled': 'False'
         },
         'array-config': [
             {

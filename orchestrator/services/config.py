@@ -311,7 +311,8 @@ def transform_string_values(config):
                     if each_v is None:
                         continue
                     elif each_k == 'enabled' and isinstance(each_v, str):
-                        use_config[each_k] = each_v in BOOLEAN_TRUE_VALUES
+                        use_config[each_k] = each_v.lower() in \
+                                             BOOLEAN_TRUE_VALUES
                     elif each_k in ('port', 'nodes', 'min-nodes') and \
                             isinstance(each_v, str):
                         use_config[each_k] = int(each_v)

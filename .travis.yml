@@ -25,3 +25,7 @@ script:
 
 after_success:
   - coveralls
+
+notifications:
+  webhooks:
+    - secure: "ztzwk/BgGlB+InQnxTcZVu3EoKaTnSBsumbPOTI+CtJd+rJV4LqCqHc1GGZy2/j47cwSUZj6/SOEO/QcSUB/PIMMwiRAsl4/phsKIETUxzOIcENlHZ5NXaHGbJSSLKhlZ40PasYPoMNV17bP83wUNVffa3a0GojBkTqDZdYtmlE="
