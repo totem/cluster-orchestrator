@@ -42,9 +42,9 @@ def _notify_ctx(owner, repo, ref, commit=None, job_id=None):
         'owner': owner,
         'repo': repo,
         'ref': ref,
-        'commit': commit or 'NA',
+        'commit': commit,
         'cluster': CLUSTER_NAME,
-        'job-id': job_id or 'NA'
+        'job-id': job_id
     }
 
 

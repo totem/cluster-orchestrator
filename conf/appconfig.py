@@ -122,10 +122,13 @@ CONFIG_PROVIDERS = {
             },
             'notifications': {
                 'hipchat': {
-                    'enabled': os.getenv('HIPCHAT_ENABLED', 'true').strip()
+                    'enabled': os.getenv('HIPCHAT_ENABLED', 'false').strip()
                     .lower() in BOOLEAN_TRUE_VALUES,
                     'room': os.getenv('HIPCHAT_ROOM', 'not-set'),
-                    'token': os.getenv('HIPCHAT_TOKEN', 'not-set'),
+                    'token': {
+                        'encrypted': True,
+                        'value': os.getenv('HIPCHAT_ENC_TOKEN', '')
+                    },
                     'level': 1,
                     'colors': {
                         1: 'red',

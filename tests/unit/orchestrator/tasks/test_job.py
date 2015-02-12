@@ -42,25 +42,6 @@ def test_notify_ctx():
     })
 
 
-def test_notify_ctx_with_defaults():
-    """
-    Should return expected notification context
-    """
-
-    # When: I get notification ctx without specifying commit, job_id
-    ctx = _notify_ctx(MOCK_OWNER, MOCK_REPO, MOCK_REF)
-
-    # Then: Expected ctx is returned
-    dict_compare(ctx, {
-        'owner': MOCK_OWNER,
-        'repo': MOCK_REPO,
-        'ref': MOCK_REF,
-        'commit': 'NA',
-        'cluster': CLUSTER_NAME,
-        'job-id': 'NA'
-    })
-
-
 @patch('orchestrator.tasks.job.group')
 def test_undeploy_all(m_group):
     """

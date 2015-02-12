@@ -6,11 +6,10 @@ from future.builtins import (  # noqa
     ascii, chr, hex, input, next, oct, open,
     pow, round, filter, map, zip)
 from hypchat import HypChat
-from json2html import json2html
-from conf.appconfig import CONFIG_PROVIDERS
+from conf.appconfig import CONFIG_PROVIDERS, SEARCH_SETTINGS
+from orchestrator import templatefactory
 from orchestrator.celery import app
 from orchestrator.services.security import decrypt_config
-from orchestrator.util import dict_merge
 
 
 LEVEL_ERROR = 1
@@ -41,31 +40,27 @@ def notify(obj, ctx=None, level=LEVEL_ERROR, notifications=None,
             obj, ctx, level, notification, security_profile).delay()
 
 
-def as_notification_msg(obj, ctx=None):
-    ctx = ctx or {}
-    ctx.setdefault('component', 'orchestrator')
-    if getattr(obj, 'to_dict', None):
+def _as_dict(obj):
+    if isinstance(obj, dict):
+        return obj
+    elif getattr(obj, 'to_dict', None):
         obj_dict = obj.to_dict()
-        notify_obj = dict_merge(ctx, {
-            'code': obj_dict.get('code', 'INTERNAL'),
-            'message': obj_dict.get('message', str(obj))
-        })
+        return obj_dict
     else:
-        notify_obj = dict_merge(ctx, {
-            'message': obj.message if getattr(obj, 'message', None)
-            else str(obj),
+        return {
+            'message': repr(obj),
             'code': 'INTERNAL'
-        })
-
-    return json2html.convert(
-        json=notify_obj)
+        }
 
 
 @app.task
 def notify_hipchat(obj, ctx, level, config, security_profile):
     config = decrypt_config(config, profile=security_profile)
+    ctx.setdefault('github', True)
+    ctx.setdefault('search', SEARCH_SETTINGS)
     hc = HypChat(config['token'], config.get('url'))
-    msg = as_notification_msg(obj, ctx)
+    msg = templatefactory.render_template(
+        'hipchat.html', notification=_as_dict(obj), ctx=ctx, level=level)
     hc.get_room(config.get('room')).notification(
         msg, format='html', notify=True,
         color=config.get('colors', {}).get(level, 'gray'),

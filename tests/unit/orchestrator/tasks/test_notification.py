@@ -1,4 +1,5 @@
-from mock import patch
+from mock import patch, MagicMock
+from nose.tools import eq_
 from orchestrator.tasks import notification
 
 
@@ -68,3 +69,55 @@ def test_notify(m_notify_hipchat):
 
     # Then: Hipchat notification is sent
     m_notify_hipchat.si.assert_called_once()
+
+
+def test_as_dict_for_dictionary_type():
+    """
+    Should return the input dictionary
+    """
+    # Given: Input dictionary
+    input = {
+        'mockkey': 'mockvalue'
+    }
+
+    # When: I invoke _as_dict with dict type
+    output = notification._as_dict(input)
+
+    # Then: Input dictionary is returned
+    eq_(output, input)
+
+
+def test_as_dict_for_obj_with_to_dict_method():
+    """
+    Should return the dict representation
+    """
+    # Given: Input Object
+    input = MagicMock()
+    input.to_dict.return_value = {
+        'mockkey': 'mockvalue'
+    }
+
+    # When: I invoke _as_dict with dict type
+    output = notification._as_dict(input)
+
+    # Then: Dictionary representation is returned
+    eq_(output, {
+        'mockkey': 'mockvalue'
+    })
+
+
+def test_as_dict_for_obj_with_no_to_dict_method():
+    """
+    Should return the dict representation
+    """
+    # Given: Input object
+    input = 'test'
+
+    # When: I invoke _as_dict with dict type
+    output = notification._as_dict(input)
+
+    # Then: Dictionary representation is returned
+    eq_(output, {
+        'code': 'INTERNAL',
+        'message': repr(input)
+    })
