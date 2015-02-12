@@ -135,7 +135,9 @@ def validate_schema(config):
     try:
         validate(config, schema)
     except ValidationError as ex:
-        raise ConfigValidationError(ex.message, '/'.join(ex.schema_path),
+        message = 'Failed to validate config against schema job-config-v1. ' \
+                  'Reason: %s' % ex.message
+        raise ConfigValidationError(message, '/'.join(ex.schema_path),
                                     ex.schema)
     return config
 

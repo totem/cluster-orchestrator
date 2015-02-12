@@ -28,7 +28,8 @@ def using_etcd(func):
     """
     @wraps(func)
     def outer(*args, **kwargs):
-        kwargs.setdefault('etcd_cl', get_etcd_client())
+        if kwargs.get('etcd_cl') is None:
+            kwargs.setdefault('etcd_cl', get_etcd_client())
         kwargs.setdefault('etcd_base', TOTEM_ETCD_SETTINGS['base'])
         return func(*args, **kwargs)
     return outer

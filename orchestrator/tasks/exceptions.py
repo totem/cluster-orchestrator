@@ -1,4 +1,3 @@
-
 class TaskExecutionException(Exception):
     """
     Exception wrapping the final exception returned by celery task execution.
@@ -28,12 +27,17 @@ class TaskExecutionException(Exception):
 class DeploymentFailed(Exception):
 
     def __init__(self, deploy_response):
-        self.response = deploy_response
+        self.response = deploy_response or {}
+        self.code = 'DEPLOY_REQUEST_FAILED'
         super(DeploymentFailed, self).__init__(deploy_response)
 
     def to_dict(self):
+        resp = self.response
         return {
-            'message': 'Deployment request failed',
-            'code': 'INTERNAL',
+            'message': 'Deployment request failed for url:%s. '
+                       'Status:%s Reason: %s' %
+                       (resp.get('url'), resp.get('status'),
+                        resp.get('response')),
+            'code': self.code,
             'details': self.response
         }
