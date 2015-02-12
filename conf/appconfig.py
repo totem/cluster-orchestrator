@@ -79,6 +79,8 @@ DEFAULT_DEPLOYER_CONFIG = {
     'deployment': {}
 }
 
+DEFAULT_HIPCHAT_TOKEN = os.getenv('HIPCHAT_TOKEN', '')
+
 CONFIG_PROVIDERS = {
     's3': {
         'bucket':  os.getenv('CONFIG_S3_BUCKET', 'not_set'),
@@ -125,10 +127,7 @@ CONFIG_PROVIDERS = {
                     'enabled': os.getenv('HIPCHAT_ENABLED', 'false').strip()
                     .lower() in BOOLEAN_TRUE_VALUES,
                     'room': os.getenv('HIPCHAT_ROOM', 'not-set'),
-                    'token': {
-                        'encrypted': True,
-                        'value': os.getenv('HIPCHAT_ENC_TOKEN', '')
-                    },
+                    'token': '',
                     'level': 1,
                     'colors': {
                         1: 'red',

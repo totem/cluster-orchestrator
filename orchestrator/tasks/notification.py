@@ -6,7 +6,8 @@ from future.builtins import (  # noqa
     ascii, chr, hex, input, next, oct, open,
     pow, round, filter, map, zip)
 from hypchat import HypChat
-from conf.appconfig import CONFIG_PROVIDERS, SEARCH_SETTINGS
+from conf.appconfig import CONFIG_PROVIDERS, SEARCH_SETTINGS, \
+    DEFAULT_HIPCHAT_TOKEN
 from orchestrator import templatefactory
 from orchestrator.celery import app
 from orchestrator.services.security import decrypt_config
@@ -58,7 +59,8 @@ def notify_hipchat(obj, ctx, level, config, security_profile):
     config = decrypt_config(config, profile=security_profile)
     ctx.setdefault('github', True)
     ctx.setdefault('search', SEARCH_SETTINGS)
-    hc = HypChat(config['token'], config.get('url'))
+    hc = HypChat(config.get('token', '') or DEFAULT_HIPCHAT_TOKEN,
+                 config.get('url'))
     msg = templatefactory.render_template(
         'hipchat.html', notification=_as_dict(obj), ctx=ctx, level=level)
     hc.get_room(config.get('room')).notification(
