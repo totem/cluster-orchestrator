@@ -16,7 +16,7 @@ AMQP_HOST = os.getenv('AMQP_HOST', 'localhost')
 AMQP_PORT = int(os.getenv('AMQP_PORT', '5672'))
 DEFAULT_BROKER_URL = 'amqp://%s:%s@%s:%s' % (AMQP_USERNAME, AMQP_PASSWORD,
                                              AMQP_HOST, AMQP_PORT)
-BROKER_URL = os.getenv('BROKER_URL', DEFAULT_BROKER_URL)
+BROKER_URL = os.getenv('BROKER_URL') or DEFAULT_BROKER_URL
 BROKER_HEARTBEAT = int(os.getenv('BROKER_HEARTBEAT', '20'))
 CELERY_DEFAULT_QUEUE = 'orchestrator-%s-default' % CLUSTER_NAME
 CELERY_QUEUES = (
