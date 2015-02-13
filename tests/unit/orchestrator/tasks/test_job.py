@@ -20,6 +20,7 @@ MOCK_REPO = 'mock-repo'
 MOCK_REF = 'mock-ref'
 MOCK_JOB_ID = 'mock-job-id'
 MOCK_COMMIT = 'mock-commit'
+MOCK_OPERATION = 'mock-operation'
 
 
 def test_notify_ctx():
@@ -29,7 +30,7 @@ def test_notify_ctx():
 
     # When: I get notification ctx
     ctx = _notify_ctx(MOCK_OWNER, MOCK_REPO, MOCK_REF, commit=MOCK_COMMIT,
-                      job_id=MOCK_JOB_ID)
+                      job_id=MOCK_JOB_ID, operation=MOCK_OPERATION)
 
     # Then: Expected ctx is returned
     dict_compare(ctx, {
@@ -38,7 +39,8 @@ def test_notify_ctx():
         'ref': MOCK_REF,
         'commit': MOCK_COMMIT,
         'cluster': CLUSTER_NAME,
-        'job-id': MOCK_JOB_ID
+        'job-id': MOCK_JOB_ID,
+        'operation': MOCK_OPERATION
     })
 
 

@@ -41,3 +41,23 @@ class DeploymentFailed(Exception):
             'code': self.code,
             'details': self.response
         }
+
+
+class HooksFailed(Exception):
+
+    def __init__(self, failed_hooks):
+        self.message = 'Hooks returned failed status to orchestrator.  ' \
+                       'Failed hooks: {0}. Check the logs for each failed ' \
+                       'service to see more details'.format(failed_hooks)
+        self.code = 'HOOKS_FAILED'
+        self.failed_hooks = failed_hooks
+        super(HooksFailed, self).__init__(failed_hooks)
+
+    def to_dict(self):
+        return {
+            'message': self.message,
+            'code': self.code,
+            'details': {
+                'failed-hooks': self.failed_hooks
+            }
+        }
