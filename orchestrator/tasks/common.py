@@ -1,13 +1,23 @@
+from celery import Task
 from conf.appconfig import TASK_SETTINGS
 from orchestrator.celery import app
 from orchestrator.tasks.util import simple_result, TaskNotReadyException
 
 
-@app.task(bind=True)
+class ErrorHandlerTask(Task):
+    abstract = True
+
+    def on_failure(self, exc, task_id, args, kwargs, einfo):
+        if kwargs.get('error_task'):
+            error_task = kwargs.get('error_task')
+            error_task.delay(exc)
+
+
+@app.task(bind=True, base=ErrorHandlerTask)
 def async_wait(self, result,
                default_retry_delay=TASK_SETTINGS['DEFAULT_RETRY_DELAY'],
                max_retries=TASK_SETTINGS['DEFAULT_RETRIES'],
-               ret_value=None):
+               ret_value=None, error_task=None, error_tasks=None):
     """
     Performs asynchronous wait for result. It uses retry approach for result
     to be available rather calling get() . This way the trask do not directly
@@ -20,12 +30,13 @@ def async_wait(self, result,
         returned
     :return: ret_value or evaluated result
     """
+
     try:
         result = simple_result(result)
     except TaskNotReadyException as exc:
-        self.retry(exc=exc,
-                   countdown=default_retry_delay,
-                   max_retries=max_retries)
+        raise self.retry(exc=exc,
+                         countdown=default_retry_delay,
+                         max_retries=max_retries)
     return ret_value or result
 
 

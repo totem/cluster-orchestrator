@@ -1,4 +1,5 @@
 import json
+from parser import ParserError
 from future.builtins import (  # noqa
     bytes, dict, int, list, object, range, str,
     ascii, chr, hex, input, next, oct, open,
@@ -17,7 +18,7 @@ from orchestrator.cluster_config.etcd import EtcdConfigProvider
 from orchestrator.cluster_config.s3 import S3ConfigProvider
 from orchestrator.services.errors import ConfigProviderNotFound
 from orchestrator.services.exceptions import ConfigValueError, \
-    ConfigValidationError
+    ConfigValidationError, ConfigParseError
 from orchestrator.util import dict_merge
 
 
@@ -135,7 +136,9 @@ def validate_schema(config):
     try:
         validate(config, schema)
     except ValidationError as ex:
-        raise ConfigValidationError(ex.message, '/'.join(ex.schema_path),
+        message = 'Failed to validate config against schema job-config-v1. ' \
+                  'Reason: %s' % ex.message
+        raise ConfigValidationError(message, '/'.join(ex.schema_path),
                                     ex.schema)
     return config
 
@@ -157,9 +160,12 @@ def load_config(*paths, **kwargs):
     default_variables = kwargs.get('default_variables', {})
     provider_type = kwargs.get('provider_type', 'effective')
     provider = get_provider(provider_type)
-    return evaluate_config(
-        validate_schema(provider.load(*paths)),
-        default_variables)
+    try:
+        return evaluate_config(
+            validate_schema(provider.load(*paths)),
+            default_variables)
+    except ParserError as parser_error:
+        raise ConfigParseError(parser_error, paths)
 
 
 def write_config(config, *paths, **kwargs):
@@ -287,7 +293,7 @@ def evaluate_config(config, default_variables={}, var_key='variables'):
             updated_config['deployers'][deployer_name] = dict_merge(
                 deployer, DEFAULT_DEPLOYER_CONFIG)
 
-    variables = evaluate_variables(config[var_key], default_variables)
+    variables = evaluate_variables(updated_config[var_key], default_variables)
     del(updated_config[var_key])
     return transform_string_values(evaluate_value(updated_config, variables))
 

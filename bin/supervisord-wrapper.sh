@@ -18,8 +18,18 @@ export QUAY_ORGANIZATION='${QUAY_ORGANIZATION:-totem}'
 export QUAY_PREFIX='${QUAY_PREFIX:-totem-}'
 export SEARCH_ENABLED=${SEARCH_ENABLED:-false}
 export C_FORCE_ROOT=true
-export BROKER_URL='${BROKER_URL:-amqp://guest:guest@172.17.42.1:5672/}'
+export AMQP_HOST='${AMQP_HOST:-172.17.42.1}'
+export AMQP_PORT='${AMQP_PORT:-5672}'
+export AMQP_USERNAME='${AMQP_USERNAME:-guest}'
+export AMQP_PASSWORD='${AMQP_PASSWORD:-guest}'
+export BROKER_URL='${BROKER_URL}'
 export CLUSTER_DEPLOYER_URL='${CLUSTER_DEPLOYER_URL:-http://172.17.42.1:9000}'
+export ENCRYPTION_PASSPHRASE='${ENCRYPTION_PASSPHRASE:-changeit}'
+export ENCRYPTION_S3_BUCKET='${ENCRYPTION_S3_BUCKET:-not-set}'
+export ENCRYPTION_STORE='${ENCRYPTION_PROVIDER:-s3}'
+export HIPCHAT_ENABLED='${HIPCHAT_ENABLED:-false}'
+export HIPCHAT_TOKEN='${HIPCHAT_TOKEN:-not-set}'
+export HIPCHAT_ROOM='${HIPCHAT_ROOM:-not-set}'
 END
 
 /bin/bash -le -c " envsubst  < /etc/supervisor/conf.d/supervisord.conf.template  > /etc/supervisor/conf.d/supervisord.conf; \

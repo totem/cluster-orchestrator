@@ -58,6 +58,15 @@ API_DEFAULT_PAGE_SIZE = 10
 HEALTH_OK = 'ok'
 HEALTH_FAILED = 'failed'
 
+ENCRYPTION = {
+    'store': os.getenv('ENCRYPTION_STORE', None),
+    's3': {
+        'bucket': os.getenv('ENCRYPTION_S3_BUCKET', 'not-set'),
+        'base': os.getenv('ENCRYPTION_S3_BASE', 'totem/keys'),
+        },
+    'passphrase': os.getenv('ENCRYPTION_PASSPHRASE', None),
+}
+
 DEFAULT_DEPLOYER_CONFIG = {
     'url': os.getenv('CLUSTER_DEPLOYER_URL', DEFAULT_DEPLOYER_URL),
     'enabled': True,
@@ -69,6 +78,8 @@ DEFAULT_DEPLOYER_CONFIG = {
     },
     'deployment': {}
 }
+
+DEFAULT_HIPCHAT_TOKEN = os.getenv('HIPCHAT_TOKEN', '')
 
 CONFIG_PROVIDERS = {
     's3': {
@@ -110,6 +121,22 @@ CONFIG_PROVIDERS = {
             'enabled': False,
             'security': {
                 'profile': 'default'
+            },
+            'notifications': {
+                'hipchat': {
+                    'enabled': os.getenv('HIPCHAT_ENABLED', 'false').strip()
+                    .lower() in BOOLEAN_TRUE_VALUES,
+                    'room': os.getenv('HIPCHAT_ROOM', 'not-set'),
+                    'token': '',
+                    'level': 1,
+                    'colors': {
+                        1: 'red',
+                        2: 'yellow',
+                        3: 'green',
+                        4: 'gray'
+                    },
+                    'url': 'https://api.hipchat.com'
+                }
             }
         }
     }
