@@ -1,5 +1,6 @@
 from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
+from parser import ParserError
 from future.builtins import (  # noqa
     bytes, dict, int, list, object, range, str,
     ascii, chr, hex, input, next, oct, open,
@@ -12,9 +13,11 @@ from conf.appconfig import DEFAULT_DEPLOYER_URL
 from orchestrator.cluster_config.effective import MergedConfigProvider
 from orchestrator.cluster_config.etcd import EtcdConfigProvider
 from orchestrator.cluster_config.s3 import S3ConfigProvider
+from orchestrator.services import config
 import orchestrator.services.config as service
 from orchestrator.services.errors import ConfigProviderNotFound
-from orchestrator.services.exceptions import ConfigValidationError
+from orchestrator.services.exceptions import ConfigValidationError, \
+    ConfigParseError
 from tests.helper import dict_compare
 
 __author__ = 'sukrit'
@@ -451,3 +454,45 @@ def test_transform_string_values():
         ],
         'null-key': None
     })
+
+
+@patch('orchestrator.services.config.get_provider')
+@patch('orchestrator.services.config.validate_schema')
+def test_load_config(m_validate_schema, m_get_provider):
+    """
+    Should load config successfully
+    :return:
+    """
+    # Given: Existing valid config
+    cfg = {
+        'mockkey': 'mockvalue'
+    }
+    m_get_provider.return_value.load.return_value = cfg
+    m_validate_schema.side_effect = lambda vcfg: vcfg
+
+    # When: I load the config
+    loaded_config = config.load_config('mockpath1', 'mockpath2')
+
+    # Then: Config gets loaded as expected
+    dict_compare(loaded_config, {
+        'mockkey': 'mockvalue',
+        'deployers': {}
+    })
+
+
+@raises(ConfigParseError)
+@patch('orchestrator.services.config.get_provider')
+@patch('orchestrator.services.config.validate_schema')
+def test_load_config_when_config_is_invalid(m_validate_schema, m_get_provider):
+    """
+    Should raise ConfigParseError when configuration is invalid
+    :return:
+    """
+    # Given: Existing valid config
+    m_get_provider.return_value.load.side_effect = ParserError('Mock')
+    m_validate_schema.side_effect = lambda vcfg: vcfg
+
+    # When: I load the config
+    config.load_config('mockpath1', 'mockpath2')
+
+    # Then: ConfigParseError is raised
