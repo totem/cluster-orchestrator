@@ -1,5 +1,6 @@
 import json
 from parser import ParserError
+from yaml.error import MarkedYAMLError
 from future.builtins import (  # noqa
     bytes, dict, int, list, object, range, str,
     ascii, chr, hex, input, next, oct, open,
@@ -164,8 +165,9 @@ def load_config(*paths, **kwargs):
         return evaluate_config(
             validate_schema(provider.load(*paths)),
             default_variables)
-    except ParserError as parser_error:
-        raise ConfigParseError(parser_error, paths)
+
+    except (MarkedYAMLError, ParserError) as yaml_error:
+        raise ConfigParseError(yaml_error, paths)
 
 
 def write_config(config, *paths, **kwargs):
@@ -318,7 +320,7 @@ def transform_string_values(config):
                         continue
                     elif each_k == 'enabled' and isinstance(each_v, str):
                         use_config[each_k] = each_v.lower() in \
-                                             BOOLEAN_TRUE_VALUES
+                            BOOLEAN_TRUE_VALUES
                     elif each_k in ('port', 'nodes', 'min-nodes') and \
                             isinstance(each_v, str):
                         use_config[each_k] = int(each_v)

@@ -1,6 +1,8 @@
 from mock import patch, MagicMock
 from nose.tools import eq_
+from conf.appconfig import SEARCH_SETTINGS
 from orchestrator.tasks import notification
+from orchestrator.tasks.notification import LEVEL_ERROR
 
 
 @patch('orchestrator.tasks.notification.notify_hipchat')
@@ -121,3 +123,44 @@ def test_as_dict_for_obj_with_no_to_dict_method():
         'code': 'INTERNAL',
         'message': repr(input)
     })
+
+
+@patch('orchestrator.tasks.notification.requests')
+@patch('orchestrator.tasks.notification.templatefactory')
+@patch('orchestrator.tasks.notification.json')
+def test_notify_hipchat(m_json, m_templatefactory, m_requests):
+    """
+    Should send hipchat notification
+    :return:
+    """
+    # Given: Template factory that renders html template for notification
+    m_templatefactory.render_template.return_value = 'mockmsg'
+
+    # And: Mock implementation for jsonify (for validating data)
+    m_json.dumps.side_effect = lambda data: data
+
+    # When: I send message using hipchat
+    notification.notify_hipchat(
+        'Mock', {}, LEVEL_ERROR,
+        {'token': 'mocktoken', 'room': 'mockroom'},
+        'default')
+
+    # Then: Notification gets send successfully
+    m_requests.post.assert_called_once_with(
+        'https://api.hipchat.com/v2/room/mockroom/notification',
+        headers={
+            'content-type': 'application/json',
+            'Authorization': 'Bearer mocktoken'},
+        data={
+            'color': 'gray',
+            'message': 'mockmsg',
+            'notify': True,
+            'message_format': 'html'
+        })
+
+    m_templatefactory.render_template.assert_called_once_with(
+        'hipchat.html',
+        notification={'message': "'Mock'", 'code': 'INTERNAL'},
+        ctx={'search': SEARCH_SETTINGS, 'github': True},
+        level=LEVEL_ERROR,
+    )
