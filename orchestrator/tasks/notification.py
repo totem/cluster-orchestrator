@@ -1,11 +1,14 @@
 """
 Tasks for notification
 """
+import json
 from future.builtins import (  # noqa
     bytes, dict, int, list, object, range, str,
     ascii, chr, hex, input, next, oct, open,
     pow, round, filter, map, zip)
-from hypchat import HypChat
+
+import requests
+
 from conf.appconfig import CONFIG_PROVIDERS, SEARCH_SETTINGS, \
     DEFAULT_HIPCHAT_TOKEN
 from orchestrator import templatefactory
@@ -59,11 +62,21 @@ def notify_hipchat(obj, ctx, level, config, security_profile):
     config = decrypt_config(config, profile=security_profile)
     ctx.setdefault('github', True)
     ctx.setdefault('search', SEARCH_SETTINGS)
-    hc = HypChat(config.get('token', '') or DEFAULT_HIPCHAT_TOKEN,
-                 config.get('url'))
+    base_url = config.get('url') or 'https://api.hipchat.com'
+    room_url = '{0}/v2/room/{1}/notification'.format(
+        base_url, config.get('room'))
     msg = templatefactory.render_template(
         'hipchat.html', notification=_as_dict(obj), ctx=ctx, level=level)
-    hc.get_room(config.get('room')).notification(
-        msg, format='html', notify=True,
-        color=config.get('colors', {}).get(level, 'gray'),
-    )
+    headers = {
+        'content-type': 'application/json',
+        'Authorization': 'Bearer {0}'.format(
+            config.get('token', '') or DEFAULT_HIPCHAT_TOKEN)
+    }
+    data = {
+        'message_format': 'html',
+        'message': msg[:5000],
+        'color': config.get('colors', {}).get(level, 'gray'),
+        'notify': True
+    }
+    requests.post(room_url, data=json.dumps(data),
+                  headers=headers).raise_for_status()
