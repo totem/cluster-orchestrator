@@ -9,7 +9,7 @@ from future.builtins import (  # noqa
 
 from flask.views import MethodView
 from conf.appconfig import MIME_HEALTH_V1, SCHEMA_HEALTH_V1, MIME_JSON, \
-    HEALTH_OK, BOOLEAN_TRUE_VALUES, MIME_HTML
+    HEALTH_OK, BOOLEAN_TRUE_VALUES
 from orchestrator.services.health import get_health
 from orchestrator.views import hypermedia
 from orchestrator.views.util import build_response
