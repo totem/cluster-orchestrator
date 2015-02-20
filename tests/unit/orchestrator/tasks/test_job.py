@@ -185,7 +185,8 @@ def test_deploy_all(m_deploy, m_add_search_event, m_chord, m_group):
 
 @patch('orchestrator.tasks.job.add_search_event')
 @patch('orchestrator.tasks.job.requests')
-def test_deploy(m_requests, m_add_search_event):
+@patch('orchestrator.tasks.job.notify')
+def test_deploy(m_notify, m_requests, m_add_search_event):
     """
     Should successfully request deployment to cluster deployer.
     """
@@ -200,10 +201,19 @@ def test_deploy(m_requests, m_add_search_event):
                     'deployment': {},
                     'url': 'http://mockurl'
                 }
+            },
+            'security': {
+                'profile': 'default'
             }
         },
         'meta-info': {
-            'job-id': MOCK_JOB_ID
+            'job-id': MOCK_JOB_ID,
+            'git': {
+                'commit': 'mockcommit',
+                'owner': 'mockowner',
+                'repo': 'mockrepo',
+                'ref': 'mockref'
+            }
         },
     }
 
@@ -229,10 +239,8 @@ def test_deploy(m_requests, m_add_search_event):
             'proxy': {},
             'templates': {},
             'deployment': {},
-            'security': {},
-            'meta-info': {
-                'job-id': MOCK_JOB_ID
-            }
+            'security': job['config']['security'],
+            'meta-info': job['meta-info']
         },
         'response': {
             'task_id': 'mock-task-id'
@@ -241,9 +249,7 @@ def test_deploy(m_requests, m_add_search_event):
     dict_compare(m_add_search_event.si.call_args[1], {
         'details': expected_deploy_response,
         'search_params': {
-            'meta-info': {
-                'job-id': MOCK_JOB_ID
-            }
+            'meta-info': job['meta-info']
         }
     })
     dict_compare(deploy_response, expected_deploy_response)
