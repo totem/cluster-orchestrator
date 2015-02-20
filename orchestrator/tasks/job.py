@@ -253,7 +253,6 @@ def _handle_noop(job, etcd_cl=None, etcd_base=None):
     job_base = _job_base_location(git['owner'], git['repo'], git['ref'],
                                   etcd_base, commit=git['commit'])
     safe_delete(etcd_cl, job_base, recursive=True)
-    index_job.si(job).delay()
     notify_ctx = _notify_ctx(git['owner'], git['repo'], git['ref'],
                              commit=git['commit'],
                              operation='handle_noop')
@@ -263,7 +262,7 @@ def _handle_noop(job, etcd_cl=None, etcd_base=None):
         notifications=job_config.get('notifications'),
         security_profile=job_config['security']['profile']
     ).delay()
-    return job
+    return index_job.si(job, ret_value=job).delay()
 
 
 @app.task
@@ -335,8 +334,7 @@ def _update_etcd_job(job, hook_type, hook_name, hook_status='success',
         image = get_or_insert(etcd_cl, '%s/hooks/builder/image' % job_base, '')
         _update_job(status, image)
     etcd_cl.write(job_base+'/state', job['state'])
-    index_job.si(job).delay()
-    return job
+    return index_job.si(job, ret_value=job).delay()
 
 
 @app.task
