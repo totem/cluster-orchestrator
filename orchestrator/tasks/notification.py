@@ -10,21 +10,16 @@ from future.builtins import (  # noqa
 import requests
 
 from conf.appconfig import CONFIG_PROVIDERS, SEARCH_SETTINGS, \
-    DEFAULT_HIPCHAT_TOKEN
+    DEFAULT_HIPCHAT_TOKEN, LEVEL_FAILED, DEFAULT_GITHUB_TOKEN, \
+    LEVEL_FAILED_WARN, LEVEL_STARTED, LEVEL_SUCCESS, LEVEL_PENDING
 from orchestrator import templatefactory
 from orchestrator.celery import app
 from orchestrator.services.security import decrypt_config
 
 
-LEVEL_ERROR = 1
-LEVEL_WARN = 2
-LEVEL_INFO = 3
-LEVEL_DEBUG = 4
-
-
 @app.task
-def notify(obj, ctx=None, level=LEVEL_ERROR, notifications=None,
-           security_profile='default'):
+def notify(obj, ctx=None, level=LEVEL_FAILED,
+           notifications=None, security_profile='default'):
     """
     Handles notification or job failure.
 
@@ -36,7 +31,7 @@ def notify(obj, ctx=None, level=LEVEL_ERROR, notifications=None,
     enabled_notifications = {
         name: notification for name, notification in notifications.items()
         if notification.get('enabled') and level <=
-        notification.get('level', LEVEL_ERROR) and
+        notification.get('level', LEVEL_FAILED) and
         globals().get('notify_%s' % name)
     }
     for name, notification in enabled_notifications.items():
@@ -52,7 +47,7 @@ def _as_dict(obj):
         return obj_dict
     else:
         return {
-            'message': repr(obj),
+            'message': repr(obj) if not isinstance(obj, str) else obj,
             'code': 'INTERNAL'
         }
 
@@ -80,3 +75,39 @@ def notify_hipchat(obj, ctx, level, config, security_profile):
     }
     requests.post(room_url, data=json.dumps(data),
                   headers=headers).raise_for_status()
+
+
+@app.task
+def notify_github(obj, ctx, level, config, security_profile):
+    config = decrypt_config(config, profile=security_profile)
+    base_url = config.get('url') or 'https://api.github.com'
+    owner, repo, commit = ctx.get('owner'), ctx.get('repo'), ctx.get('commit')
+    token = config.get('token') or DEFAULT_GITHUB_TOKEN
+    if owner and repo and commit and token:
+        desc = _as_dict(obj).get('message', str(obj))
+        # Max 140 characters allowed for description
+        use_desc = desc[:137] + '...' if len(desc) > 140 else desc
+
+        status_url = '{0}/repos/{1}/{2}/statuses/{3}'.format(
+            base_url, owner, repo, commit)
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/vnd.github.v3+json',
+            'Authorization': 'token {0}'.format(token)
+        }
+        data = {
+            'state': {
+                LEVEL_FAILED: 'failure',
+                LEVEL_FAILED_WARN: 'failure',
+                LEVEL_SUCCESS: 'success',
+                LEVEL_STARTED: 'pending',
+                LEVEL_PENDING: 'pending'
+            }.get(level, 'pending'),
+            'description': use_desc,
+            'context': ctx.get('cluster', 'local') + '::Orchestrator'
+        }
+        requests.post(status_url, data=json.dumps(data),
+                      headers=headers).raise_for_status()
+    else:
+        # Github notification not sent
+        pass
