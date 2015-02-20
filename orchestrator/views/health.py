@@ -23,8 +23,7 @@ class HealthApi(MethodView):
     @hypermedia.produces(
         {
             MIME_HEALTH_V1: SCHEMA_HEALTH_V1,
-            MIME_JSON: SCHEMA_HEALTH_V1,
-            MIME_HTML: SCHEMA_HEALTH_V1,
+            MIME_JSON: SCHEMA_HEALTH_V1
         }, default=MIME_HEALTH_V1)
     def get(self, **kwargs):
         """
