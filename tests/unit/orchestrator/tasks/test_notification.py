@@ -140,7 +140,7 @@ def test_notify_hipchat(m_json, m_templatefactory, m_requests):
 
     # When: I send message using hipchat
     notification.notify_hipchat(
-        'Mock', {}, LEVEL_FAILED,
+        {'message': 'mock'}, {}, LEVEL_FAILED,
         {'token': 'mocktoken', 'room': 'mockroom'},
         'default')
 
@@ -159,7 +159,7 @@ def test_notify_hipchat(m_json, m_templatefactory, m_requests):
 
     m_templatefactory.render_template.assert_called_once_with(
         'hipchat.html',
-        notification={'message': "'Mock'", 'code': 'INTERNAL'},
+        notification={'message': 'mock'},
         ctx={'search': SEARCH_SETTINGS, 'github': True},
         level=LEVEL_FAILED,
     )

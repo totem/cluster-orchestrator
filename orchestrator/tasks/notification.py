@@ -47,7 +47,7 @@ def _as_dict(obj):
         return obj_dict
     else:
         return {
-            'message': repr(obj) if not isinstance(obj, str) else obj,
+            'message': repr(obj),
             'code': 'INTERNAL'
         }
 

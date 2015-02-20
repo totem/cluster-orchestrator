@@ -61,7 +61,7 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
     notify.si(
         {'message': 'Received webhook {0}/{1} with status {2}'.format(
             hook_type, hook_name, hook_status)},
-        notify_ctx=notify_ctx, level=LEVEL_STARTED,
+        ctx=notify_ctx, level=LEVEL_STARTED,
         notifications=job_config.get('notifications'),
         security_profile=job_config['security']['profile']
     ).delay()
@@ -259,7 +259,7 @@ def _handle_noop(job, etcd_cl=None, etcd_base=None):
                              operation='handle_noop')
     notify.si(
         {'message': 'No deployment requested (NOOP)'},
-        notify_ctx=notify_ctx, level=LEVEL_SUCCESS,
+        ctx=notify_ctx, level=LEVEL_SUCCESS,
         notifications=job_config.get('notifications'),
         security_profile=job_config['security']['profile']
     ).delay()
@@ -450,7 +450,7 @@ def _deploy(self, job, deployer_name):
     notify.si(
         {'message': 'Deployment for {0} requested successfully using url: {1}'
             .format(deployer_name, apps_url)},
-        notify_ctx=notify_ctx, level=LEVEL_SUCCESS,
+        ctx=notify_ctx, level=LEVEL_SUCCESS,
         notifications=job_config.get('notifications'),
         security_profile=job_config['security']['profile']
     ).delay()
