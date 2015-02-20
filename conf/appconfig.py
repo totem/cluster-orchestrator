@@ -58,6 +58,12 @@ API_DEFAULT_PAGE_SIZE = 10
 HEALTH_OK = 'ok'
 HEALTH_FAILED = 'failed'
 
+LEVEL_FAILED = 1
+LEVEL_FAILED_WARN = 2
+LEVEL_SUCCESS = 3
+LEVEL_STARTED = 4
+LEVEL_PENDING = 5
+
 ENCRYPTION = {
     'store': os.getenv('ENCRYPTION_STORE', None),
     's3': {
@@ -80,6 +86,7 @@ DEFAULT_DEPLOYER_CONFIG = {
 }
 
 DEFAULT_HIPCHAT_TOKEN = os.getenv('HIPCHAT_TOKEN', '')
+DEFAULT_GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', '')
 
 CONFIG_PROVIDERS = {
     's3': {
@@ -128,14 +135,21 @@ CONFIG_PROVIDERS = {
                     .lower() in BOOLEAN_TRUE_VALUES,
                     'room': os.getenv('HIPCHAT_ROOM', 'not-set'),
                     'token': '',
-                    'level': 1,
+                    'level': LEVEL_FAILED,
                     'colors': {
-                        1: 'red',
-                        2: 'yellow',
-                        3: 'green',
-                        4: 'gray'
+                        LEVEL_FAILED: 'red',
+                        LEVEL_FAILED_WARN: 'red',
+                        LEVEL_SUCCESS: 'green',
+                        LEVEL_STARTED: 'yellow',
+                        LEVEL_PENDING: 'yellow',
                     },
                     'url': 'https://api.hipchat.com'
+                },
+                'github': {
+                    'enabled': os.getenv('GITHUB_NOTIFICATION_ENABLED',
+                                         'false').strip(),
+                    'token': '',
+                    'level': LEVEL_PENDING
                 }
             }
         }

@@ -7,7 +7,8 @@ from celery import chain, chord, group
 from requests.exceptions import ConnectionError
 from conf.appconfig import TASK_SETTINGS, JOB_SETTINGS, JOB_STATE_NEW, \
     JOB_STATE_SCHEDULED, JOB_STATE_DEPLOY_REQUESTED, JOB_STATE_NOOP, \
-    DEFAULT_DEPLOYER_URL, CONFIG_PROVIDERS
+    DEFAULT_DEPLOYER_URL, CONFIG_PROVIDERS, LEVEL_FAILED, LEVEL_STARTED, \
+    LEVEL_SUCCESS
 from conf.celeryconfig import CLUSTER_NAME
 from orchestrator.celery import app
 from orchestrator.etcd import using_etcd, safe_delete, get_or_insert
@@ -15,7 +16,7 @@ from orchestrator.services import config
 from orchestrator.services.distributed_lock import LockService, \
     ResourceLockedException
 from orchestrator.tasks.exceptions import DeploymentFailed, HooksFailed
-from orchestrator.tasks.notification import notify, LEVEL_ERROR
+from orchestrator.tasks.notification import notify
 from orchestrator.tasks.search import index_job, create_search_parameters, \
     add_search_event, EVENT_DEPLOY_REQUESTED, EVENT_DEPLOY_REQUEST_COMPLETE
 from orchestrator.tasks.common import async_wait
@@ -55,6 +56,16 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
                          force_deploy=False):
     template_vars = _template_variables(owner, repo, ref, commit=commit,)
     job_config = CONFIG_PROVIDERS['default']['config']
+    notify_ctx = _notify_ctx(owner, repo, ref, commit=commit,
+                             operation='handle_callback_hook')
+    notify.si(
+        {'message': 'Received webhook {0}/{1} with status {2}'.format(
+            hook_type, hook_name, hook_status)},
+        notify_ctx=notify_ctx, level=LEVEL_STARTED,
+        notifications=job_config.get('notifications'),
+        security_profile=job_config['security']['profile']
+    ).delay()
+
     try:
         job_config = config.load_config(
             CLUSTER_NAME, owner, repo, ref, default_variables=template_vars)
@@ -62,9 +73,8 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
         job = _create_job(job_config, owner, repo, ref, commit=commit,
                           force_deploy=force_deploy)
     except BaseException as exc:
-        notify.si(exc, ctx=_notify_ctx(owner, repo, ref, commit=commit,
-                                       operation='handle_callback_hook'),
-                  level=LEVEL_ERROR,
+        notify.si(exc, ctx=notify_ctx,
+                  level=LEVEL_FAILED,
                   notifications=job_config.get('notifications'),
                   security_profile=job_config['security']['profile'],
                   ).delay()
@@ -83,7 +93,7 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
                     ctx=_notify_ctx(owner, repo, ref, commit=commit,
                                     operation='handle_callback_hook',
                                     job_id=job['meta-info']['job-id']),
-                    level=LEVEL_ERROR,
+                    level=LEVEL_FAILED,
                     notifications=job_config.get('notifications'),
                     security_profile=job_config['security']['profile']
                 )
@@ -106,7 +116,7 @@ def undeploy(owner, repo, ref):
     except BaseException as exc:
         notify.si(exc, ctx=_notify_ctx(owner, repo, ref, commit=None,
                                        operation='undeploy'),
-                  level=LEVEL_ERROR,
+                  level=LEVEL_FAILED,
                   notifications=job_config.get('notifications'),
                   security_profile=job_config['security']['profile']).delay()
         raise
@@ -237,12 +247,22 @@ def _handle_hook(job, hook_type, hook_name, hook_status, hook_result):
 @using_etcd
 def _handle_noop(job, etcd_cl=None, etcd_base=None):
     job = copy.deepcopy(job)
+    job_config = job['config']
     job['state'] = JOB_STATE_NOOP
     git = job['meta-info']['git']
     job_base = _job_base_location(git['owner'], git['repo'], git['ref'],
                                   etcd_base, commit=git['commit'])
     safe_delete(etcd_cl, job_base, recursive=True)
     index_job.si(job).delay()
+    notify_ctx = _notify_ctx(git['owner'], git['repo'], git['ref'],
+                             commit=git['commit'],
+                             operation='handle_noop')
+    notify.si(
+        {'message': 'No deployment requested (NOOP)'},
+        notify_ctx=notify_ctx, level=LEVEL_SUCCESS,
+        notifications=job_config.get('notifications'),
+        security_profile=job_config['security']['profile']
+    ).delay()
     return job
 
 
@@ -422,6 +442,18 @@ def _deploy(self, job, deployer_name):
 
     if deploy_response['status'] >= 400:
         raise DeploymentFailed(deploy_response)
+
+    git = job['meta-info']['git']
+    notify_ctx = _notify_ctx(git['owner'], git['repo'], git['ref'],
+                             commit=git['commit'],
+                             operation='deploy')
+    notify.si(
+        {'message': 'Deployment for {0} requested successfully using url: {1}'
+            .format(deployer_name, apps_url)},
+        notify_ctx=notify_ctx, level=LEVEL_SUCCESS,
+        notifications=job_config.get('notifications'),
+        security_profile=job_config['security']['profile']
+    ).delay()
 
     return deploy_response
 
