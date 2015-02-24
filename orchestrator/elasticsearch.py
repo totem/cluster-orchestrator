@@ -1,4 +1,9 @@
 from __future__ import absolute_import
+from future.builtins import (  # noqa
+    bytes, dict, int, list, object, range, str,
+    ascii, chr, hex, input, next, oct, open,
+    pow, round, super,
+    filter, map, zip)
 from functools import wraps
 import json
 import logging
@@ -28,7 +33,10 @@ def orch_search(fun):
         else:
             logger.info('Elasticsearch is disabled. Skipping %s call',
                         fun.__name__)
-            return kwargs.get('ret_value', None)
+            # Return ret_value if passed else return first argument
+            # passed to the wrapped fn
+            return kwargs.get('ret_value',
+                              args[0] if len(args) >= 1 else None)
     return outer
 
 
@@ -62,6 +70,8 @@ def create_index_mapping(es, idx):
                 es.indices.create(idx, body=body)
             except RequestError as error:
                 if error.status_code == 400 and \
-                        'IndexAlreadyExistsException' in error.error.decode():
+                        'IndexAlreadyExistsException' in error.error:
                     logger.info(
                         'Index: %s already exists. Skip create..' % idx)
+                else:
+                    raise

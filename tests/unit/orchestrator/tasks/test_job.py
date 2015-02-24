@@ -10,9 +10,9 @@ from mock import patch
 import mock
 from nose.tools import eq_, raises
 from requests import ConnectionError
-from conf.appconfig import TASK_SETTINGS, CLUSTER_NAME
+from conf.appconfig import TASK_SETTINGS, CLUSTER_NAME, JOB_STATE_SCHEDULED
 from orchestrator.tasks.job import _undeploy_all, _undeploy, _deploy_all, \
-    _deploy, _notify_ctx, _create_job
+    _deploy, _notify_ctx, _create_job, _update_etcd_job
 from tests.helper import dict_compare
 
 MOCK_OWNER = 'mock-owner'
@@ -333,3 +333,39 @@ def test_create_job_with_existing_id():
         },
         'force-deploy': True
     })
+
+
+def test_update_etcd_job_as_expected():
+    """
+    Should update etcd job as expected.
+    """
+    # Given: Job parameters
+    job = {
+        'meta-info': {
+            'git': {
+                'repo': MOCK_REPO,
+                'owner': MOCK_OWNER,
+                'ref': MOCK_REF,
+                'commit': MOCK_COMMIT
+            },
+            'job-id': MOCK_JOB_ID
+        },
+        'state': JOB_STATE_SCHEDULED
+    }
+
+    # And: Mock etcd client
+    etcd_cl = mock.MagicMock()
+    etcd_base = '/mockbase'
+
+    # When: I update etcd job
+    ret_value = _update_etcd_job(job, etcd_cl=etcd_cl, etcd_base=etcd_base)
+
+    # Then: Job state and id gets updated
+    etcd_cl.write.assert_called_twice()
+    etcd_cl.write.assert_any_call(
+        '/mockbase/orchestrator/jobs/local/mock-owner/mock-repo/mock-ref/'
+        'mock-commit/job-id', MOCK_JOB_ID)
+    etcd_cl.write.assert_any_call(
+        '/mockbase/orchestrator/jobs/local/mock-owner/mock-repo/mock-ref/'
+        'mock-commit/state', JOB_STATE_SCHEDULED)
+    dict_compare(ret_value, job)
