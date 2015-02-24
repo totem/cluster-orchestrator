@@ -375,7 +375,7 @@ def _handle_job(job, hook_type, hook_name, hook_status='success',
     job = copy.deepcopy(job)
     job['state'] = JOB_STATE_SCHEDULED
     return (
-        _update_etcd_job.s() |
+        _update_etcd_job.si(job) |
         _update_hook_status.s(hook_type, hook_name, hook_status=hook_status,
                               hook_result=hook_result) |
         index_job.s() |
