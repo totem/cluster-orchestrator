@@ -91,7 +91,7 @@ def test_orch_search_when_enabled(m_es):
     eq_(ret_value, 'mock-output')
 
 
-@patch('__builtin__.open')
+@patch('builtins.open')
 @patch('orchestrator.elasticsearch.Elasticsearch')
 @patch.dict('orchestrator.elasticsearch.SEARCH_SETTINGS',
             ENABLED_SEARCH_SETTINGS)
@@ -108,7 +108,7 @@ def test_create_index_mapping_for_existing_index(m_es, m_open):
 
 
 @patch('json.load')
-@patch('__builtin__.open')
+@patch('builtins.open')
 @patch('orchestrator.elasticsearch.Elasticsearch')
 @patch.dict('orchestrator.elasticsearch.SEARCH_SETTINGS',
             ENABLED_SEARCH_SETTINGS)
@@ -131,7 +131,7 @@ def test_create_index_mapping_for_non_existing_index(m_es, m_open, m_load):
 
 
 @patch('json.load')
-@patch('__builtin__.open')
+@patch('builtins.open')
 @patch('orchestrator.elasticsearch.Elasticsearch')
 @patch.dict('orchestrator.elasticsearch.SEARCH_SETTINGS',
             ENABLED_SEARCH_SETTINGS)
@@ -159,7 +159,7 @@ def test_create_index_mapping_for_failed_index_existing(m_es, m_open, m_load):
 
 @raises(RequestError)
 @patch('json.load')
-@patch('__builtin__.open')
+@patch('builtins.open')
 @patch('orchestrator.elasticsearch.Elasticsearch')
 @patch.dict('orchestrator.elasticsearch.SEARCH_SETTINGS',
             ENABLED_SEARCH_SETTINGS)
