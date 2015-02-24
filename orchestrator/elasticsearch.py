@@ -28,7 +28,10 @@ def orch_search(fun):
         else:
             logger.info('Elasticsearch is disabled. Skipping %s call',
                         fun.__name__)
-            return kwargs.get('ret_value', None)
+            # Return ret_value if passed else return first argument
+            # passed to the wrapped fn
+            return kwargs.get('ret_value',
+                              args[0] if len(args) >= 1 else None)
     return outer
 
 
@@ -65,3 +68,5 @@ def create_index_mapping(es, idx):
                         'IndexAlreadyExistsException' in error.error.decode():
                     logger.info(
                         'Index: %s already exists. Skip create..' % idx)
+                else:
+                    raise

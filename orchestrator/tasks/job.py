@@ -238,9 +238,9 @@ def _handle_hook(job, hook_type, hook_name, hook_status, hook_result):
 
     else:
         # Reset/ Create the new job
-        return _update_job.si(job, hook_type, hook_name,
-                              hook_status=hook_status,
-                              hook_result=hook_result).delay()
+        return _handle_job.si(
+            job, hook_type, hook_name, hook_status=hook_status,
+            hook_result=hook_result).delay()
 
 
 @app.task
@@ -266,31 +266,53 @@ def _handle_noop(job, etcd_cl=None, etcd_base=None):
 
 
 @app.task
-def _update_job(job, hook_type, hook_name, hook_result=None,
-                hook_status='success'):
-    job = copy.deepcopy(job)
-    job['state'] = JOB_STATE_SCHEDULED
-    return (
-        _update_etcd_job.si(job, hook_type, hook_name, hook_result=hook_result,
-                            hook_status=hook_status) |
-        _check_and_fire_deploy.s()
-    ).delay()
+@using_etcd
+def _update_etcd_job(job, etcd_cl=None, etcd_base=None):
+    """
+    Create/update etcd job id and state for a given job.
+
+    :param job: Dictionary containing job parameters
+    :type job: dict
+    :param etcd_cl: Etcd client for updating hook status in etcd.
+    :param etcd_base: Etcd base for job
+    :return: Input job for task chaining
+    :rtype: dict
+    """
+    git = job['meta-info']['git']
+    job_base = _job_base_location(
+        git['owner'], git['repo'], git['ref'], etcd_base, commit=git['commit'])
+    etcd_cl.write(job_base+'/job-id', job['meta-info']['job-id'])
+    etcd_cl.write(job_base+'/state', job['state'])
+    return job
 
 
 @app.task
 @using_etcd
-def _update_etcd_job(job, hook_type, hook_name, hook_status='success',
-                     hook_result=None, etcd_cl=None, etcd_base=None):
+def _update_hook_status(job, hook_type, hook_name, hook_status='success',
+                        hook_result=None, etcd_cl=None, etcd_base=None):
+    """
+     Updates the hook results for the job and triggers the deploy for job.
+
+    :param job: Dictionary containing job parameters
+    :param hook_type: Post hook type (ci or builder)
+    :param hook_name: Name of the hook (e.g: image-factory, travis)
+    :keyword hook_status: Status for the hook (success, failed)
+    :keyword hook_result: Results associated with the hook. In case of builder
+        hook type, the result contains the built container image url.
+    :keyword etcd_cl: Etcd client for updating hook status in etcd.
+    :keyword etcd_base: Etcd base for job
+    :return:
+    """
+
     job = copy.deepcopy(job)
+    job_config = job['config']
+    ci_hooks = [name for name, hook_obj in job_config['hooks']['ci']
+                .items() if hook_obj['enabled']]
     hook_result = hook_result or {}
     git = job['meta-info']['git']
     job_config = job['config']
     job_base = _job_base_location(git['owner'], git['repo'], git['ref'],
                                   etcd_base, commit=git['commit'])
-    etcd_cl.write(job_base+'/job-id', job['meta-info']['job-id'])
-
-    ci_hooks = [name for name, hook_obj in job_config['hooks']['ci']
-                .items() if hook_obj['enabled']]
 
     # Update done status for all CI Hooks. Set value to True, if current
     # hook matches, else update to False (if existing value is not found)
@@ -333,13 +355,46 @@ def _update_etcd_job(job, hook_type, hook_name, hook_status='success',
                                'pending')
         image = get_or_insert(etcd_cl, '%s/hooks/builder/image' % job_base, '')
         _update_job(status, image)
-    etcd_cl.write(job_base+'/state', job['state'])
-    return index_job.si(job, ret_value=job).delay()
+    return job
+
+
+@app.task
+def _handle_job(job, hook_type, hook_name, hook_status='success',
+                hook_result=None):
+    """
+    Prepares the job for deploy
+
+    :param job: Dictionary containing job parameters
+    :param hook_type: Post hook type (ci or builder)
+    :param hook_name: Name of the hook (e.g: image-factory, travis)
+    :param hook_status: Status for the hook (success, failed)
+    :param hook_result: Results associated with the hook. In case of builder
+        hook type, the result contains the built container image url.
+    :return: AsyncResult
+    """
+    job = copy.deepcopy(job)
+    job['state'] = JOB_STATE_SCHEDULED
+    return (
+        _update_etcd_job.s() |
+        _update_hook_status.s(hook_type, hook_name, hook_status=hook_status,
+                              hook_result=hook_result) |
+        index_job.s() |
+        _check_and_fire_deploy.s()
+    ).delay()
 
 
 @app.task
 @using_etcd
 def _check_and_fire_deploy(job, etcd_cl=None, etcd_base=None):
+    """
+    Validates pre-conditions for deploy (hook status returned successfully)
+    and triggers deploy for enabled deployers.
+
+    :param job: Dictionary containing job parameters
+    :param etcd_cl: Etcd client for updating hook status in etcd.
+    :param etcd_base: Etcd base for job
+    :return: AsyncResult
+    """
     # Check and fires deploy
     git = job['meta-info']['git']
     job_base = _job_base_location(git['owner'], git['repo'], git['ref'],
