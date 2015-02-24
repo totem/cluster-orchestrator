@@ -1,4 +1,9 @@
 from __future__ import absolute_import
+from future.builtins import (  # noqa
+    bytes, dict, int, list, object, range, str,
+    ascii, chr, hex, input, next, oct, open,
+    pow, round, super,
+    filter, map, zip)
 from functools import wraps
 import json
 import logging
@@ -65,7 +70,7 @@ def create_index_mapping(es, idx):
                 es.indices.create(idx, body=body)
             except RequestError as error:
                 if error.status_code == 400 and \
-                        'IndexAlreadyExistsException' in error.error.decode():
+                        'IndexAlreadyExistsException' in error.error:
                     logger.info(
                         'Index: %s already exists. Skip create..' % idx)
                 else:
