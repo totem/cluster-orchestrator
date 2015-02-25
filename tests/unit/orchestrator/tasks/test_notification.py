@@ -1,6 +1,7 @@
 from mock import patch, MagicMock
 from nose.tools import eq_
-from conf.appconfig import SEARCH_SETTINGS, LEVEL_FAILED, LEVEL_FAILED_WARN
+from conf.appconfig import SEARCH_SETTINGS, LEVEL_FAILED, LEVEL_FAILED_WARN, \
+    LEVEL_SUCCESS
 from orchestrator.tasks import notification
 
 
@@ -163,6 +164,41 @@ def test_notify_hipchat(m_json, m_templatefactory, m_requests):
         ctx={'search': SEARCH_SETTINGS, 'github': True},
         level=LEVEL_FAILED,
     )
+
+
+@patch('orchestrator.tasks.notification.requests')
+@patch('orchestrator.tasks.notification.templatefactory')
+@patch('orchestrator.tasks.notification.json')
+def test_notify_hipchat_for_level_success(m_json, m_templatefactory,
+                                          m_requests):
+    """
+    Should send hipchat notification
+    :return:
+    """
+    # Given: Template factory that renders html template for notification
+    m_templatefactory.render_template.return_value = 'mockmsg'
+
+    # And: Mock implementation for jsonify (for validating data)
+    m_json.dumps.side_effect = lambda data: data
+
+    # When: I send message using hipchat
+    notification.notify_hipchat(
+        {'message': 'mock'}, {}, LEVEL_SUCCESS,
+        {'token': 'mocktoken', 'room': 'mockroom'},
+        'default')
+
+    # Then: Notification gets send successfully
+    m_requests.post.assert_called_once_with(
+        'https://api.hipchat.com/v2/room/mockroom/notification',
+        headers={
+            'content-type': 'application/json',
+            'Authorization': 'Bearer mocktoken'},
+        data={
+            'color': 'gray',
+            'message': 'mockmsg',
+            'notify': False,
+            'message_format': 'html'
+        })
 
 
 @patch('orchestrator.tasks.notification.requests')

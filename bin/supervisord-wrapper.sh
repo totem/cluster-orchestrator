@@ -28,8 +28,9 @@ export ENCRYPTION_PASSPHRASE='${ENCRYPTION_PASSPHRASE:-changeit}'
 export ENCRYPTION_S3_BUCKET='${ENCRYPTION_S3_BUCKET:-not-set}'
 export ENCRYPTION_STORE='${ENCRYPTION_PROVIDER:-s3}'
 export HIPCHAT_ENABLED='${HIPCHAT_ENABLED:-false}'
-export HIPCHAT_TOKEN='${HIPCHAT_TOKEN:-not-set}'
+export HIPCHAT_TOKEN='${HIPCHAT_TOKEN}'
 export HIPCHAT_ROOM='${HIPCHAT_ROOM:-not-set}'
+export GITHUB_NOTIFICATION_ENABLED='${GITHUB_NOTIFICATION_ENABLED:-false}'
 END
 
 /bin/bash -le -c " envsubst  < /etc/supervisor/conf.d/supervisord.conf.template  > /etc/supervisor/conf.d/supervisord.conf; \

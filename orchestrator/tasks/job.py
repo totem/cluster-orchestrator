@@ -255,6 +255,7 @@ def _handle_noop(job, etcd_cl=None, etcd_base=None):
     safe_delete(etcd_cl, job_base, recursive=True)
     notify_ctx = _notify_ctx(git['owner'], git['repo'], git['ref'],
                              commit=git['commit'],
+                             job_id=job['meta-info']['job-id'],
                              operation='handle_noop')
     notify.si(
         {'message': 'No deployment requested (NOOP)'},
@@ -468,7 +469,8 @@ def _deploy(self, job, deployer_name):
         'proxy': deployer['proxy'],
         'templates': deployer['templates'],
         'deployment': dict_merge(deployer['deployment']),
-        'security': job_config.get('security', {})
+        'security': job_config.get('security', {}),
+        'notifications': job_config.get('notifications', {})
     }
     try:
         response = requests.post(apps_url, data=json.dumps(data),
@@ -499,6 +501,7 @@ def _deploy(self, job, deployer_name):
     git = job['meta-info']['git']
     notify_ctx = _notify_ctx(git['owner'], git['repo'], git['ref'],
                              commit=git['commit'],
+                             job_id=job['meta-info']['job-id'],
                              operation='deploy')
     notify.si(
         {'message': 'Deployment for {0} requested successfully using url: {1}'

@@ -240,7 +240,8 @@ def test_deploy(m_notify, m_requests, m_add_search_event):
             'templates': {},
             'deployment': {},
             'security': job['config']['security'],
-            'meta-info': job['meta-info']
+            'meta-info': job['meta-info'],
+            'notifications': {}
         },
         'response': {
             'task_id': 'mock-task-id'
