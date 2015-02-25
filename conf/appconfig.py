@@ -147,8 +147,8 @@ CONFIG_PROVIDERS = {
                 },
                 'github': {
                     'enabled': os.getenv(
-                        'GITHUB_NOTIFICATION_ENABLED', 'false').strip().lower()
-                    in BOOLEAN_TRUE_VALUES,
+                        'GITHUB_NOTIFICATION_ENABLED', 'false')
+                    .strip().lower() in BOOLEAN_TRUE_VALUES,
                     'token': '',
                     'level': LEVEL_PENDING
                 }

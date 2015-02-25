@@ -94,7 +94,11 @@ sudo docker run -it --rm -h cluster-orchestrator-${USER} --name cluster-orchestr
 | API_EXECUTORS | No. of uwsgi processes to be created for serving API | Not Used | 2 |
 | FLASK_DEBUG | Reloadable flask flag (true/false) | false | Not Used |
 | HOOK_SECRET | The secret to be used for web hooks | changeit | changeit |
-| HOOK_SECRET_HINT | No. of characters to be displayed for signature when secret is invalid. This is useful for development and should be set to 0 for production | 2 | 
+| HIPCHAT_TOKEN | Default hipchat token to be used for notifications | | |
+| GITHUB_TOKEN | Github token for fetching fleet templates and for commit notifications.| | |
+| HIPCHAT_ENABLED | Set it to true to enable hipchat notifications | false | false |
+| HIPCHAT_ROOM | Room to be used for hipchat notifications | not-set | not-set |
+| GITHUB_NOTIFICATION_ENABLED | Set it to true to enable github commit notifications. | false | false |
 
  
 

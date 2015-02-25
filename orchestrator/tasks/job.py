@@ -468,7 +468,8 @@ def _deploy(self, job, deployer_name):
         'proxy': deployer['proxy'],
         'templates': deployer['templates'],
         'deployment': dict_merge(deployer['deployment']),
-        'security': job_config.get('security', {})
+        'security': job_config.get('security', {}),
+        'notifications': job_config.get('notifications', {})
     }
     try:
         response = requests.post(apps_url, data=json.dumps(data),
