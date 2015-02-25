@@ -26,4 +26,4 @@ after_success:
 
 notifications:
   webhooks:
-    - secure: "ztzwk/BgGlB+InQnxTcZVu3EoKaTnSBsumbPOTI+CtJd+rJV4LqCqHc1GGZy2/j47cwSUZj6/SOEO/QcSUB/PIMMwiRAsl4/phsKIETUxzOIcENlHZ5NXaHGbJSSLKhlZ40PasYPoMNV17bP83wUNVffa3a0GojBkTqDZdYtmlE="
+    - https://orchestrator.elb.us-west-1.th.melt.sh/external/hooks/travis
