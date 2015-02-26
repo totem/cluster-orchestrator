@@ -11,7 +11,7 @@ class DefaultConfigProvider(AbstractConfigProvider):
     This provider reads static config and does not support delete / write.
     """
 
-    def load(self, *paths):
+    def load(self, name, *paths):
         """
         Load the default configuration
 

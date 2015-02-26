@@ -42,12 +42,13 @@ class TestEtcdConfigProvider:
         """
 
         # When: I write config using provider
-        self.provider.write(MOCK_CONFIG, 'cluster1', 'test_write_without_ttl')
+        self.provider.write('totem.yml', MOCK_CONFIG, 'cluster1',
+                            'test_write_without_ttl')
 
         # Then: Config gets serialized as yaml and written to etcd
         record = self.etcd_cl.read(
             '/totem-integration/config/cluster1/test_write_without_ttl/'
-            '.totem.yml')
+            'totem.yml')
         eq_(record.ttl, None)
         eq_(record.value, MOCK_SERIALIZED_CONFIG)
 
@@ -60,12 +61,13 @@ class TestEtcdConfigProvider:
         self.provider.ttl = 120
 
         # When: I write config using provider
-        self.provider.write(MOCK_CONFIG, 'cluster1', 'test_write_with_ttl')
+        self.provider.write('totem.yml', MOCK_CONFIG, 'cluster1',
+                            'test_write_with_ttl')
 
         # Then: Config gets serialized as yaml and written to etcd
         record = self.etcd_cl.read(
             '/totem-integration/config/cluster1/test_write_with_ttl/'
-            '.totem.yml')
+            'totem.yml')
         eq_(record.ttl, self.provider.ttl)
         eq_(record.value, MOCK_SERIALIZED_CONFIG)
 
@@ -76,11 +78,12 @@ class TestEtcdConfigProvider:
 
         # Given: Existing configuration
         self.etcd_cl.write(
-            '/totem-integration/config/cluster1/test_delete/.totem.yml',
+            '/totem-integration/config/cluster1/test_delete/totem.yml',
             MOCK_SERIALIZED_CONFIG)
 
         # When: I delete config using provider
-        ret_value = self.provider.delete('cluster1', 'test_delete')
+        ret_value = self.provider.delete('totem.yml', 'cluster1',
+                                         'test_delete')
 
         # Then: Config gets deleted
         eq_(ret_value, True)
@@ -91,7 +94,7 @@ class TestEtcdConfigProvider:
         """
 
         # When: I delete config using provider
-        ret_value = self.provider.delete('cluster1',
+        ret_value = self.provider.delete('totem.yml', 'cluster1',
                                          'test_delete_non_existing')
 
         # Then: Config gets deleted
@@ -104,11 +107,11 @@ class TestEtcdConfigProvider:
 
         # Given: Existing configuration
         self.etcd_cl.write(
-            '/totem-integration/config/cluster1/test_load/.totem.yml',
+            '/totem-integration/config/cluster1/test_load/totem.yml',
             MOCK_SERIALIZED_CONFIG)
 
         # When: I load config using provider
-        ret_value = self.provider.load('cluster1', 'test_load')
+        ret_value = self.provider.load('totem.yml', 'cluster1', 'test_load')
 
         # Then: Config gets loaded
         dict_compare(ret_value, MOCK_CONFIG)
@@ -119,7 +122,7 @@ class TestEtcdConfigProvider:
         """
 
         # When: I load config using provider
-        ret_value = self.provider.load('cluster1',
+        ret_value = self.provider.load('totem.yml', 'cluster1',
                                        'test_load_non_existing')
 
         # Then: Config gets deleted

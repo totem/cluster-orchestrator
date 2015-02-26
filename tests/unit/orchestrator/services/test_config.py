@@ -141,7 +141,7 @@ def test_get_effective_provider(mock_provider_list):
     eq_(len(provider.providers), 1)
 
 
-def test_evaluate_value():
+def test_evaluate_value_with_nested_variables():
     """
     Should evaluate value by parsing templates.
     :return:
@@ -149,12 +149,22 @@ def test_evaluate_value():
 
     # Given: Object that needs to be evaluated
     obj = {
+        'variables': {
+            'var2': {
+                'value': '{{ var2 }}-modified'
+            }
+        },
         'str-key': '{{ var1 }}',
         'int-key': 2,
         'nested-key': {
             'nested-key1': {
                 'value': '{{ var1 }}',
                 'template': True
+            },
+            'variables': {
+                'var1': {
+                    'value': '{{ var1 }}-modified'
+                }
             }
         },
         'list-key': [
@@ -185,11 +195,11 @@ def test_evaluate_value():
         'str-key': '{{ var1 }}',
         'int-key': 2,
         'nested-key': {
-            'nested-key1': 'var1-value'
+            'nested-key1': 'var1-value-modified'
         },
         'list-key': [
             'list-value1',
-            'var2-value',
+            'var2-value-modified',
         ],
         'value-key': {
             'value': 'var1-value',
@@ -337,9 +347,6 @@ def test_evaluate_config_with_deployers():
                     }
                 },
                 'deployment': {}
-            },
-            'deployer3': {
-                'enabled': False
             }
         }
     })
@@ -464,10 +471,13 @@ def test_load_config(m_validate_schema, m_get_provider):
     :return:
     """
     # Given: Existing valid config
-    cfg = {
+    cfg1 = {
         'mockkey': 'mockvalue'
     }
-    m_get_provider.return_value.load.return_value = cfg
+    cfg2 = {
+        'mockkey2': 'mockvalue2'
+    }
+    m_get_provider.return_value.load.side_effect = [cfg1, cfg2]
     m_validate_schema.side_effect = lambda vcfg: vcfg
 
     # When: I load the config
@@ -476,6 +486,7 @@ def test_load_config(m_validate_schema, m_get_provider):
     # Then: Config gets loaded as expected
     dict_compare(loaded_config, {
         'mockkey': 'mockvalue',
+        'mockkey2': 'mockvalue2',
         'deployers': {}
     })
 

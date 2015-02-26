@@ -233,7 +233,8 @@ def _handle_hook(job, hook_type, hook_name, hook_status, hook_result):
     builder_hooks = [name for name, hook_obj in job_config['hooks']['builders']
                      .items() if hook_obj['enabled']]
 
-    if not job_config['enabled'] or not builder_hooks:
+    if not job_config['enabled'] or not builder_hooks or \
+            not job_config['deployers']:
         return _handle_noop.si(job).delay()
 
     else:
