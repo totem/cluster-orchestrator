@@ -88,6 +88,8 @@ DEFAULT_DEPLOYER_CONFIG = {
 DEFAULT_HIPCHAT_TOKEN = os.getenv('HIPCHAT_TOKEN', '')
 DEFAULT_GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', '')
 
+CONFIG_NAMES = os.getenv('CONFIG_NAMES', 'totem.yml,cluster-def.yml')\
+    .split(',')
 CONFIG_PROVIDERS = {
     's3': {
         'bucket':  os.getenv('CONFIG_S3_BUCKET', 'not_set'),

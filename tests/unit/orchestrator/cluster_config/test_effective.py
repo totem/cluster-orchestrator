@@ -19,14 +19,15 @@ class InMemoryProvider(AbstractConfigProvider):
     def __init__(self, init_cache=None):
         self.cache = copy.deepcopy(init_cache) if init_cache else {}
 
-    def write(self, config, *paths):
-        self.cache['/' + '/'.join(paths)] = copy.deepcopy(config)
+    def write(self, name, config, *paths):
+        self.cache['/' + '/'.join(paths) + ':' + name] = copy.deepcopy(config)
 
-    def load(self, *paths):
-        return copy.deepcopy(self.cache.get('/' + '/'.join(paths), {}))
+    def load(self, name, *paths):
+        return copy.deepcopy(self.cache.get('/' + '/'.join(paths) + ':' + name,
+            {}))
 
-    def delete(self, *paths):
-        self.cache.pop('/' + '/'.join(paths))
+    def delete(self, name, *paths):
+        self.cache.pop('/' + '/'.join(paths) + ':' + name)
 
 
 class TestMergedConfigProvider:
@@ -38,21 +39,21 @@ class TestMergedConfigProvider:
         self.cache_provider = InMemoryProvider()
         self.write_provider = InMemoryProvider()
         self.provider1 = InMemoryProvider(init_cache={
-            '/': {
+            '/:totem.yml': {
                 'key1': 'provider1-1.0'
             },
-            '/path1': {
+            '/path1:totem.yml': {
                 'key1': 'provider1-1.1',
                 'key2': 'provider1-2.1'
             },
-            '/path1/path2': {
+            '/path1/path2:totem.yml': {
                 'key1': 'provider1-1.2',
                 'key3': 'provider1-3.2'
             }
         })
         self.provider2 = InMemoryProvider(init_cache={
-            '/': {},
-            '/path1': {
+            '/:totem.yml': {},
+            '/path1:totem.yml': {
                 'key1': 'provider2-1.1',
                 'key2': 'provider2-2.1',
                 'key4': 'provider2-4.1',
@@ -78,13 +79,14 @@ class TestMergedConfigProvider:
         Should set the Link header for root endpoint.
         """
 
-        self.write_provider.write({'deleteme': 'deleteme'}, 'path1')
+        self.write_provider.write('totem.yml', {'deleteme': 'deleteme'},
+                                  'path1')
 
         # When: When I try to write a config
-        self.provider.delete('path1')
+        self.provider.delete('totem.yml', 'path1')
 
         # Then: Config is written using write provider
-        eq_(self.write_provider.load('path1'), {})
+        eq_(self.write_provider.load('totem.yml', 'path1'), {})
 
     def test_write_when_no_write_provider_specified(self):
         """
@@ -104,7 +106,7 @@ class TestMergedConfigProvider:
         self.provider.cache_provider = None
 
         # When: I load config
-        merged_config = self.provider.load('path1', 'path2')
+        merged_config = self.provider.load('totem.yml', 'path1', 'path2')
 
         # Then: Merged config is returned
         dict_compare(merged_config, {
@@ -117,7 +119,7 @@ class TestMergedConfigProvider:
     def test_load_with_caching(self):
 
         # When: I load config
-        merged_config = self.provider.load('path1', 'path2')
+        merged_config = self.provider.load('totem.yml', 'path1', 'path2')
 
         # Then: Merged config is returned
         expected_config = {
@@ -129,7 +131,7 @@ class TestMergedConfigProvider:
         dict_compare(merged_config, expected_config)
 
         # And config gets cached
-        dict_compare(self.cache_provider.load('path1', 'path2'),
+        dict_compare(self.cache_provider.load('totem.yml', 'path1', 'path2'),
                      expected_config)
 
     def test_load_with_cached_value(self):
@@ -137,10 +139,10 @@ class TestMergedConfigProvider:
         cached_config = {
             'cached_key': 'cached_value'
         }
-        self.cache_provider.write(cached_config, 'path1', 'path2')
+        self.cache_provider.write('totem.yml', cached_config, 'path1', 'path2')
 
         # When: I load config
-        merged_config = self.provider.load('path1', 'path2')
+        merged_config = self.provider.load('totem.yml', 'path1', 'path2')
 
         # Then: Cached config is returned
         dict_compare(merged_config, cached_config)

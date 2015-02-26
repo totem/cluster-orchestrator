@@ -12,11 +12,12 @@ from jinja2.environment import get_spontaneous_environment
 from jsonschema import validate, ValidationError
 from repoze.lru import lru_cache
 from conf.appconfig import CONFIG_PROVIDERS, CONFIG_PROVIDER_LIST, \
-    BOOLEAN_TRUE_VALUES, DEFAULT_DEPLOYER_CONFIG, API_PORT
+    BOOLEAN_TRUE_VALUES, DEFAULT_DEPLOYER_CONFIG, API_PORT, CONFIG_NAMES
 from orchestrator.cluster_config.default import DefaultConfigProvider
 from orchestrator.cluster_config.effective import MergedConfigProvider
 from orchestrator.cluster_config.etcd import EtcdConfigProvider
 from orchestrator.cluster_config.s3 import S3ConfigProvider
+from orchestrator.jinja import tests
 from orchestrator.services.errors import ConfigProviderNotFound
 from orchestrator.services.exceptions import ConfigValueError, \
     ConfigValidationError, ConfigParseError
@@ -155,22 +156,28 @@ def load_config(*paths, **kwargs):
     :type default_variables: dict
     :keyword provider_type: Type of provider
     :type provider_type: str
+    :keyword config_names: List of config names to be loaded. Defaults to
+        CONFIG_NAMES defined in appconfig
+    :type config_names: list
     :return: Parsed configuration
     :rtype: dict
     """
     default_variables = kwargs.get('default_variables', {})
     provider_type = kwargs.get('provider_type', 'effective')
+    config_names = kwargs.get('config_names', CONFIG_NAMES)
     provider = get_provider(provider_type)
     try:
+        unified_config = dict_merge(
+            *[provider.load(name, *paths) for name in config_names])
         return evaluate_config(
-            validate_schema(provider.load(*paths)),
+            validate_schema(unified_config),
             default_variables)
 
     except (MarkedYAMLError, ParserError) as yaml_error:
         raise ConfigParseError(yaml_error, paths)
 
 
-def write_config(config, *paths, **kwargs):
+def write_config(name, config, *paths, **kwargs):
     """
     Writes config for given path
 
@@ -183,12 +190,22 @@ def write_config(config, *paths, **kwargs):
     provider_type = kwargs.get('provider_type', 'effective')
     provider = get_provider(provider_type)
     if provider:
-        provider.write(config)
+        provider.write(name, config, *paths)
+
+
+def _get_jinja_environment():
+    """
+    Creates Jinja env for evaluating config
+
+    :return: Jinja Environment
+    """
+    env = get_spontaneous_environment()
+    env.line_statement_prefix = '#'
+    return tests.apply_tests(env)
 
 
 def evaluate_template(template_value, variables={}):
-    env = get_spontaneous_environment()
-    env.line_statement_prefix = '#'
+    env = _get_jinja_environment()
     return env.from_string(str(template_value)).render(**variables).strip()
 
 
@@ -298,6 +315,8 @@ def evaluate_config(config, default_variables={}, var_key='variables'):
         if deployer.get('enabled', True):
             updated_config['deployers'][deployer_name] = dict_merge(
                 deployer, DEFAULT_DEPLOYER_CONFIG)
+        else:
+            del(updated_config['deployers'][deployer_name])
     return transform_string_values(
         evaluate_value(updated_config, default_variables))
 

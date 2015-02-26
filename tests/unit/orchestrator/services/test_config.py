@@ -347,9 +347,6 @@ def test_evaluate_config_with_deployers():
                     }
                 },
                 'deployment': {}
-            },
-            'deployer3': {
-                'enabled': False
             }
         }
     })
@@ -474,10 +471,13 @@ def test_load_config(m_validate_schema, m_get_provider):
     :return:
     """
     # Given: Existing valid config
-    cfg = {
+    cfg1 = {
         'mockkey': 'mockvalue'
     }
-    m_get_provider.return_value.load.return_value = cfg
+    cfg2 = {
+        'mockkey2': 'mockvalue2'
+    }
+    m_get_provider.return_value.load.side_effect = [cfg1, cfg2]
     m_validate_schema.side_effect = lambda vcfg: vcfg
 
     # When: I load the config
@@ -486,6 +486,7 @@ def test_load_config(m_validate_schema, m_get_provider):
     # Then: Config gets loaded as expected
     dict_compare(loaded_config, {
         'mockkey': 'mockvalue',
+        'mockkey2': 'mockvalue2',
         'deployers': {}
     })
 

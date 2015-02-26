@@ -26,24 +26,7 @@
       }
     },
     "variables": {
-      "patternProperties": {
-        ".*": {
-          "oneOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "number"
-            },
-            {
-              "$ref": "#/definitions/variable-type"
-            }
-          ]
-        }
-      }
+      "$ref": "#/definitions/variables"
     },
     "defaults": {
       "type": "object",
@@ -89,6 +72,27 @@
       },
       "additionalProperties": false,
       "required": ["value"]
+    },
+    "variables": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/definitions/variable-type"
+            }
+          ]
+        }
+      }
     },
     "variable-type": {
       "type": "object",
@@ -168,6 +172,9 @@
         },
         "enabled": {
           "type": "boolean"
+        },
+        "variables": {
+          "$ref": "#/definitions/variables"
         }
       },
       "additionalProperties": false,
