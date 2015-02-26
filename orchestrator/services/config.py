@@ -311,11 +311,21 @@ def evaluate_config(config, default_variables={}, var_key='variables'):
     updated_config.setdefault(var_key, {})
     updated_config.setdefault('deployers', {})
 
+    if 'defaults' in updated_config:
+        # We do not want to do any processing ind efaults section.
+        # It is only used for YAML substitution which at this point is already
+        # done.
+        del(updated_config['defaults'])
+
     for deployer_name, deployer in \
             list(updated_config.get('deployers').items()):
         if deployer.get('enabled', True):
             updated_config['deployers'][deployer_name] = dict_merge(
                 deployer, DEFAULT_DEPLOYER_CONFIG)
+            updated_config['deployers'][deployer_name].setdefault(
+                'variables', {})
+            updated_config['deployers'][deployer_name]['variables']\
+                .setdefault('deployer', deployer_name)
         else:
             del(updated_config['deployers'][deployer_name])
     return transform_string_values(

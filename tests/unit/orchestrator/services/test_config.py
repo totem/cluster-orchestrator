@@ -291,6 +291,7 @@ def test_evaluate_config_with_deployers():
 
     # Given: Config that needs to be evaluated
     config = {
+        'defaults': {},
         'variables': {
             'var1': 'value1',
             'var2': {
@@ -307,7 +308,10 @@ def test_evaluate_config_with_deployers():
             'default': {},
             'deployer2': {
                 'url': 'deployer2-url',
-                'enabled': True
+                'enabled': True,
+                'deployer-name': {
+                    'value': '{{deployer}}'
+                }
             },
             'deployer3': {
                 'enabled': False
@@ -346,6 +350,7 @@ def test_evaluate_config_with_deployers():
                         'args': {}
                     }
                 },
+                'deployer-name': 'deployer2',
                 'deployment': {}
             }
         }
