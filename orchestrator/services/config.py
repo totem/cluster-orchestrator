@@ -192,49 +192,6 @@ def evaluate_template(template_value, variables={}):
     return env.from_string(str(template_value)).render(**variables).strip()
 
 
-def evaluate_value(value, variables={}, location='/'):
-    """
-    Renders tokenized values (using nested strategy)
-
-    :param value: Value that needs to be evaluated (str , list, dict, int etc)
-    :param variables: Variables to be used for Jinja2 templates
-    :param identifier: Identifier used to identify tokenized values. Only str
-        values that begin with identifier are evaluated.
-    :return: Evaluated object.
-    """
-    if hasattr(value, 'items'):
-        if 'value' in value:
-            value = copy.deepcopy(value)
-            value.setdefault('encrypted', False)
-            value.setdefault('template', True)
-            if value['template']:
-                try:
-                    value['value'] = evaluate_template(value['value'],
-                                                       variables)
-                except TemplateSyntaxError as error:
-                    raise ConfigValueError(location, value['value'],
-                                           reason=error.message)
-            del(value['template'])
-            if not value['encrypted']:
-                value = value['value']
-            return value
-
-        else:
-            for each_k, each_v in value.items():
-                value[each_k] = evaluate_value(each_v, variables,
-                                               '%s%s/' % (location, each_k))
-            return {
-                each_k: evaluate_value(each_v, variables)
-                for each_k, each_v in value.items()
-            }
-
-    elif isinstance(value, (list, tuple, set, types.GeneratorType)):
-        return [evaluate_value(each_v, variables, '%s[]/' % (location, ))
-                for each_v in value]
-
-    return value.strip() if isinstance(value, (str,)) else value
-
-
 def evaluate_variables(variables, default_variables={}):
 
     merged_vars = dict_merge({}, default_variables)
@@ -275,6 +232,53 @@ def evaluate_variables(variables, default_variables={}):
     return merged_vars
 
 
+def evaluate_value(value, variables={}, location='/'):
+    """
+    Renders tokenized values (using nested strategy)
+
+    :param value: Value that needs to be evaluated (str , list, dict, int etc)
+    :param variables: Variables to be used for Jinja2 templates
+    :param identifier: Identifier used to identify tokenized values. Only str
+        values that begin with identifier are evaluated.
+    :return: Evaluated object.
+    """
+    value = copy.deepcopy(value)
+    if hasattr(value, 'items'):
+        if 'variables' in value:
+            variables = evaluate_variables(value['variables'], variables)
+            del(value['variables'])
+
+        if 'value' in value:
+            value.setdefault('encrypted', False)
+            value.setdefault('template', True)
+            if value['template']:
+                try:
+                    value['value'] = evaluate_template(value['value'],
+                                                       variables)
+                except TemplateSyntaxError as error:
+                    raise ConfigValueError(location, value['value'],
+                                           reason=error.message)
+            del(value['template'])
+            if not value['encrypted']:
+                value = value['value']
+            return value
+
+        else:
+            for each_k, each_v in value.items():
+                value[each_k] = evaluate_value(each_v, variables,
+                                               '%s%s/' % (location, each_k))
+            return {
+                each_k: evaluate_value(each_v, variables)
+                for each_k, each_v in value.items()
+            }
+
+    elif isinstance(value, (list, tuple, set, types.GeneratorType)):
+        return [evaluate_value(each_v, variables, '%s[]/' % (location, ))
+                for each_v in value]
+
+    return value.strip() if isinstance(value, (str,)) else value
+
+
 def evaluate_config(config, default_variables={}, var_key='variables'):
     """
     Performs rendering of all template values defined in config. Also takes
@@ -294,10 +298,8 @@ def evaluate_config(config, default_variables={}, var_key='variables'):
         if deployer.get('enabled', True):
             updated_config['deployers'][deployer_name] = dict_merge(
                 deployer, DEFAULT_DEPLOYER_CONFIG)
-
-    variables = evaluate_variables(updated_config[var_key], default_variables)
-    del(updated_config[var_key])
-    return transform_string_values(evaluate_value(updated_config, variables))
+    return transform_string_values(
+        evaluate_value(updated_config, default_variables))
 
 
 def transform_string_values(config):
