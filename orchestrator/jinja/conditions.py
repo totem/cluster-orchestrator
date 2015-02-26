@@ -13,7 +13,7 @@ Defines all the filters used for jinja templates (config)
 USE_TESTS = ('starting_with', 'matching', )
 
 
-def apply_tests(env):
+def apply_conditions(env):
     """
     Applies filters on jinja env.
 

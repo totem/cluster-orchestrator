@@ -17,7 +17,7 @@ from orchestrator.cluster_config.default import DefaultConfigProvider
 from orchestrator.cluster_config.effective import MergedConfigProvider
 from orchestrator.cluster_config.etcd import EtcdConfigProvider
 from orchestrator.cluster_config.s3 import S3ConfigProvider
-from orchestrator.jinja import tests
+from orchestrator.jinja import conditions
 from orchestrator.services.errors import ConfigProviderNotFound
 from orchestrator.services.exceptions import ConfigValueError, \
     ConfigValidationError, ConfigParseError
@@ -201,7 +201,7 @@ def _get_jinja_environment():
     """
     env = get_spontaneous_environment()
     env.line_statement_prefix = '#'
-    return tests.apply_tests(env)
+    return conditions.apply_conditions(env)
 
 
 def evaluate_template(template_value, variables={}):

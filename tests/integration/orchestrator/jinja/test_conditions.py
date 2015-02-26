@@ -1,13 +1,13 @@
 from jinja2 import environment
 from nose.tools import eq_
-from orchestrator.jinja import tests
+from orchestrator.jinja import conditions
 
 
 class TestJinjaTests:
 
     def setup(self):
         self.env = environment.get_spontaneous_environment()
-        tests.apply_tests(self.env)
+        conditions.apply_conditions(self.env)
 
     def test_starting_with(self):
         # Given: Jinja template using starting_with
