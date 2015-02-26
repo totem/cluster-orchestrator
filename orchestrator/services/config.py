@@ -311,7 +311,8 @@ def evaluate_config(config, default_variables={}, var_key='variables'):
     updated_config.setdefault(var_key, {})
     updated_config.setdefault('deployers', {})
 
-    for deployer_name, deployer in updated_config.get('deployers').items():
+    for deployer_name, deployer in \
+            list(updated_config.get('deployers').items()):
         if deployer.get('enabled', True):
             updated_config['deployers'][deployer_name] = dict_merge(
                 deployer, DEFAULT_DEPLOYER_CONFIG)
