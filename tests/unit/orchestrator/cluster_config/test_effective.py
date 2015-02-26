@@ -24,7 +24,7 @@ class InMemoryProvider(AbstractConfigProvider):
 
     def load(self, name, *paths):
         return copy.deepcopy(self.cache.get('/' + '/'.join(paths) + ':' + name,
-            {}))
+                                            {}))
 
     def delete(self, name, *paths):
         self.cache.pop('/' + '/'.join(paths) + ':' + name)
