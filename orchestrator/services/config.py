@@ -319,17 +319,22 @@ def evaluate_config(config, default_variables={}, var_key='variables'):
 
     for deployer_name, deployer in \
             list(updated_config.get('deployers').items()):
-        if deployer.get('enabled', True):
-            updated_config['deployers'][deployer_name] = dict_merge(
-                deployer, DEFAULT_DEPLOYER_CONFIG)
-            updated_config['deployers'][deployer_name].setdefault(
-                'variables', {})
-            updated_config['deployers'][deployer_name]['variables']\
-                .setdefault('deployer', deployer_name)
-        else:
-            del(updated_config['deployers'][deployer_name])
-    return transform_string_values(
+        updated_config['deployers'][deployer_name] = dict_merge(
+            deployer, DEFAULT_DEPLOYER_CONFIG)
+        updated_config['deployers'][deployer_name].setdefault(
+            'variables', {})
+        updated_config['deployers'][deployer_name]['variables']\
+            .setdefault('deployer', deployer_name)
+
+    updated_config = transform_string_values(
         evaluate_value(updated_config, default_variables))
+
+    # Remove all disabled deployers
+    for deployer_name, deployer in \
+            list(updated_config.get('deployers').items()):
+        if not deployer.get('enabled', True):
+            del(updated_config['deployers'][deployer_name])
+    return updated_config
 
 
 def transform_string_values(config):
