@@ -22,10 +22,12 @@ class AbstractConfigProvider:
         raise NotImplementedError(
             'Provider: %s does not support this operation' % self.__class__)
 
-    def load(self, *paths):
+    def load(self, name, *paths):
         """
         Load config at given path.
 
+        :param name: Name of the config to be loaded
+        :type name: str
         :param paths: Tuple consisting of nested level path
         :return: Parsed Config
         :rtype: dict
@@ -33,10 +35,12 @@ class AbstractConfigProvider:
         """
         self.not_supported()
 
-    def write(self, config, *paths):
+    def write(self, name, config, *paths):
         """
         Writes config at given path.
 
+        :param name: Name of the config to be written
+        :type name: str
         :param config: Configuration
         :type config: dict
         :param paths: Nested level path
@@ -46,10 +50,12 @@ class AbstractConfigProvider:
         """
         self.not_supported()
 
-    def delete(self, *paths):
+    def delete(self, name, *paths):
         """
         Performs safe delete of the configuration at given path.
 
+        :param name: Name of the config to be deleted
+        :type name: str
         :param paths: Nested level path
         :type paths: tuple
         :return: None

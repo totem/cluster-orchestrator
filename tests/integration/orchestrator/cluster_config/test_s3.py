@@ -43,11 +43,11 @@ class TestS3ConfigProvider:
         """
 
         # When: I write config using provider
-        self.provider.write(MOCK_CONFIG, 'cluster1', 'test_write')
+        self.provider.write('totem.yml', MOCK_CONFIG, 'cluster1', 'test_write')
 
         # Then: Config gets serialized as yaml and written to s3
         key = self.provider._s3_bucket().get_key(
-            '/%s/cluster1/test_write/.totem.yml' % (S3_CONFIG_BASE))
+            '/%s/cluster1/test_write/totem.yml' % (S3_CONFIG_BASE))
         eq_(key is not None, True)
         eq_(key.get_contents_as_string().decode(), MOCK_SERIALIZED_CONFIG)
 
@@ -58,11 +58,11 @@ class TestS3ConfigProvider:
 
         # Given: Existing config
         key = Key(self.provider._s3_bucket())
-        key.key = '/%s/cluster1/test_load/.totem.yml' % (S3_CONFIG_BASE)
+        key.key = '/%s/cluster1/test_load/totem.yml' % (S3_CONFIG_BASE)
         key.set_contents_from_string(MOCK_SERIALIZED_CONFIG)
 
         # When: I load config using provider
-        ret_value = self.provider.load('cluster1', 'test_load')
+        ret_value = self.provider.load('totem.yml', 'cluster1', 'test_load')
 
         # Then: Config gets loaded
         dict_compare(ret_value, MOCK_CONFIG)
@@ -74,11 +74,12 @@ class TestS3ConfigProvider:
 
         # Given: Existing config
         key = Key(self.provider._s3_bucket())
-        key.key = '/%s/cluster1/test_delete/.totem.yml' % (S3_CONFIG_BASE)
+        key.key = '/%s/cluster1/test_delete/totem.yml' % (S3_CONFIG_BASE)
         key.set_contents_from_string(MOCK_SERIALIZED_CONFIG)
 
         # When: I load config using provider
-        ret_value = self.provider.delete('cluster1', 'test_delete')
+        ret_value = self.provider.delete('totem.yml', 'cluster1',
+                                         'test_delete')
 
         # Then: Config gets loaded
         eq_(ret_value, True)

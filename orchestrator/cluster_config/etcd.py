@@ -17,7 +17,7 @@ class EtcdConfigProvider(AbstractConfigProvider):
     """
 
     def __init__(self, etcd_cl=None, etcd_port=None, etcd_host=None,
-                 config_base=None, ttl=None, config_name='.totem.yml'):
+                 config_base=None, ttl=None):
         """
         Initializes etcd client.
 
@@ -34,30 +34,29 @@ class EtcdConfigProvider(AbstractConfigProvider):
             self.etcd_cl = etcd_cl
         self.config_base = config_base or '/totem/config'
         self.ttl = ttl
-        self.config_name = config_name
 
-    def _etcd_path(self, *paths):
+    def _etcd_path(self, name, *paths):
         if paths:
             return '%s/%s/%s' % (self.config_base, '/'.join(paths),
-                                 self.config_name)
+                                 name)
         else:
-            return '%s/%s' % (self.config_base, self.config_name)
+            return '%s/%s' % (self.config_base, name)
 
-    def write(self, config, *paths):
+    def write(self, name, config, *paths):
         raw = yaml.dump(config)
-        self.etcd_cl.set(self._etcd_path(*paths), raw, ttl=self.ttl)
+        self.etcd_cl.set(self._etcd_path(name, *paths), raw, ttl=self.ttl)
 
-    def delete(self, *paths):
+    def delete(self, name, *paths):
         try:
-            self.etcd_cl.delete(self._etcd_path(*paths))
+            self.etcd_cl.delete(self._etcd_path(name, *paths))
             return True
         except KeyError:
             # Ignore as it is safe delete operation
             return False
 
-    def load(self, *paths):
+    def load(self, name, *paths):
         try:
-            raw = self.etcd_cl.read(self._etcd_path(*paths)).value
+            raw = self.etcd_cl.read(self._etcd_path(name, *paths)).value
         except KeyError:
             return dict()
         return yaml.load(raw)

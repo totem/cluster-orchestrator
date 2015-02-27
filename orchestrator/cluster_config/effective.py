@@ -42,11 +42,12 @@ class MergedConfigProvider(AbstractConfigProvider):
             else:
                 config = self.cache_provider.load(*args, **kwargs) or \
                     func(*args, **kwargs)
-                self.cache_provider.write(config, *args)
+                paths = args[1:] if len(args) > 1 else []
+                self.cache_provider.write(args[0], config, *paths)
                 return config
         return inner
 
-    def write(self, config, *paths):
+    def write(self, name, config, *paths):
         """
         Writes config using write_provider (if set).
 
@@ -59,7 +60,7 @@ class MergedConfigProvider(AbstractConfigProvider):
         if self.write_provider:
             self.write_provider.write(config, *paths)
 
-    def delete(self, *paths):
+    def delete(self, name, *paths):
         """
         Deletes config using write_provider (if set).
 
@@ -68,9 +69,9 @@ class MergedConfigProvider(AbstractConfigProvider):
         """
         # Delegate to write_provider if set. Else NOOP
         if self.write_provider:
-            self.write_provider.delete(*paths)
+            self.write_provider.delete(name, *paths)
 
-    def load(self, *paths):
+    def load(self, name, *paths):
         """
         Loads config for given path list.
 
@@ -80,13 +81,13 @@ class MergedConfigProvider(AbstractConfigProvider):
         """
 
         @self._cached_config
-        def cached(*paths):
+        def cached(name, *paths):
             merged_config = {}
 
             def merge(current_config, provider, *merge_paths):
                 return dict_merge(
                     current_config,
-                    provider.load(*merge_paths))
+                    provider.load(name, *merge_paths))
 
             for provider in self.providers:
                 use_paths = list(paths)
@@ -98,4 +99,4 @@ class MergedConfigProvider(AbstractConfigProvider):
                         break
 
             return merged_config
-        return cached(*paths)
+        return cached(name, *paths)
