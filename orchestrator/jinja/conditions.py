@@ -35,7 +35,7 @@ def starting_with(value, prefix):
     :return: True if matches. False otherwise
     :rtype: bool
     """
-    return str(value).startswith(prefix)
+    return str(value).startswith(str(prefix))
 
 
 def matching(value, pattern, casesensitive=True):
@@ -49,4 +49,4 @@ def matching(value, pattern, casesensitive=True):
     :rtype: bool
     """
     flags = re.I if not casesensitive else 0
-    return re.match(pattern, str(value), flags) is not None
+    return re.match(str(pattern), str(value), flags) is not None
