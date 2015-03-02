@@ -145,6 +145,17 @@ def validate_schema(config):
     return config
 
 
+def _json_compatible_config(config):
+    """
+    Converts the config to json compatible config for schema validation.
+    This is needed because json schema does not handle a non-valid json
+    config (like non string keys) which may be valid in other types like yaml.
+
+    :return:
+    """
+    return json.loads(json.dumps(config))
+
+
 def load_config(*paths, **kwargs):
     """
     Loads config for given path and provider type.
@@ -170,7 +181,7 @@ def load_config(*paths, **kwargs):
         unified_config = dict_merge(
             *[provider.load(name, *paths) for name in config_names])
         return evaluate_config(
-            validate_schema(unified_config),
+            validate_schema(_json_compatible_config(unified_config)),
             default_variables)
 
     except (MarkedYAMLError, ParserError) as yaml_error:
@@ -348,30 +359,30 @@ def transform_string_values(config):
     """
     new_config = copy.deepcopy(config)
 
-    # Convert 'enabled' keys to boolean
-    def convert_enabled_keys(use_config, location='/'):
+    def convert_keys(use_config, location='/'):
         if hasattr(use_config, 'items'):
             for each_k, each_v in use_config.items():
                 try:
                     if each_v is None:
                         continue
-                    elif each_k == 'enabled' and isinstance(each_v, str):
+                    elif each_k in ('enabled', 'force-ssl',) and \
+                            isinstance(each_v, str):
                         use_config[each_k] = each_v.lower() in \
                             BOOLEAN_TRUE_VALUES
-                    elif each_k in ('port', 'nodes', 'min-nodes') and \
+                    elif each_k in ('port', 'nodes', 'min-nodes',) and \
                             isinstance(each_v, str):
                         use_config[each_k] = int(each_v)
                     elif hasattr(each_v, 'items'):
-                        convert_enabled_keys(each_v, '%s%s/' %
+                        convert_keys(each_v, '%s%s/' %
                                              (location, each_k))
                     elif isinstance(each_v,
                                     (list, tuple, set, types.GeneratorType)):
                         for idx, val in enumerate(each_v):
-                            convert_enabled_keys(
+                            convert_keys(
                                 val, '%s%s[%d]/' % (location, each_k, idx))
                 except ValueError as error:
                     raise ConfigValueError(location + each_k, each_v,
                                            error.message)
 
-    convert_enabled_keys(new_config)
+    convert_keys(new_config)
     return new_config

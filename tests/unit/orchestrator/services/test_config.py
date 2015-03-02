@@ -429,7 +429,8 @@ def test_transform_string_values():
             'port': u'2321',
             'nodes': u'12',
             'min-nodes': '13',
-            'enabled': 'False'
+            'enabled': 'False',
+            'force-ssl': 'true'
         },
         'array-config': [
             {
@@ -455,7 +456,8 @@ def test_transform_string_values():
             'port': 2321,
             'nodes': 12,
             'min-nodes': 13,
-            'enabled': False
+            'enabled': False,
+            'force-ssl': True
         },
         'array-config': [
             {
