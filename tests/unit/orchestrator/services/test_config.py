@@ -481,7 +481,8 @@ def test_load_config(m_validate_schema, m_get_provider):
     """
     # Given: Existing valid config
     cfg1 = {
-        'mockkey': 'mockvalue'
+        'mockkey': 'mockvalue',
+        8080: 'number-key'
     }
     cfg2 = {
         'mockkey2': 'mockvalue2'
@@ -496,6 +497,7 @@ def test_load_config(m_validate_schema, m_get_provider):
     dict_compare(loaded_config, {
         'mockkey': 'mockvalue',
         'mockkey2': 'mockvalue2',
+        '8080': 'number-key',
         'deployers': {}
     })
 
