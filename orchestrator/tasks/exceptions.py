@@ -29,15 +29,19 @@ class DeploymentFailed(Exception):
     def __init__(self, deploy_response):
         self.response = deploy_response or {}
         self.code = 'DEPLOY_REQUEST_FAILED'
+        resp = deploy_response.get('response')
+        reason = resp.get('message', None) or \
+            resp.get('raw', None) or \
+            str(resp)
+        self.message = 'Deployment request failed for url:{0}. Status:{1} ' \
+                       'Reason: {2}'.format(
+                           deploy_response.get('url'),
+                           deploy_response.get('status'), reason)
         super(DeploymentFailed, self).__init__(deploy_response)
 
     def to_dict(self):
-        resp = self.response
         return {
-            'message': 'Deployment request failed for url:%s. '
-                       'Status:%s Reason: %s' %
-                       (resp.get('url'), resp.get('status'),
-                        resp.get('response')),
+            'message': self.message,
             'code': self.code,
             'details': self.response
         }
