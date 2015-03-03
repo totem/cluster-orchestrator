@@ -375,6 +375,10 @@
         "enabled": {
           "type": "boolean",
           "description": "Used for enabling/disabling notification"
+        },
+        "level": {
+          "description": "Min level for the message to activate this notifier",
+          "$ref": "#/definitions/number-or-template-type"
         }
       },
       "additionalProperties": true
@@ -408,9 +412,13 @@
               "$ref": "#/definitions/encrypted-type"
             }
           ]
+        },
+        "level": {
+          "description": "Min level for the message to activate this notifier",
+          "$ref": "#/definitions/number-or-template-type"
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false
     },
 
     "notification-github": {
@@ -433,6 +441,10 @@
               "$ref": "#/definitions/encrypted-type"
             }
           ]
+        },
+        "level": {
+          "description": "Min level for the message to activate this notifier",
+          "$ref": "#/definitions/number-or-template-type"
         }
       },
       "additionalProperties": true

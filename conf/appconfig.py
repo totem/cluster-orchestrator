@@ -139,11 +139,11 @@ CONFIG_PROVIDERS = {
                     'token': '',
                     'level': LEVEL_FAILED,
                     'colors': {
-                        LEVEL_FAILED: 'red',
-                        LEVEL_FAILED_WARN: 'red',
-                        LEVEL_SUCCESS: 'green',
-                        LEVEL_STARTED: 'yellow',
-                        LEVEL_PENDING: 'yellow',
+                        str(LEVEL_FAILED): 'red',
+                        str(LEVEL_FAILED_WARN): 'red',
+                        str(LEVEL_SUCCESS): 'green',
+                        str(LEVEL_STARTED): 'yellow',
+                        str(LEVEL_PENDING): 'yellow',
                     },
                     'url': 'https://api.hipchat.com'
                 },

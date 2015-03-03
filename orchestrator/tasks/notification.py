@@ -70,7 +70,7 @@ def notify_hipchat(obj, ctx, level, config, security_profile):
     data = {
         'message_format': 'html',
         'message': msg[:5000],
-        'color': config.get('colors', {}).get(level, 'gray'),
+        'color': config.get('colors', {}).get(str(level), 'gray'),
         'notify': level <= LEVEL_FAILED_WARN
     }
     requests.post(room_url, data=json.dumps(data),
