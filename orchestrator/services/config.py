@@ -178,8 +178,8 @@ def load_config(*paths, **kwargs):
     config_names = kwargs.get('config_names', CONFIG_NAMES)
     provider = get_provider(provider_type)
     try:
-        unified_config = dict_merge(
-            *[provider.load(name, *paths) for name in config_names])
+        configs = [provider.load(name, *paths) for name in config_names]
+        unified_config = dict_merge(*configs)
         return evaluate_config(
             validate_schema(_json_compatible_config(unified_config)),
             default_variables)

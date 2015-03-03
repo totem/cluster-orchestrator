@@ -31,6 +31,7 @@ def dict_merge(*dictionaries):
     merged_dict = {}
 
     def merge(source, defaults):
+        source = copy.deepcopy(source)
         # Nested merge requires both source and defaults to be dictionary
         if isinstance(source, dict) and isinstance(defaults, dict):
             for key, value in defaults.items():

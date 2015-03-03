@@ -482,10 +482,38 @@ def test_load_config(m_validate_schema, m_get_provider):
     # Given: Existing valid config
     cfg1 = {
         'mockkey': 'mockvalue',
-        8080: 'number-key'
+        8080: 'number-key',
+        'deployers': {
+            'deployer1': {
+                'enabled': False,
+                'variables': {}
+            },
+            'deployer2': {
+                'enabled': True,
+                'variables': {}
+            }
+        },
     }
     cfg2 = {
-        'mockkey2': 'mockvalue2'
+        'mockkey2': 'mockvalue2',
+        'deployers': {
+            'deployer1': {
+                'variables': {
+                    'deployer_url': 'deployer1-url1',
+                },
+                'url': {
+                    'value': '{{deployer_url}}'
+                }
+            },
+            'deployer2': {
+                'variables': {
+                    'deployer_url': 'deployer2-url1',
+                },
+                'url': {
+                    'value': '{{deployer_url}}'
+                }
+            }
+        }
     }
     m_get_provider.return_value.load.side_effect = [cfg1, cfg2]
     m_validate_schema.side_effect = lambda vcfg: vcfg
@@ -498,7 +526,19 @@ def test_load_config(m_validate_schema, m_get_provider):
         'mockkey': 'mockvalue',
         'mockkey2': 'mockvalue2',
         '8080': 'number-key',
-        'deployers': {}
+        'deployers': {
+            'deployer2': {
+                'templates': {
+                    'app': {
+                        'args': {}
+                    },
+                },
+                'proxy': {},
+                'deployment': {},
+                'url': 'deployer2-url1',
+                'enabled': True
+            }
+        }
     })
 
 
