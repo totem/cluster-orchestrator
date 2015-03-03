@@ -17,7 +17,7 @@
                 {% if notification.message %}
                 <tr>
                     <td valign="top"><b>Message:</b></td>
-                    <td valign="bottom">{{ notification.message }}
+                    <td valign="bottom">{{ notification.message | truncate(1000) }}
                         {% if notification.code == 'CONFIG_VALIDATION_ERROR' %}
                         <a href="https://github.com/totem/cluster-orchestrator/blob/master/schemas/job-config-v1.json"> Click here to view the job-config-v1 schema.</a>
                         {% endif %}
