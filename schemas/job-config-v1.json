@@ -1,19 +1,12 @@
 {
-  "$schema": "http://json-schema.org/draft-04/hyper-schema#",
+  "$schema": "http://json-schema.org/draft-04/schema#",
   "type": "object",
   "title": "Schema for Job Config",
-  "id": "#generic-hook-v1",
+  "id": "#job-config-v1",
   "type": "object",
   "properties": {
     "enabled": {
-      "oneOf": [
-        {
-          "type": "boolean"
-        },
-        {
-          "$ref": "#/definitions/template-type"
-        }
-      ]
+      "$ref": "#/definitions/boolean-or-template-type"
     },
     "hooks": {
       "$ref": "#/definitions/hooks"
@@ -21,7 +14,7 @@
     "deployers": {
       "patternProperties": {
         ".*": {
-          "ref": "#/definitions/deployer"
+          "$ref": "#/definitions/deployer"
         }
       }
     },
@@ -43,6 +36,39 @@
   "required": ["enabled"],
   "additionalProperties": false,
   "definitions": {
+
+    "boolean-or-template-type": {
+      "oneOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/definitions/template-type"
+        }
+      ]
+    },
+    "string-or-template-type": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/definitions/template-type"
+        }
+      ]
+    },
+
+    "number-or-template-type": {
+      "oneOf": [
+        {
+          "type": "number"
+        },
+        {
+          "$ref": "#/definitions/template-type"
+        }
+      ]
+    },
+
     "template-type": {
       "type": "object",
       "properties": {
@@ -56,6 +82,7 @@
       "additionalProperties": false,
       "required": ["value"]
     },
+
     "encrypted-type": {
       "type": "object",
       "properties": {
@@ -73,6 +100,7 @@
       "additionalProperties": false,
       "required": ["value"]
     },
+
     "variables": {
       "type": "object",
       "patternProperties": {
@@ -94,6 +122,7 @@
         }
       }
     },
+
     "variable-type": {
       "type": "object",
       "properties": {
@@ -112,6 +141,7 @@
       "additionalProperties": false,
       "required": ["value"]
     },
+
     "hooks": {
       "type": "object",
       "properties": {
@@ -124,22 +154,25 @@
       },
       "additionalProperties": false
     },
+
     "ci": {
       "type": "object",
       "patternProperties": {
         ".*": {
-          "ref": "#/definitions/hook-type"
+          "$ref": "#/definitions/hook-type"
         }
       }
     },
+
     "builders": {
       "type": "object",
       "patternProperties": {
         ".*": {
-          "ref": "#/definitions/hook-type"
+          "$ref": "#/definitions/hook-type"
         }
       }
     },
+
     "hook-type": {
       "enabled": {
         "oneOf": [
@@ -152,11 +185,12 @@
         ]
       }
     },
+
     "deployer": {
       "type": "object",
       "properties": {
         "proxy": {
-          "type": "object"
+          "$ref": "#/definitions/proxy"
         },
         "endpoints": {
           "type": "object"
@@ -168,18 +202,151 @@
           "type": "object"
         },
         "url": {
-          "type": "string"
+          "description": "URL for the deployer",
+          "$ref": "#/definitions/string-or-template-type"
         },
         "enabled": {
-          "type": "boolean"
+          "description": "Is deployer enabled?",
+          "$ref": "#/definitions/boolean-or-template-type"
         },
         "variables": {
           "$ref": "#/definitions/variables"
         }
       },
-      "additionalProperties": false,
-      "required": ["proxy", "endpoints", "tempates", "deployment", "url"]
+      "additionalProperties": false
     },
+
+    "proxy": {
+      "type": "object",
+      "properties": {
+        "hosts": {
+          "description": "Hosts associated with the proxy",
+          "patternProperties": {
+            ".*": {
+              "$ref": "#/definitions/host"
+            }
+          }
+        },
+        "upstreams": {
+          "description": "Backends associated with the proxy",
+          "patternProperties": {
+            ".*": {
+              "$ref": "#/definitions/upstream"
+            }
+          }
+        },
+        "listeners":{
+          "description": "TCP Listeners associated with proxy (for tcp based proxy)",
+          "patternProperties": {
+            ".*": {
+              "$ref": "#/definitions/listener"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "host": {
+      "description": "Proxy Host definition",
+      "type": "object",
+      "properties": {
+        "hostname": {
+          "description": "Hostname to be registered with proxy.",
+          "$ref": "#/definitions/string-or-template-type"
+        },
+        "locations": {
+          "description": "Locations for given proxy host.",
+          "patternProperties": {
+            ".*": {
+              "$ref": "#/definitions/location"
+            }
+          }
+        },
+        "enabled": {
+          "description": "Is host enabled?",
+          "$ref": "#/definitions/boolean-or-template-type"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "location": {
+      "description": "Proxy location definition for a given proxy path",
+      "type": "object",
+      "properties": {
+        "path": {
+          "description": "Path to be used for proxy",
+          "$ref": "#/definitions/string-or-template-type"
+        },
+        "port": {
+          "description": "Internal container port for proxy.",
+          "$ref": "#/definitions/number-or-template-type"
+        },
+        "enabled": {
+          "description": "Is location enabled?",
+          "$ref": "#/definitions/boolean-or-template-type"
+        },
+        "denied-acls": {
+          "type": "array",
+          "description": "List of Denied proxy ACLs",
+          "items": { "type": "string" }
+        },
+        "allowed-acls": {
+          "type": "array",
+          "description": "List of Allowed proxy ACLs",
+          "items": { "type": "string" }
+        },
+        "force-ssl": {
+          "description": "If SSL needs to be forced at the given path",
+          "default": false,
+          "$ref": "#/definitions/boolean-or-template-type"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "upstream": {
+      "description": "Proxy Upstream (Backend) definition",
+      "type": "object",
+      "properties": {
+        "health": {
+          "$ref": "#/definitions/health"
+        },
+        "mode": {
+          "description": "Proxy mode (http or tcp)",
+          "enum": [ "http", "tcp" ],
+          "default": "http"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "health": {
+      "description": "Health check definition for proxy upstream",
+      "type": "object",
+      "properties": {
+        "timeout": {
+          "type": "string",
+          "description": "Health check timeout represented in terms of seconds or minutes. e.g: 20s for timeout of 20 seconds"
+        },
+        "uri": {
+          "type": "string",
+          "description": "Path to be used for health check. If empty or not specified, tcp based check is used."
+        },
+        "interval": {
+          "type": "string",
+          "description": "Interval to be used for health check. e.g.: 30s to run health check every 30 seconds."
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "listener": {
+      "description": "Proxy TCP Listener definition",
+      "type": "object"
+    },
+
     "security": {
       "type": "object",
       "properties": {
@@ -188,28 +355,35 @@
         }
       }
     },
+
     "notifications": {
       "patternProperties": {
         "hipchat": {
-          "ref": "#/definitions/notification-hipchat"
+          "$ref": "#/definitions/notification-hipchat"
         },
         "github": {
-          "ref": "#/definitions/notification-github"
+          "$ref": "#/definitions/notification-github"
         },
         ".*": {
-          "ref": "#/definitions/notification"
+          "$ref": "#/definitions/notification"
         }
       }
     },
+
     "notification": {
       "properties":{
         "enabled": {
           "type": "boolean",
           "description": "Used for enabling/disabling notification"
+        },
+        "level": {
+          "description": "Min level for the message to activate this notifier",
+          "$ref": "#/definitions/number-or-template-type"
         }
       },
       "additionalProperties": true
     },
+
     "notification-hipchat": {
       "properties":{
         "enabled": {
@@ -238,10 +412,15 @@
               "$ref": "#/definitions/encrypted-type"
             }
           ]
+        },
+        "level": {
+          "description": "Min level for the message to activate this notifier",
+          "$ref": "#/definitions/number-or-template-type"
         }
       },
       "additionalProperties": false
     },
+
     "notification-github": {
       "properties":{
         "enabled": {
@@ -262,9 +441,13 @@
               "$ref": "#/definitions/encrypted-type"
             }
           ]
+        },
+        "level": {
+          "description": "Min level for the message to activate this notifier",
+          "$ref": "#/definitions/number-or-template-type"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     }
   }
 }
