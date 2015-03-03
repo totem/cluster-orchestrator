@@ -92,7 +92,7 @@ def test_to_dict_for_hooks_failed():
                    'failed service to see more details',
         'code': 'HOOKS_FAILED',
         'details': {
-            'failed-hooks':failed_hooks
+            'failed-hooks': failed_hooks
         }
     })
 
