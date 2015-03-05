@@ -252,8 +252,16 @@
       "type": "object",
       "properties": {
         "hostname": {
-          "description": "Hostname to be registered with proxy.",
-          "$ref": "#/definitions/string-or-template-type"
+          "description": "Hostname(s) to be registered with proxy. If multiple hosts needs to be specified, separate them using comma or space",
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])(\\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9]))*[\\s,]*)+$"
+            },
+            {
+              "$ref": "#/definitions/template-type"
+            }
+          ]
         },
         "locations": {
           "description": "Locations for given proxy host.",
