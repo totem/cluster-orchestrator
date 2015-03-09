@@ -8,7 +8,7 @@ from requests.exceptions import ConnectionError
 from conf.appconfig import TASK_SETTINGS, JOB_SETTINGS, JOB_STATE_NEW, \
     JOB_STATE_SCHEDULED, JOB_STATE_DEPLOY_REQUESTED, JOB_STATE_NOOP, \
     DEFAULT_DEPLOYER_URL, CONFIG_PROVIDERS, LEVEL_FAILED, LEVEL_STARTED, \
-    LEVEL_SUCCESS
+    LEVEL_SUCCESS, TOTEM_ENV
 from conf.celeryconfig import CLUSTER_NAME
 from orchestrator.celery import app
 from orchestrator.etcd import using_etcd, safe_delete, get_or_insert
@@ -34,7 +34,8 @@ def _template_variables(owner, repo, ref, commit=None):
         'ref': ref,
         'commit': commit,
         'ref_number': ref_number,
-        'cluster': CLUSTER_NAME
+        'cluster': CLUSTER_NAME,
+        'env': TOTEM_ENV
     }
 
 
@@ -46,7 +47,8 @@ def _notify_ctx(owner, repo, ref, commit=None, job_id=None, operation=None):
         'commit': commit,
         'cluster': CLUSTER_NAME,
         'job-id': job_id,
-        'operation': operation
+        'operation': operation,
+        'env': TOTEM_ENV
     }
 
 
@@ -68,7 +70,7 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
 
     try:
         job_config = config.load_config(
-            CLUSTER_NAME, owner, repo, ref, default_variables=template_vars)
+            TOTEM_ENV, owner, repo, ref, default_variables=template_vars)
         # Making create job sync call to get job-id
         job = _create_job(job_config, owner, repo, ref, commit=commit,
                           force_deploy=force_deploy)
@@ -81,7 +83,7 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
         raise
 
     return _using_lock.si(
-        name='%s-%s-%s-%s' % (CLUSTER_NAME, owner, repo, ref),
+        name='%s-%s-%s-%s' % (TOTEM_ENV, owner, repo, ref),
         do_task=(
             _update_job_ttl.si(owner, repo, ref, commit=commit) |
             _handle_hook.si(job, hook_type, hook_name, hook_status=hook_status,
@@ -112,7 +114,7 @@ def undeploy(owner, repo, ref):
     template_vars = _template_variables(owner, repo, ref)
     try:
         job_config = config.load_config(
-            CLUSTER_NAME, owner, repo, ref, default_variables=template_vars)
+            TOTEM_ENV, owner, repo, ref, default_variables=template_vars)
     except BaseException as exc:
         notify.si(exc, ctx=_notify_ctx(owner, repo, ref, commit=None,
                                        operation='undeploy'),
@@ -122,7 +124,7 @@ def undeploy(owner, repo, ref):
         raise
 
     return _using_lock.si(
-        name='%s-%s-%s-%s' % (CLUSTER_NAME, owner, repo, ref),
+        name='%s-%s-%s-%s' % (TOTEM_ENV, owner, repo, ref),
         do_task=_undeploy_all.si(job_config, owner, repo, ref)
     ).apply_async()
 
@@ -130,7 +132,7 @@ def undeploy(owner, repo, ref):
 def _job_base_location(owner, repo, ref, etcd_base, commit=None):
     commit = commit or 'not_set'
     return '%s/orchestrator/jobs/%s/%s/%s/%s/%s' % \
-           (etcd_base, CLUSTER_NAME, owner, repo, ref, commit)
+           (etcd_base, TOTEM_ENV, owner, repo, ref, commit)
 
 
 @app.task(bind=True, default_retry_delay=TASK_SETTINGS['LOCK_RETRY_DELAY'],

@@ -15,7 +15,9 @@ TOTEM_ETCD_SETTINGS = {
     'port': int(os.getenv('ETCD_PORT', '4001')),
 }
 
-CLUSTER_NAME = os.getenv('CLUSTER_NAME', 'local')
+TOTEM_ENV = os.getenv('TOTEM_ENV', 'local')
+CLUSTER_NAME = os.getenv('CLUSTER_NAME', TOTEM_ENV)
+SEARCH_INDEX = os.getenv('SEARCH_INDEX', 'totem-{0}'.format(TOTEM_ENV))
 
 SEARCH_SETTINGS = {
     'enabled': os.getenv('SEARCH_ENABLED', 'false').strip().lower() in
@@ -191,3 +193,7 @@ JOB_STATE_SCHEDULED = 'SCHEDULED'
 JOB_STATE_DEPLOY_REQUESTED = 'DEPLOY_REQUESTED'
 JOB_STATE_NOOP = 'NOOP'
 JOB_STATE_FAILED = 'FAILED'
+
+# Doc types for elastic search
+DOC_TYPE_JOBS = 'jobs'
+DOC_TYPE_EVENTS = 'events'

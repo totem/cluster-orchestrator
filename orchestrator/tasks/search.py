@@ -3,14 +3,12 @@ Module for updating/searching elastic search.
 """
 import copy
 import datetime
+from conf.appconfig import DOC_TYPE_JOBS, DOC_TYPE_EVENTS
 
 from orchestrator.celery import app
 from orchestrator.elasticsearch import orch_search
 from orchestrator.util import dict_merge
 
-
-TYPE_JOBS = 'jobs'
-TYPE_EVENTS = 'events'
 
 EVENT_NEW_JOB = 'NEW_JOB'
 EVENT_ACQUIRED_LOCK = 'ACQUIRED_LOCK'
@@ -60,7 +58,7 @@ def index_job(job, ret_value=None, es=None, idx=None):
     :param deployment: Dictionary containing deployment parameters
     :type deployment: dict
     """
-    es.index(idx, TYPE_JOBS, massage_config(job),
+    es.index(idx, DOC_TYPE_JOBS, massage_config(job),
              id=job['meta-info']['job-id'])
     return ret_value or job
 
@@ -76,7 +74,7 @@ def update_job_state(id, state, ret_value=None, es=None, idx=None):
     :keyword ret_value: Value to be returned. If None, the updated search
      document is returned.
     """
-    updated_doc = es.update(idx, TYPE_JOBS, id, body={
+    updated_doc = es.update(idx, DOC_TYPE_JOBS, id, body={
         'doc': {
             'state': state
         }
@@ -123,6 +121,7 @@ def add_search_event(event_type, details=None, search_params={}, es=None,
         'type': event_type,
         'details': massage_config(details),
         'date': datetime.datetime.utcnow(),
+        'component': 'orchestrator'
     })
-    es.create(idx, TYPE_EVENTS, event_upd)
+    es.create(idx, DOC_TYPE_EVENTS, event_upd)
     return ret_value

@@ -10,7 +10,8 @@ from mock import patch
 import mock
 from nose.tools import eq_, raises
 from requests import ConnectionError
-from conf.appconfig import TASK_SETTINGS, CLUSTER_NAME, JOB_STATE_SCHEDULED
+from conf.appconfig import TASK_SETTINGS, CLUSTER_NAME, JOB_STATE_SCHEDULED, \
+    TOTEM_ENV
 from orchestrator.tasks.job import _undeploy_all, _undeploy, _deploy_all, \
     _deploy, _notify_ctx, _create_job, _update_etcd_job
 from tests.helper import dict_compare
@@ -39,6 +40,7 @@ def test_notify_ctx():
         'ref': MOCK_REF,
         'commit': MOCK_COMMIT,
         'cluster': CLUSTER_NAME,
+        'env': TOTEM_ENV,
         'job-id': MOCK_JOB_ID,
         'operation': MOCK_OPERATION
     })
