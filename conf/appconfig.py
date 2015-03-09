@@ -24,7 +24,7 @@ SEARCH_SETTINGS = {
     BOOLEAN_TRUE_VALUES,
     'host': os.getenv('ELASTICSEARCH_HOST', '172.17.42.1'),
     'port': os.getenv('ELASTICSEARCH_PORT', '9200'),
-    'default-index': 'orchestrator-%s' % CLUSTER_NAME
+    'default-index': SEARCH_INDEX
 }
 
 CORS_SETTINGS = {
