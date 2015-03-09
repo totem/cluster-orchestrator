@@ -5,7 +5,8 @@ from ast import literal_eval
 from celery.schedules import crontab
 from kombu import Queue
 
-CLUSTER_NAME = os.getenv('CLUSTER_NAME', 'local')
+TOTEM_ENV = os.getenv('TOTEM_ENV', 'local')
+CLUSTER_NAME = os.getenv('CLUSTER_NAME', TOTEM_ENV)
 
 MESSAGES_TTL = 7200 * 1000
 
