@@ -11,11 +11,12 @@ import mock
 from nose.tools import eq_, raises
 from requests import ConnectionError
 from conf.appconfig import TASK_SETTINGS, CLUSTER_NAME, JOB_STATE_SCHEDULED, \
-    TOTEM_ENV, JOB_STATE_COMPLETE
+    TOTEM_ENV, JOB_STATE_COMPLETE, JOB_STATE_NEW
 from orchestrator.tasks.job import _undeploy_all, _undeploy, _deploy_all, \
     _deploy, _notify_ctx, _create_job, _update_etcd_job, _job_complete, \
-    _schedule_and_deploy, _template_variables
-from orchestrator.tasks.search import EVENT_DEPLOY_REQUEST_COMPLETE
+    _schedule_and_deploy, _template_variables, _handle_create_job
+from orchestrator.tasks.search import EVENT_DEPLOY_REQUEST_COMPLETE, \
+    EVENT_NEW_JOB
 from orchestrator.util import dict_merge
 from tests.helper import dict_compare
 
@@ -431,7 +432,7 @@ def test_schedule_and_deploy_job(
     # Then: Job is scheduled for deploy
     expected_job = dict_merge({'state': JOB_STATE_SCHEDULED}, job)
     expected_ret = m_update_job_state.si.return_value
-    for cnt in range(4):
+    for cnt in range(3):
         expected_ret = expected_ret.__or__.return_value
     expected_ret = expected_ret.delay.return_value
 
@@ -441,7 +442,6 @@ def test_schedule_and_deploy_job(
     m_update_etcd_job.si.assert_called_once_with(expected_job)
     m_update_hook_status.s.assert_called_once_with(
         'builder', 'mock', hook_status='success', hook_result=None)
-    m_index_job.s.assert_called_once_with()
     m_check_and_fire_deploy.s.assert_called_once_with()
 
 
@@ -465,3 +465,76 @@ def test_template_variables():
         'cluster': CLUSTER_NAME,
         'env': TOTEM_ENV
     })
+
+
+@patch('orchestrator.tasks.job.add_search_event')
+@patch('orchestrator.tasks.job.index_job')
+def test_handle_create_job(m_index_job, m_add_search_event):
+    """
+    Should index job newly added job
+    """
+
+    # Given: Existing job
+    job = {
+        'meta-info': {
+            'job-id': MOCK_JOB_ID
+        },
+        'state': JOB_STATE_NEW
+    }
+
+    # When: I handle create job
+    _handle_create_job(job)
+
+    # Then: Job gets indexed
+    m_index_job.si.assert_called_once_with(job)
+    m_add_search_event.si.assert_called_once_with(
+        EVENT_NEW_JOB, details=job,
+        search_params={'meta-info': job['meta-info']})
+
+
+@patch('orchestrator.tasks.job.add_search_event')
+@patch('orchestrator.tasks.job.index_job')
+def test_handle_create_job(m_index_job, m_add_search_event):
+    """
+    Should index job newly added job
+    """
+
+    # Given: Existing job
+    job = {
+        'meta-info': {
+            'job-id': MOCK_JOB_ID
+        },
+        'state': JOB_STATE_NEW
+    }
+
+    # When: I handle create job
+    _handle_create_job(job)
+
+    # Then: Job gets indexed
+    m_index_job.si.assert_called_once_with(job)
+    m_add_search_event.si.assert_called_once_with(
+        EVENT_NEW_JOB, details=job,
+        search_params={'meta-info': job['meta-info']})
+
+
+@patch('orchestrator.tasks.job.add_search_event')
+@patch('orchestrator.tasks.job.index_job')
+def test_handle_create_job(m_index_job, m_add_search_event):
+    """
+    Should not index existing job
+    """
+
+    # Given: Existing job
+    job = {
+        'meta-info': {
+            'job-id': MOCK_JOB_ID
+        },
+        'state': JOB_STATE_SCHEDULED
+    }
+
+    # When: I handle create job
+    _handle_create_job(job)
+
+    # Then: Job gets indexed
+    eq_(m_index_job.si.call_count, 0)
+    eq_(m_add_search_event.si.call_count, 0)

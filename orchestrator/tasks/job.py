@@ -88,9 +88,7 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
     job_id = job['meta-info']['job-id']
     lock_name = '%s-%s-%s-%s' % (TOTEM_ENV, owner, repo, ref)
     return (
-        index_job.si(job) |
-        add_search_event.si(EVENT_NEW_JOB, details=job,
-                            search_params=search_params) |
+        _handle_create_job.si(job) |
         add_search_event.si(EVENT_CALLBACK_HOOK,
                             details={
                                 'name': hook_name,
@@ -128,6 +126,18 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
             ),
         )
     ).delay()
+
+
+@app.task
+def _handle_create_job(job):
+    if job['state'] == JOB_STATE_NEW:
+        # Index job only if state is new
+        search_params = create_search_parameters(job)
+        return (
+            index_job.si(job) |
+            add_search_event.si(EVENT_NEW_JOB, details=job,
+                                search_params=search_params)
+        ).delay()
 
 
 @app.task
@@ -266,7 +276,6 @@ def _handle_hook(job, hook_type, hook_name, hook_status, hook_result):
         return _handle_noop.si(job).delay()
 
     else:
-        # Reset/ Create the new job
         return _schedule_and_deploy.si(
             job, hook_type, hook_name, hook_status=hook_status,
             hook_result=hook_result).delay()
@@ -416,7 +425,6 @@ def _schedule_and_deploy(job, hook_type, hook_name, hook_status='success',
         _update_etcd_job.si(job) |
         _update_hook_status.s(hook_type, hook_name, hook_status=hook_status,
                               hook_result=hook_result) |
-        index_job.s() |
         _check_and_fire_deploy.s()
     ).delay()
 
