@@ -494,32 +494,7 @@ def test_handle_create_job(m_index_job, m_add_search_event):
 
 @patch('orchestrator.tasks.job.add_search_event')
 @patch('orchestrator.tasks.job.index_job')
-def test_handle_create_job(m_index_job, m_add_search_event):
-    """
-    Should index job newly added job
-    """
-
-    # Given: Existing job
-    job = {
-        'meta-info': {
-            'job-id': MOCK_JOB_ID
-        },
-        'state': JOB_STATE_NEW
-    }
-
-    # When: I handle create job
-    _handle_create_job(job)
-
-    # Then: Job gets indexed
-    m_index_job.si.assert_called_once_with(job)
-    m_add_search_event.si.assert_called_once_with(
-        EVENT_NEW_JOB, details=job,
-        search_params={'meta-info': job['meta-info']})
-
-
-@patch('orchestrator.tasks.job.add_search_event')
-@patch('orchestrator.tasks.job.index_job')
-def test_handle_create_job(m_index_job, m_add_search_event):
+def test_handle_create_for_existing_job(m_index_job, m_add_search_event):
     """
     Should not index existing job
     """
