@@ -71,6 +71,15 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
         security_profile=job_config['security']['profile']
     ).delay()
 
+    search_params = {
+        'meta-info': {
+            'owner': owner,
+            'repo': repo,
+            'ref': ref,
+            'commit': commit
+        }
+    }
+
     try:
         job_config = config.load_config(
             TOTEM_ENV, owner, repo, ref, default_variables=template_vars)
@@ -78,35 +87,39 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
         job = _create_job(job_config, owner, repo, ref, commit=commit,
                           force_deploy=force_deploy)
     except BaseException as exc:
-        notify.si(exc, ctx=notify_ctx,
-                  level=LEVEL_FAILED,
-                  notifications=job_config.get('notifications'),
-                  security_profile=job_config['security']['profile'],
-                  ).delay()
+        (
+            notify.si(
+                exc, ctx=notify_ctx,
+                level=LEVEL_FAILED,
+                notifications=job_config.get('notifications'),
+                security_profile=job_config['security']['profile'],
+            ) |
+            _add_error_search_event.si(exc, search_params)
+        ).delay()
         raise
 
     search_params = create_search_parameters(job)
     job_id = job['meta-info']['job-id']
     lock_name = '%s-%s-%s-%s' % (TOTEM_ENV, owner, repo, ref)
     return (
+        add_search_event.si(EVENT_CALLBACK_HOOK,
+                            details={
+                                'hook': {
+                                    'name': hook_name,
+                                    'type': hook_type,
+                                    'status': hook_status,
+                                    'result': hook_result,
+                                    'force-deploy': force_deploy
+                                }
+                            },
+                            search_params=search_params) |
         _using_lock.si(
             name=lock_name,
             do_task=(
-                _handle_create_job.si(job) |
-                add_search_event.si(EVENT_CALLBACK_HOOK,
-                                    details={
-                                        'hook': {
-                                            'name': hook_name,
-                                            'type': hook_type,
-                                            'status': hook_status,
-                                            'result': hook_result,
-                                            'force-deploy': force_deploy
-                                        }
-                                    },
-                                    search_params=search_params) |
                 add_search_event.si(
                     EVENT_ACQUIRED_LOCK, details={'name': lock_name},
                     search_params=search_params) |
+                _handle_create_job.si(job) |
                 _update_job_ttl.si(owner, repo, ref, commit=commit) |
                 _handle_hook.si(job, hook_type, hook_name,
                                 hook_status=hook_status,
@@ -180,37 +193,44 @@ def undeploy(owner, repo, ref):
         job_config = config.load_config(
             TOTEM_ENV, owner, repo, ref, default_variables=template_vars)
     except BaseException as exc:
-        notify.si(exc, ctx=_notify_ctx(owner, repo, ref, commit=None,
-                                       operation='undeploy'),
-                  level=LEVEL_FAILED,
-                  notifications=job_config.get('notifications'),
-                  security_profile=job_config['security']['profile']).delay()
+
+        (
+            notify.si(
+                exc, ctx=_notify_ctx(owner, repo, ref, commit=None,
+                                     operation='undeploy'),
+                level=LEVEL_FAILED,
+                notifications=job_config.get('notifications'),
+                security_profile=job_config['security']['profile']) |
+            _add_error_search_event.si(exc, search_params)
+        ).delay()
         raise
 
     lock_name = '%s-%s-%s-%s' % (TOTEM_ENV, owner, repo, ref)
-    return _using_lock.si(
-        name=lock_name,
-        do_task=(
-            add_search_event.si(
-                EVENT_ACQUIRED_LOCK, details={'name': lock_name},
-                search_params=search_params) |
-            add_search_event.si(EVENT_UNDEPLOY_HOOK,
-                                search_params=search_params) |
-            _undeploy_all.si(job_config, owner, repo, ref) |
-            async_wait.s(
-                default_retry_delay=TASK_SETTINGS['JOB_WAIT_RETRY_DELAY'],
-                max_retries=TASK_SETTINGS['JOB_WAIT_RETRIES'],
-                error_tasks=[
-                    notify.s(
-                        ctx=_notify_ctx(owner, repo, ref, commit=None,
-                                        operation='undeploy',
-                                        job_id=None),
-                        level=LEVEL_FAILED,
-                        notifications=job_config.get('notifications'),
-                        security_profile=job_config['security']['profile']
-                    ),
-                    _add_error_search_event.s(search_params)
-                ]
+    return (
+        add_search_event.si(EVENT_UNDEPLOY_HOOK,
+                            search_params=search_params) |
+        _using_lock.si(
+            name=lock_name,
+            do_task=(
+                add_search_event.si(
+                    EVENT_ACQUIRED_LOCK, details={'name': lock_name},
+                    search_params=search_params) |
+                _undeploy_all.si(job_config, owner, repo, ref) |
+                async_wait.s(
+                    default_retry_delay=TASK_SETTINGS['JOB_WAIT_RETRY_DELAY'],
+                    max_retries=TASK_SETTINGS['JOB_WAIT_RETRIES'],
+                    error_tasks=[
+                        notify.s(
+                            ctx=_notify_ctx(owner, repo, ref, commit=None,
+                                            operation='undeploy',
+                                            job_id=None),
+                            level=LEVEL_FAILED,
+                            notifications=job_config.get('notifications'),
+                            security_profile=job_config['security']['profile']
+                        ),
+                        _add_error_search_event.s(search_params)
+                    ]
+                )
             )
         )
     ).apply_async()
