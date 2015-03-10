@@ -6,7 +6,7 @@ from os.path import basename, dirname
 from celery import chain, chord, group
 from requests.exceptions import ConnectionError
 from conf.appconfig import TASK_SETTINGS, JOB_SETTINGS, JOB_STATE_NEW, \
-    JOB_STATE_SCHEDULED, JOB_STATE_DEPLOY_REQUESTED, JOB_STATE_NOOP, \
+    JOB_STATE_SCHEDULED, JOB_STATE_COMPLETE, JOB_STATE_NOOP, \
     DEFAULT_DEPLOYER_URL, CONFIG_PROVIDERS, LEVEL_FAILED, LEVEL_STARTED, \
     LEVEL_SUCCESS, TOTEM_ENV
 from conf.celeryconfig import CLUSTER_NAME
@@ -18,7 +18,9 @@ from orchestrator.services.distributed_lock import LockService, \
 from orchestrator.tasks.exceptions import DeploymentFailed, HooksFailed
 from orchestrator.tasks.notification import notify
 from orchestrator.tasks.search import index_job, create_search_parameters, \
-    add_search_event, EVENT_DEPLOY_REQUESTED, EVENT_DEPLOY_REQUEST_COMPLETE
+    add_search_event, EVENT_DEPLOY_REQUESTED, EVENT_DEPLOY_REQUEST_COMPLETE, \
+    EVENT_NEW_JOB, update_job_state, EVENT_ACQUIRED_LOCK, EVENT_JOB_FAILED, \
+    EVENT_JOB_NOOP, EVENT_CALLBACK_HOOK
 from orchestrator.tasks.common import async_wait
 from orchestrator.util import dict_merge
 
@@ -82,25 +84,49 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
                   ).delay()
         raise
 
-    return _using_lock.si(
-        name='%s-%s-%s-%s' % (TOTEM_ENV, owner, repo, ref),
-        do_task=(
-            _update_job_ttl.si(owner, repo, ref, commit=commit) |
-            _handle_hook.si(job, hook_type, hook_name, hook_status=hook_status,
-                            hook_result=hook_result) |
-            async_wait.s(
-                default_retry_delay=TASK_SETTINGS['JOB_WAIT_RETRY_DELAY'],
-                max_retries=TASK_SETTINGS['JOB_WAIT_RETRIES'],
-                error_task=notify.s(
-                    ctx=_notify_ctx(owner, repo, ref, commit=commit,
-                                    operation='handle_callback_hook',
-                                    job_id=job['meta-info']['job-id']),
-                    level=LEVEL_FAILED,
-                    notifications=job_config.get('notifications'),
-                    security_profile=job_config['security']['profile']
+    search_params = create_search_parameters(job)
+    job_id = job['meta-info']['job-id']
+    lock_name = '%s-%s-%s-%s' % (TOTEM_ENV, owner, repo, ref)
+    return (
+        index_job.si(job) |
+        add_search_event.si(EVENT_NEW_JOB, details=job,
+                            search_params=search_params) |
+        add_search_event.si(EVENT_CALLBACK_HOOK,
+                            details={
+                                'name': hook_name,
+                                'type': hook_type,
+                                'status': hook_status,
+                                'result': hook_result,
+                                'force-deploy': force_deploy
+                            },
+                            search_params=search_params) |
+        _using_lock.si(
+            name=lock_name,
+            do_task=(
+                add_search_event(EVENT_ACQUIRED_LOCK,
+                                 details={'name': lock_name},
+                                 search_params=search_params) |
+                _update_job_ttl.si(owner, repo, ref, commit=commit) |
+                _handle_hook.si(job, hook_type, hook_name,
+                                hook_status=hook_status,
+                                hook_result=hook_result) |
+                async_wait.s(
+                    default_retry_delay=TASK_SETTINGS['JOB_WAIT_RETRY_DELAY'],
+                    max_retries=TASK_SETTINGS['JOB_WAIT_RETRIES'],
+                    error_tasks=[
+                        notify.s(
+                            ctx=_notify_ctx(owner, repo, ref, commit=commit,
+                                            operation='handle_callback_hook',
+                                            job_id=job_id),
+                            level=LEVEL_FAILED,
+                            notifications=job_config.get('notifications'),
+                            security_profile=job_config['security']['profile']
+                        ),
+                        update_job_state.si(job_id, EVENT_JOB_FAILED)
+                    ]
                 )
-            )
-        ),
+            ),
+        )
     ).delay()
 
 
@@ -241,7 +267,7 @@ def _handle_hook(job, hook_type, hook_name, hook_status, hook_result):
 
     else:
         # Reset/ Create the new job
-        return _handle_job.si(
+        return _schedule_and_deploy.si(
             job, hook_type, hook_name, hook_status=hook_status,
             hook_result=hook_result).delay()
 
@@ -255,6 +281,9 @@ def _handle_noop(job, etcd_cl=None, etcd_base=None):
     git = job['meta-info']['git']
     job_base = _job_base_location(git['owner'], git['repo'], git['ref'],
                                   etcd_base, commit=git['commit'])
+    search_params = create_search_parameters(job)
+    job_id = job['meta-info']['job-id']
+
     safe_delete(etcd_cl, job_base, recursive=True)
     notify_ctx = _notify_ctx(git['owner'], git['repo'], git['ref'],
                              commit=git['commit'],
@@ -266,7 +295,10 @@ def _handle_noop(job, etcd_cl=None, etcd_base=None):
         notifications=job_config.get('notifications'),
         security_profile=job_config['security']['profile']
     ).delay()
-    return index_job.si(job, ret_value=job).delay()
+    return (update_job_state.si(job_id, JOB_STATE_NOOP) |
+            add_search_event.si(EVENT_JOB_NOOP, search_params=search_params,
+                                ret_value=job)
+            ).delay()
 
 
 @app.task
@@ -363,8 +395,8 @@ def _update_hook_status(job, hook_type, hook_name, hook_status='success',
 
 
 @app.task
-def _handle_job(job, hook_type, hook_name, hook_status='success',
-                hook_result=None):
+def _schedule_and_deploy(job, hook_type, hook_name, hook_status='success',
+                         hook_result=None):
     """
     Prepares the job for deploy
 
@@ -378,7 +410,9 @@ def _handle_job(job, hook_type, hook_name, hook_status='success',
     """
     job = copy.deepcopy(job)
     job['state'] = JOB_STATE_SCHEDULED
+    job_id = job['meta-info']['job-id']
     return (
+        update_job_state.si(job_id, JOB_STATE_SCHEDULED) |
         _update_etcd_job.si(job) |
         _update_hook_status.s(hook_type, hook_name, hook_status=hook_status,
                               hook_result=hook_result) |
@@ -439,21 +473,30 @@ def _delete(job_base, ret_value=None, etcd_cl=None, **kwargs):
 
 @app.task
 def _deploy_all(job):
-    job = copy.deepcopy(job)
     job_config = job['config']
-    job['state'] = JOB_STATE_DEPLOY_REQUESTED
     deployers = job_config.get('deployers', {})
-    search_params = create_search_parameters(job)
     return chord(
         group(
             _deploy.si(job, deployer_name)
             for deployer_name, deployer in deployers.items()
             if deployer.get('enabled') and deployer.get('url')
         ),
+        _job_complete.si(job),
+    ).apply_async(interval=TASK_SETTINGS['DEPLOY_WAIT_RETRY_DELAY'])
+
+
+@app.task
+def _job_complete(job):
+    job = copy.deepcopy(job)
+    job_id = job['meta-info']['job-id']
+    job['state'] = JOB_STATE_COMPLETE
+    search_params = create_search_parameters(job)
+    return (
+        update_job_state.si(job_id, JOB_STATE_COMPLETE) |
         add_search_event.si(
             EVENT_DEPLOY_REQUEST_COMPLETE, search_params=search_params,
-            ret_value=job),
-    ).apply_async(interval=TASK_SETTINGS['DEPLOY_WAIT_RETRY_DELAY'])
+            ret_value=job)
+    ).delay()
 
 
 @app.task(bind=True,

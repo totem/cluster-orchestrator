@@ -11,9 +11,12 @@ import mock
 from nose.tools import eq_, raises
 from requests import ConnectionError
 from conf.appconfig import TASK_SETTINGS, CLUSTER_NAME, JOB_STATE_SCHEDULED, \
-    TOTEM_ENV
+    TOTEM_ENV, JOB_STATE_COMPLETE
 from orchestrator.tasks.job import _undeploy_all, _undeploy, _deploy_all, \
-    _deploy, _notify_ctx, _create_job, _update_etcd_job
+    _deploy, _notify_ctx, _create_job, _update_etcd_job, _job_complete, \
+    _schedule_and_deploy, _template_variables
+from orchestrator.tasks.search import EVENT_DEPLOY_REQUEST_COMPLETE
+from orchestrator.util import dict_merge
 from tests.helper import dict_compare
 
 MOCK_OWNER = 'mock-owner'
@@ -135,9 +138,9 @@ def test_undeploy_with_retry(m_delete):
 
 @patch('orchestrator.tasks.job.group')
 @patch('orchestrator.tasks.job.chord')
-@patch('orchestrator.tasks.job.add_search_event')
+@patch('orchestrator.tasks.job._job_complete')
 @patch('orchestrator.tasks.job._deploy')
-def test_deploy_all(m_deploy, m_add_search_event, m_chord, m_group):
+def test_deploy_all(m_deploy, m_job_complete, m_chord, m_group):
     """
     Should deploy to  all enabled deployers.
     """
@@ -175,13 +178,12 @@ def test_deploy_all(m_deploy, m_add_search_event, m_chord, m_group):
     m_chord.return_value.apply_async.assert_called_once_with(
         interval=TASK_SETTINGS['DEPLOY_WAIT_RETRY_DELAY'])
     m_chord.assert_called_once_with(
-        m_group.return_value, m_add_search_event.si.return_value)
+        m_group.return_value, m_job_complete.si.return_value)
     eq_(m_group.call_count, 1)
     eq_(next(m_group.call_args[0][0]), m_deploy.si.return_value)
     eq_(m_deploy.si.call_count, 1)
     dict_compare(m_deploy.si.call_args[0][0], {
-        'config': job_config,
-        'state': 'DEPLOY_REQUESTED'
+        'config': job_config
     })
 
 
@@ -372,3 +374,94 @@ def test_update_etcd_job_as_expected():
         '/mockbase/orchestrator/jobs/local/mock-owner/mock-repo/mock-ref/'
         'mock-commit/state', JOB_STATE_SCHEDULED)
     dict_compare(ret_value, job)
+
+
+@patch('orchestrator.tasks.job.add_search_event')
+@patch('orchestrator.tasks.job.update_job_state')
+def test_job_complete(m_update_job_state, m_add_search_event):
+    """
+    Should mark job state to complete
+    """
+
+    # Given: Job parameters
+    job = {
+        'meta-info': {
+            'job-id': MOCK_JOB_ID
+        },
+        'state': JOB_STATE_SCHEDULED
+    }
+
+    # When: I mark the job as completed
+    ret_value = _job_complete(job)
+
+    # Then: Job is marked completed
+    expected_job = dict_merge({'state': JOB_STATE_COMPLETE}, job)
+    eq_(ret_value, m_update_job_state.si.return_value.__or__.return_value
+        .delay.return_value)
+    m_update_job_state.si.assert_called_once_with(MOCK_JOB_ID,
+                                                  JOB_STATE_COMPLETE)
+    m_add_search_event.si.assert_called_once_with(
+        EVENT_DEPLOY_REQUEST_COMPLETE,
+        search_params={'meta-info': job['meta-info']},
+        ret_value=expected_job)
+
+
+@patch('orchestrator.tasks.job.update_job_state')
+@patch('orchestrator.tasks.job._update_etcd_job')
+@patch('orchestrator.tasks.job._update_hook_status')
+@patch('orchestrator.tasks.job.index_job')
+@patch('orchestrator.tasks.job._check_and_fire_deploy')
+def test_schedule_and_deploy_job(
+        m_check_and_fire_deploy, m_index_job, m_update_hook_status,
+        m_update_etcd_job, m_update_job_state):
+    """
+    Should schedule the job for deploy
+    """
+
+    # Given: Job parameters
+    job = {
+        'meta-info': {
+            'job-id': MOCK_JOB_ID
+        }
+    }
+
+    # When: I schedule and deploy the given job
+    ret_value = _schedule_and_deploy(job, 'builder', 'mock')
+
+    # Then: Job is scheduled for deploy
+    expected_job = dict_merge({'state': JOB_STATE_SCHEDULED}, job)
+    expected_ret = m_update_job_state.si.return_value
+    for cnt in range(4):
+        expected_ret = expected_ret.__or__.return_value
+    expected_ret = expected_ret.delay.return_value
+
+    eq_(ret_value, expected_ret)
+    m_update_job_state.si.assert_called_once_with(MOCK_JOB_ID,
+                                                  JOB_STATE_SCHEDULED)
+    m_update_etcd_job.si.assert_called_once_with(expected_job)
+    m_update_hook_status.s.assert_called_once_with(
+        'builder', 'mock', hook_status='success', hook_result=None)
+    m_index_job.s.assert_called_once_with()
+    m_check_and_fire_deploy.s.assert_called_once_with()
+
+
+def test_template_variables():
+    """
+    Should return default template variables for job config
+    """
+
+    # When: I get template variables for given repository
+    # owner, repo, ref and commit
+    vars = _template_variables(
+        MOCK_OWNER, MOCK_REPO, 'feature_test', MOCK_COMMIT)
+
+    # Then: Default variables for the config template are returned
+    dict_compare(vars, {
+        'owner': MOCK_OWNER,
+        'repo': MOCK_REPO,
+        'ref': 'feature_test',
+        'commit': MOCK_COMMIT,
+        'ref_number': 'test',
+        'cluster': CLUSTER_NAME,
+        'env': TOTEM_ENV
+    })
