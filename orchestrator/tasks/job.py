@@ -15,12 +15,13 @@ from orchestrator.etcd import using_etcd, safe_delete, get_or_insert
 from orchestrator.services import config
 from orchestrator.services.distributed_lock import LockService, \
     ResourceLockedException
+from orchestrator.tasks import util
 from orchestrator.tasks.exceptions import DeploymentFailed, HooksFailed
 from orchestrator.tasks.notification import notify
 from orchestrator.tasks.search import index_job, create_search_parameters, \
-    add_search_event, EVENT_DEPLOY_REQUESTED, EVENT_DEPLOY_REQUEST_COMPLETE, \
+    add_search_event, EVENT_DEPLOY_REQUESTED, EVENT_JOB_COMPLETE, \
     EVENT_NEW_JOB, update_job_state, EVENT_ACQUIRED_LOCK, EVENT_JOB_FAILED, \
-    EVENT_JOB_NOOP, EVENT_CALLBACK_HOOK
+    EVENT_JOB_NOOP, EVENT_CALLBACK_HOOK, EVENT_UNDEPLOY_HOOK
 from orchestrator.tasks.common import async_wait
 from orchestrator.util import dict_merge
 
@@ -122,12 +123,28 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
                             notifications=job_config.get('notifications'),
                             security_profile=job_config['security']['profile']
                         ),
+                        _add_error_search_event.s(search_params) |
                         update_job_state.si(job_id, EVENT_JOB_FAILED)
                     ]
                 )
             ),
         )
     ).delay()
+
+
+@app.task
+def _add_error_search_event(error, search_params):
+    """
+    Adds the error search event
+
+    :param error: Error object
+    :type error: object
+    :param search_params: meta-params for search
+    :type search_params: dict
+    """
+    return add_search_event.si(
+        EVENT_JOB_FAILED, details={'job-error': util.as_dict(error)},
+        search_params=search_params).delay()
 
 
 @app.task
@@ -150,6 +167,15 @@ def undeploy(owner, repo, ref):
     :return: None
     """
     template_vars = _template_variables(owner, repo, ref)
+    search_params = {
+        'meta-info': {
+            'git': {
+                'owner': owner,
+                'repo': repo,
+                'ref': ref
+            }
+        }
+    }
     try:
         job_config = config.load_config(
             TOTEM_ENV, owner, repo, ref, default_variables=template_vars)
@@ -161,9 +187,32 @@ def undeploy(owner, repo, ref):
                   security_profile=job_config['security']['profile']).delay()
         raise
 
+    lock_name = '%s-%s-%s-%s' % (TOTEM_ENV, owner, repo, ref)
     return _using_lock.si(
-        name='%s-%s-%s-%s' % (TOTEM_ENV, owner, repo, ref),
-        do_task=_undeploy_all.si(job_config, owner, repo, ref)
+        name=lock_name,
+        do_task=(
+            add_search_event.si(
+                EVENT_ACQUIRED_LOCK, details={'name': lock_name},
+                search_params=search_params) |
+            add_search_event.si(EVENT_UNDEPLOY_HOOK,
+                                search_params=search_params) |
+            _undeploy_all.si(job_config, owner, repo, ref) |
+            async_wait.s(
+                default_retry_delay=TASK_SETTINGS['JOB_WAIT_RETRY_DELAY'],
+                max_retries=TASK_SETTINGS['JOB_WAIT_RETRIES'],
+                error_tasks=[
+                    notify.s(
+                        ctx=_notify_ctx(owner, repo, ref, commit=None,
+                                        operation='undeploy',
+                                        job_id=None),
+                        level=LEVEL_FAILED,
+                        notifications=job_config.get('notifications'),
+                        security_profile=job_config['security']['profile']
+                    ),
+                    _add_error_search_event.s(search_params)
+                ]
+            )
+        )
     ).apply_async()
 
 
@@ -504,7 +553,7 @@ def _job_complete(job):
     return (
         update_job_state.si(job_id, JOB_STATE_COMPLETE) |
         add_search_event.si(
-            EVENT_DEPLOY_REQUEST_COMPLETE, search_params=search_params,
+            EVENT_JOB_COMPLETE, search_params=search_params,
             ret_value=job)
     ).delay()
 

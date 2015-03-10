@@ -15,7 +15,7 @@ from conf.appconfig import TASK_SETTINGS, CLUSTER_NAME, JOB_STATE_SCHEDULED, \
 from orchestrator.tasks.job import _undeploy_all, _undeploy, _deploy_all, \
     _deploy, _notify_ctx, _create_job, _update_etcd_job, _job_complete, \
     _schedule_and_deploy, _template_variables, _handle_create_job
-from orchestrator.tasks.search import EVENT_DEPLOY_REQUEST_COMPLETE, \
+from orchestrator.tasks.search import EVENT_JOB_COMPLETE, \
     EVENT_NEW_JOB
 from orchestrator.util import dict_merge
 from tests.helper import dict_compare
@@ -402,7 +402,7 @@ def test_job_complete(m_update_job_state, m_add_search_event):
     m_update_job_state.si.assert_called_once_with(MOCK_JOB_ID,
                                                   JOB_STATE_COMPLETE)
     m_add_search_event.si.assert_called_once_with(
-        EVENT_DEPLOY_REQUEST_COMPLETE,
+        EVENT_JOB_COMPLETE,
         search_params={'meta-info': job['meta-info']},
         ret_value=expected_job)
 

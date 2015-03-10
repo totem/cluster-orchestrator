@@ -49,6 +49,25 @@ def simple_result(result):
     return result
 
 
+def as_dict(error):
+    """
+    Creates a dictionary representation for a given error.
+
+    :param error: Object representing error
+    :type error: dict or object
+    """
+    if isinstance(error, dict):
+        return error
+    elif getattr(error, 'to_dict', None):
+        obj_dict = error.to_dict()
+        return obj_dict
+    else:
+        return {
+            'message': repr(error),
+            'code': 'INTERNAL'
+        }
+
+
 class TaskNotReadyException(Exception):
     """
     Exception corresponding to task that is not yet in ready state. This is
