@@ -88,19 +88,21 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
     job_id = job['meta-info']['job-id']
     lock_name = '%s-%s-%s-%s' % (TOTEM_ENV, owner, repo, ref)
     return (
-        _handle_create_job.si(job) |
-        add_search_event.si(EVENT_CALLBACK_HOOK,
-                            details={
-                                'name': hook_name,
-                                'type': hook_type,
-                                'status': hook_status,
-                                'result': hook_result,
-                                'force-deploy': force_deploy
-                            },
-                            search_params=search_params) |
         _using_lock.si(
             name=lock_name,
             do_task=(
+                _handle_create_job.si(job) |
+                add_search_event.si(EVENT_CALLBACK_HOOK,
+                                    details={
+                                        'hook': {
+                                            'name': hook_name,
+                                            'type': hook_type,
+                                            'status': hook_status,
+                                            'result': hook_result,
+                                            'force-deploy': force_deploy
+                                        }
+                                    },
+                                    search_params=search_params) |
                 add_search_event.si(
                     EVENT_ACQUIRED_LOCK, details={'name': lock_name},
                     search_params=search_params) |
