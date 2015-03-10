@@ -101,9 +101,9 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
         _using_lock.si(
             name=lock_name,
             do_task=(
-                add_search_event(EVENT_ACQUIRED_LOCK,
-                                 details={'name': lock_name},
-                                 search_params=search_params) |
+                add_search_event.si(
+                    EVENT_ACQUIRED_LOCK, details={'name': lock_name},
+                    search_params=search_params) |
                 _update_job_ttl.si(owner, repo, ref, commit=commit) |
                 _handle_hook.si(job, hook_type, hook_name,
                                 hook_status=hook_status,
