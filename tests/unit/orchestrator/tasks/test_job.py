@@ -65,14 +65,13 @@ def test_as_callback_hook():
 
     # When: I get callback hook representation
     hook = _as_callback_hook(MOCK_HOOK_NAME, MOCK_HOOK_TYPE, MOCK_HOOK_STATUS,
-                             None, False)
+                             False)
 
     # Then: Expected ctx is returned
     dict_compare(hook, {
         'name': MOCK_HOOK_NAME,
         'status': MOCK_HOOK_STATUS,
         'type': MOCK_HOOK_TYPE,
-        'result': None,
         'force-deploy': False
     })
 
