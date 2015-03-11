@@ -611,6 +611,7 @@ def _check_and_fire_deploy(job, etcd_cl=None, etcd_base=None):
 
     hooks = etcd_cl.read(job_base+'/hooks', recursive=True, consistent=True)
     failed_hooks = []
+    search_params = create_search_parameters(job)
 
     # If it is force deploy, status check is ignored
     if not job['force-deploy']:
@@ -624,7 +625,7 @@ def _check_and_fire_deploy(job, etcd_cl=None, etcd_base=None):
                             'hook': {
                                 'name': basename(dirname(hook_obj.key))
                             }
-                        }, ret_value=job).delay()
+                        }, search_params=search_params, ret_value=job).delay()
                 elif hook_obj.value == 'failed':
                     failed_hooks.append(basename(dirname(hook_obj.key)))
 
