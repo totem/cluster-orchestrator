@@ -90,8 +90,7 @@ def _notify_ctx(owner, repo, ref, commit=None, job_id=None, operation=None):
     }
 
 
-def _as_callback_hook(hook_name, hook_type, hook_status, hook_result,
-                      force_deploy):
+def _as_callback_hook(hook_name, hook_type, hook_status, force_deploy):
     """
     Creates callback hook representation
 
@@ -111,7 +110,6 @@ def _as_callback_hook(hook_name, hook_type, hook_status, hook_result,
         'name': hook_name,
         'type': hook_type,
         'status': hook_status,
-        'result': hook_result,
         'force-deploy': force_deploy
     }
 
@@ -249,7 +247,7 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
                             details={
                                 'hook': _as_callback_hook(
                                     hook_name, hook_type, hook_status,
-                                    hook_result, force_deploy)
+                                    force_deploy)
                             },
                             search_params=search_params,
                             error_tasks=error_tasks) |
