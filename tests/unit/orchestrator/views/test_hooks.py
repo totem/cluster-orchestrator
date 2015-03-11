@@ -121,7 +121,8 @@ class TestGithubHookApi:
             headers={
                 'Content-Type': MIME_JSON,
                 'X-Hub-Signature':
-                'sha1=2d7c671dfefb80b398b45d643ce6bded2ca07bd4'
+                'sha1=2d7c671dfefb80b398b45d643ce6bded2ca07bd4',
+                'X-GitHub-Event': 'delete'
             }
         )
         logger.info('Response: %s', resp.data)

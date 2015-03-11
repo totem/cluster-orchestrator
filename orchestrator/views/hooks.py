@@ -140,7 +140,7 @@ class GithubHookApi(MethodView):
 
         :return: Flask Json Response containing version.
         """
-        if request_data['deleted']:
+        if request.headers.get('X-GitHub-Event') == 'delete':
             ref = basename(request_data['ref'])
             owner = request_data['repository']['owner']['name']
             repo = request_data['repository']['name']
