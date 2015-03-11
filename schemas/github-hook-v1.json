@@ -36,14 +36,28 @@
     },
     "owner": {
       "type": "object",
-      "properties": {
-        "name": {
-          "description": "Name of the repository owner",
-          "maxLength": 100
+      "oneOf": [
+        {
+          "properties": {
+            "name": {
+              "description": "Name of the repository owner",
+              "maxLength": 100
+            }
+          },
+          "required": ["name"],
+          "additionalProperties": true
+        },
+        {
+          "properties": {
+            "owner": {
+              "description": "Name of the repository owner",
+              "maxLength": 100
+            }
+          },
+          "required": ["owner"],
+          "additionalProperties": true
         }
-      },
-      "additionalProperties": true,
-      "required": ["name"]
+      ]
     }
   }
 }
