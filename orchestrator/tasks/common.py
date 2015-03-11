@@ -1,4 +1,4 @@
-from celery import Task
+from celery import Task, group
 from conf.appconfig import TASK_SETTINGS
 from orchestrator.celery import app
 from orchestrator.tasks.util import simple_result, TaskNotReadyException
@@ -8,16 +8,16 @@ class ErrorHandlerTask(Task):
     abstract = True
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
-        if kwargs.get('error_task'):
-            error_task = kwargs.get('error_task')
-            error_task.delay(exc)
+        error_tasks = kwargs.get('error_tasks')
+        if error_tasks:
+            group(error_tasks).delay(exc)
 
 
 @app.task(bind=True, base=ErrorHandlerTask)
 def async_wait(self, result,
                default_retry_delay=TASK_SETTINGS['DEFAULT_RETRY_DELAY'],
                max_retries=TASK_SETTINGS['DEFAULT_RETRIES'],
-               ret_value=None, error_task=None, error_tasks=None):
+               ret_value=None, error_tasks=None):
     """
     Performs asynchronous wait for result. It uses retry approach for result
     to be available rather calling get() . This way the trask do not directly
@@ -37,7 +37,7 @@ def async_wait(self, result,
         raise self.retry(exc=exc,
                          countdown=default_retry_delay,
                          max_retries=max_retries)
-    return ret_value or result
+    return ret_value if ret_value is not None else result
 
 
 @app.task

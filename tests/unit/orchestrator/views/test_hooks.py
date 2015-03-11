@@ -101,8 +101,7 @@ class TestGithubHookApi:
             }
         },
         "ref": "refs/heads/mock-ref",
-        "after": "7700ca29dd050d9adacc0803f866d9b539513535",
-        "deleted": true
+        "after": "7700ca29dd050d9adacc0803f866d9b539513535"
     }'''
 
     def setup(self):
@@ -121,7 +120,65 @@ class TestGithubHookApi:
             headers={
                 'Content-Type': MIME_JSON,
                 'X-Hub-Signature':
-                'sha1=2d7c671dfefb80b398b45d643ce6bded2ca07bd4'
+                'sha1=4fbcf3609119853c2d2e52ed266f7dc37ab1e278',
+                'X-GitHub-Event': 'delete'
+            }
+        )
+        logger.info('Response: %s', resp.data)
+
+        # Then: Expected response is returned
+        eq_(resp.status_code, 202)
+
+    @patch('orchestrator.views.hooks.undeploy')
+    def test_post_for_non_delete_request(self, mock_start_job):
+        """
+        Should return accepted response when a valid github hook is posted.
+        """
+
+        # When I post to github endpoint
+        resp = self.client.post(
+            '/external/hooks/github',
+            data=self.mock_payload,
+            headers={
+                'Content-Type': MIME_JSON,
+                'X-Hub-Signature':
+                    'sha1=4fbcf3609119853c2d2e52ed266f7dc37ab1e278',
+                'X-GitHub-Event': 'push'
+            }
+        )
+        logger.info('Response: %s', resp.data)
+
+        # Then: Expected response is returned
+        eq_(resp.status_code, 204)
+
+    @patch('orchestrator.views.hooks.undeploy')
+    def test_post_with_owner_login_in_payload(self, mock_start_job):
+        """
+        Should return accepted response when a valid github hook is posted.
+        """
+
+        # Given: Mock payload
+
+        mock_payload = '''{
+            "repository": {
+                "name": "mock_repo",
+                "owner": {
+                    "login": "mock_owner"
+                }
+            },
+            "ref": "refs/heads/mock-ref",
+            "after": "7700ca29dd050d9adacc0803f866d9b539513535"
+        }'''
+
+        # When I post to github endpoint
+        resp = self.client.post(
+            '/external/hooks/github',
+            data=mock_payload,
+            headers={
+                'Content-Type': MIME_JSON,
+                'X-Hub-Signature':
+                'sha1=06d41f5ec61e43fa7c0410c9c6ca9e32e5624e14',
+                'X-GitHub-Event': 'delete'
             }
         )
         logger.info('Response: %s', resp.data)

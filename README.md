@@ -99,7 +99,8 @@ sudo docker run -it --rm -h cluster-orchestrator-${USER} --name cluster-orchestr
 | HIPCHAT_ENABLED | Set it to true to enable hipchat notifications | false | false |
 | HIPCHAT_ROOM | Room to be used for hipchat notifications | not-set | not-set |
 | GITHUB_NOTIFICATION_ENABLED | Set it to true to enable github commit notifications. | false | false |
-
+| CLUSTER_NAME | Name of the cluster where orchestrator is deployed | local | local |
+| TOTEM_ENV | Name of totem environment (e.g. production, local, development) | local | local |
  
 
 ## Coding Standards and Guidelines

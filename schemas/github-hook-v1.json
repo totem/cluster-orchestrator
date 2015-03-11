@@ -18,7 +18,7 @@
     }
   },
   "additionalProperties": true,
-  "required": ["deleted", "ref", "repository"],
+  "required": ["ref", "repository"],
   "definitions": {
     "repository": {
       "type": "object",
@@ -36,14 +36,28 @@
     },
     "owner": {
       "type": "object",
-      "properties": {
-        "name": {
-          "description": "Name of the repository owner",
-          "maxLength": 100
+      "oneOf": [
+        {
+          "properties": {
+            "name": {
+              "description": "Name of the repository owner",
+              "maxLength": 100
+            }
+          },
+          "required": ["name"],
+          "additionalProperties": true
+        },
+        {
+          "properties": {
+            "login": {
+              "description": "Name of the repository owner",
+              "maxLength": 100
+            }
+          },
+          "required": ["login"],
+          "additionalProperties": true
         }
-      },
-      "additionalProperties": true,
-      "required": ["name"]
+      ]
     }
   }
 }

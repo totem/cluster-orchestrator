@@ -3,9 +3,6 @@ python:
   - "2.7"
   - "3.4"
 
-env:
-  - GITHUB_HOOK_SECRET_HINT=40
-
 sudo: false
 
 # command to install dependencies
