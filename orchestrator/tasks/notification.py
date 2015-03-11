@@ -92,7 +92,7 @@ def notify_github(obj, ctx, level, config, security_profile):
                 LEVEL_PENDING: 'pending'
             }.get(level, 'pending'),
             'description': use_desc,
-            'context': ctx.get('cluster', 'local') + '::Orchestrator'
+            'context': ctx.get('env', 'local') + '::Orchestrator'
         }
         requests.post(status_url, data=json.dumps(data),
                       headers=headers).raise_for_status()
