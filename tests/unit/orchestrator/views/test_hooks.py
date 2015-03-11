@@ -151,7 +151,6 @@ class TestGithubHookApi:
         # Then: Expected response is returned
         eq_(resp.status_code, 204)
 
-
     @patch('orchestrator.views.hooks.undeploy')
     def test_post_with_owner_login_in_payload(self, mock_start_job):
         """
