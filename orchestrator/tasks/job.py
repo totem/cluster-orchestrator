@@ -21,7 +21,8 @@ from orchestrator.tasks.notification import notify
 from orchestrator.tasks.search import index_job, create_search_parameters, \
     add_search_event, EVENT_DEPLOY_REQUESTED, EVENT_JOB_COMPLETE, \
     EVENT_NEW_JOB, update_job_state, EVENT_ACQUIRED_LOCK, EVENT_JOB_FAILED, \
-    EVENT_JOB_NOOP, EVENT_CALLBACK_HOOK, EVENT_UNDEPLOY_HOOK
+    EVENT_JOB_NOOP, EVENT_CALLBACK_HOOK, EVENT_UNDEPLOY_HOOK, \
+    EVENT_PENDING_HOOK
 from orchestrator.tasks.common import async_wait
 from orchestrator.util import dict_merge
 
@@ -618,7 +619,12 @@ def _check_and_fire_deploy(job, etcd_cl=None, etcd_base=None):
             if done_key == 'status':
                 if hook_obj.value == 'pending':
                     # Hooks not yet completed. return
-                    return job
+                    return add_search_event.si(
+                        EVENT_PENDING_HOOK, details={
+                            'hook': {
+                                'name': basename(dirname(hook_obj.key))
+                            }
+                        }, ret_value=job)
                 elif hook_obj.value == 'failed':
                     failed_hooks.append(basename(dirname(hook_obj.key)))
 
