@@ -624,7 +624,7 @@ def _check_and_fire_deploy(job, etcd_cl=None, etcd_base=None):
                             'hook': {
                                 'name': basename(dirname(hook_obj.key))
                             }
-                        }, ret_value=job)
+                        }, ret_value=job).delay()
                 elif hook_obj.value == 'failed':
                     failed_hooks.append(basename(dirname(hook_obj.key)))
 
