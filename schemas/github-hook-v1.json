@@ -49,12 +49,12 @@
         },
         {
           "properties": {
-            "owner": {
+            "login": {
               "description": "Name of the repository owner",
               "maxLength": 100
             }
           },
-          "required": ["owner"],
+          "required": ["login"],
           "additionalProperties": true
         }
       ]

@@ -142,8 +142,8 @@ class GithubHookApi(MethodView):
         """
         if request.headers.get('X-GitHub-Event') == 'delete':
             ref = basename(request_data['ref'])
-            owner = request_data['repository']['owner']['name'] or \
-                    request_data['repository']['owner']['login']
+            owner = request_data['repository']['owner'].get('name') or \
+                request_data['repository']['owner'].get('login')
             repo = request_data['repository']['name']
             task = undeploy.delay(owner, repo, ref)
             return created_task(task)
