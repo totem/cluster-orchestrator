@@ -7,6 +7,7 @@ from conf.appconfig import DOC_TYPE_JOBS, DOC_TYPE_EVENTS
 
 from orchestrator.celery import app
 from orchestrator.elasticsearch import orch_search
+from orchestrator.tasks.common import ErrorHandlerTask
 from orchestrator.util import dict_merge
 
 
@@ -102,10 +103,11 @@ def create_search_parameters(job, defaults=None):
     }
 
 
-@app.task
+@app.task(base=ErrorHandlerTask)
 @orch_search
 def add_search_event(event_type, details=None, search_params={}, es=None,
-                     idx=None, ret_value=None, next_task=None):
+                     idx=None, ret_value=None, next_task=None,
+                     error_tasks=None):
     """
     Adds search event for the job in elasticsearch.
 

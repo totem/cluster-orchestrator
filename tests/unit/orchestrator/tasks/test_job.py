@@ -8,15 +8,19 @@ from future.builtins import (  # noqa
     filter, map, zip)
 from mock import patch
 import mock
-from nose.tools import eq_, raises
+from nose.tools import eq_, raises, assert_raises
 from requests import ConnectionError
 from conf.appconfig import TASK_SETTINGS, CLUSTER_NAME, JOB_STATE_SCHEDULED, \
-    TOTEM_ENV, JOB_STATE_COMPLETE, JOB_STATE_NEW
+    TOTEM_ENV, JOB_STATE_COMPLETE, JOB_STATE_NEW, CONFIG_PROVIDERS, \
+    LEVEL_FAILED
+from orchestrator.tasks.exceptions import HooksFailed
 from orchestrator.tasks.job import _undeploy_all, _undeploy, _deploy_all, \
     _deploy, _notify_ctx, _create_job, _update_etcd_job, _job_complete, \
-    _schedule_and_deploy, _template_variables, _handle_create_job
+    _schedule_and_deploy, _template_variables, _handle_create_job, \
+    _as_callback_hook, _handle_failed_hooks, _load_job_config, _release_lock, \
+    _handle_job_error
 from orchestrator.tasks.search import EVENT_JOB_COMPLETE, \
-    EVENT_NEW_JOB
+    EVENT_NEW_JOB, EVENT_JOB_FAILED
 from orchestrator.util import dict_merge
 from tests.helper import dict_compare
 
@@ -26,6 +30,10 @@ MOCK_REF = 'mock-ref'
 MOCK_JOB_ID = 'mock-job-id'
 MOCK_COMMIT = 'mock-commit'
 MOCK_OPERATION = 'mock-operation'
+
+MOCK_HOOK_NAME = 'mock-hook'
+MOCK_HOOK_TYPE = 'builder'
+MOCK_HOOK_STATUS = 'success'
 
 
 def test_notify_ctx():
@@ -47,6 +55,25 @@ def test_notify_ctx():
         'env': TOTEM_ENV,
         'job-id': MOCK_JOB_ID,
         'operation': MOCK_OPERATION
+    })
+
+
+def test_as_callback_hook():
+    """
+    Should return expected callback info representation
+    """
+
+    # When: I get callback hook representation
+    hook = _as_callback_hook(MOCK_HOOK_NAME, MOCK_HOOK_TYPE, MOCK_HOOK_STATUS,
+                             None, False)
+
+    # Then: Expected ctx is returned
+    dict_compare(hook, {
+        'name': MOCK_HOOK_NAME,
+        'status': MOCK_HOOK_STATUS,
+        'type': MOCK_HOOK_TYPE,
+        'result': None,
+        'force-deploy': False
     })
 
 
@@ -513,3 +540,162 @@ def test_handle_create_for_existing_job(m_index_job, m_add_search_event):
     # Then: Job gets indexed
     eq_(m_index_job.si.call_count, 0)
     eq_(m_add_search_event.si.call_count, 0)
+
+
+@raises(HooksFailed)
+def test_handle_failed_hooks():
+    """
+    Should raise HooksFailed exception
+    """
+
+    # When: I handle failed hooks
+    _handle_failed_hooks([])
+
+    # Then: HooksFailed exception is raised
+
+
+@patch('orchestrator.tasks.job.config.load_config')
+def test_load_job_config(m_load_config):
+    """
+    Should load job config successfully.
+    """
+
+    # When: I load job config for given git parameters
+    ret_value = _load_job_config(
+        MOCK_OWNER, MOCK_REPO, MOCK_REF, {}, {}, commit=MOCK_COMMIT)
+
+    # Then: Config is loaded as expected
+    eq_(ret_value, m_load_config.return_value)
+    m_load_config.assert_called_once_with(
+        TOTEM_ENV, MOCK_OWNER, MOCK_REPO, MOCK_REF,
+        default_variables={
+            'ref_number': MOCK_REF,
+            'repo': MOCK_REPO,
+            'cluster': CLUSTER_NAME,
+            'env': TOTEM_ENV,
+            'owner': MOCK_OWNER,
+            'commit': MOCK_COMMIT,
+            'ref': MOCK_REF
+        })
+
+
+@patch('orchestrator.tasks.job._handle_job_error')
+@patch('orchestrator.tasks.job.config.load_config')
+def test_load_job_config_when_failed(m_load_config, m_handle_job_error):
+    """
+    Should handle failure when config fails to load
+    """
+
+    # Given: Invalid config
+    error = RuntimeError('MockError')
+    m_load_config.side_effect = error
+
+    with assert_raises(RuntimeError) as raise_ctx:
+        # When: I load job config for given git parameters
+        _load_job_config(
+            MOCK_OWNER, MOCK_REPO, MOCK_REF, {}, {}, commit=MOCK_COMMIT)
+
+    # Then: Config fails to get loaded
+    eq_(raise_ctx.exception, error)
+    m_handle_job_error.si.assert_called_once_with(
+        raise_ctx.exception, CONFIG_PROVIDERS['default']['config'], {}, {})
+    m_handle_job_error.si.return_value.delay.assert_called_once_with()
+
+
+@patch('orchestrator.tasks.job.LockService')
+def test_release_lock(m_lock_service):
+    """
+    Should release the existing lock
+    """
+
+    # Given: Existing lock
+    lock = mock.MagicMock()
+
+    # When: I release the given lock
+    _release_lock(lock)
+
+    # Then: Lock gets released successfully
+    m_lock_service.return_value.release.assert_called_once_with(lock)
+
+
+@patch('orchestrator.tasks.job.group')
+@patch('orchestrator.tasks.job.notify')
+@patch('orchestrator.tasks.job.add_search_event')
+@patch('orchestrator.tasks.job.update_job_state')
+def test_handle_job_error_with_job_id(m_update_job_state, m_add_search_event,
+                                      m_notify, m_group):
+    """
+    Should handle job error when job_id is given
+    """
+    # Given: Mock Error
+    error = {
+        'message': 'MockError'
+    }
+
+    # And: Mock Job Config
+    job_config = {
+        'notifications': {
+            'github': {}
+        },
+        'security': {
+            'profile': 'mockprofile'
+        }
+    }
+
+    # And: Mock Notification Context
+    notify_ctx = mock.MagicMock()
+
+    # And: Mock Search Parameters
+    search_params = mock.MagicMock()
+
+    # When: I handle job error for given job_id
+    ret_value = _handle_job_error(
+        error, job_config, notify_ctx, search_params, job_id=MOCK_JOB_ID)
+
+    # Then: Error is handled as expected
+    eq_(ret_value, m_group.return_value.delay.return_value)
+    m_group.assert_called_once_with([
+        m_notify.s.return_value,
+        m_add_search_event.si.return_value,
+        m_update_job_state.si.return_value
+    ])
+    m_notify.s.assert_called_once_with(
+        ctx=notify_ctx, level=LEVEL_FAILED,
+        notifications=job_config['notifications'],
+        security_profile=job_config['security']['profile'])
+    m_add_search_event.si.assert_called_once_with(
+        EVENT_JOB_FAILED, details={'job-error': error},
+        search_params=search_params
+    )
+
+
+@patch('orchestrator.tasks.job.group')
+@patch('orchestrator.tasks.job.notify')
+@patch('orchestrator.tasks.job.add_search_event')
+@patch('orchestrator.tasks.job.update_job_state')
+def test_handle_job_error_without_job_id(
+        m_update_job_state, m_add_search_event, m_notify, m_group):
+    """
+    Should handle job error when job_id is not provided
+    """
+    # Given: Mock Error
+    error = {
+        'message': 'MockError'
+    }
+
+    # And: Mock Job Config
+    job_config = {
+        'notifications': {
+            'github': {}
+        },
+        'security': {
+            'profile': 'mockprofile'
+        }
+    }
+
+    # When: I handle job error for given job_id
+    _handle_job_error(
+        error, job_config, {}, {}, job_id=None)
+
+    # Then: Job state is not updated
+    eq_(m_update_job_state.si.call_count, 0)

@@ -27,8 +27,24 @@ from orchestrator.util import dict_merge
 
 __author__ = 'sukrit'
 
+__all__ = ['handle_callback_hook', 'undeploy']
+
 
 def _template_variables(owner, repo, ref, commit=None):
+    """
+    Creates default template variables for job config.
+
+    :param owner: Git repository owner
+    :type owner: str
+    :param repo: Git repository name
+    :type repo: str
+    :param ref: Git branch/tag
+    :type ref: str
+    :keyword commit: Git commit. (Default: None)
+    :type commit: str
+    :return: Template variables
+    :rtype: dict
+    """
     ref_number = ref.lower().replace('feature_', '').replace('patch_', '')
     commit = commit or 'na'
     return {
@@ -43,6 +59,24 @@ def _template_variables(owner, repo, ref, commit=None):
 
 
 def _notify_ctx(owner, repo, ref, commit=None, job_id=None, operation=None):
+    """
+    Creates notification context.
+
+    :param owner: Git repository owner
+    :type owner: str
+    :param repo: Git repository name
+    :type repo: str
+    :param ref: Git branch/tag
+    :type ref: str
+    :keyword commit: Git commit. (Default: None)
+    :type commit: str
+    :keyword job_id: Optional job identifier (Default: None)
+    :type job_id: str
+    :keyword operation: Optional operation name (Default: None)
+    :type operation: str
+    :return: Notification context
+    :rtype: dict
+    """
     return {
         'owner': owner,
         'repo': repo,
@@ -55,14 +89,126 @@ def _notify_ctx(owner, repo, ref, commit=None, job_id=None, operation=None):
     }
 
 
+def _as_callback_hook(hook_name, hook_type, hook_status, hook_result,
+                      force_deploy):
+    """
+    Creates callback hook representation
+
+    :param hook_name: Name of the hook (e.g.: image-factory)
+    :type hook_name: str
+    :param hook_type: Type of the hook ('ci' or 'builder')
+    :type hook_type: str
+    :param hook_status: Status of the hook ('failed' or 'success')
+    :type hook_status: str
+    :param hook_result: Result of the callback hook.
+    :type hook_result: object
+    :param force_deploy: Flag controlling Force deploy
+    :type hook_result: bool
+    :return:
+    """
+    return {
+        'name': hook_name,
+        'type': hook_type,
+        'status': hook_status,
+        'result': hook_result,
+        'force-deploy': force_deploy
+    }
+
+
+def _load_job_config(owner, repo, ref, notify_ctx, search_params, commit=None):
+    """
+    Loads the job config for given git parameters
+
+    :param owner: Git repository owner
+    :type owner: str
+    :param repo: Git repository name
+    :type repo: str
+    :param ref: Git branch/tag
+    :type ref: str
+    :param notify_ctx:
+    :param search_params:
+    :keyword commit: Git commit. (Default: None)
+    :type commit: str
+    :return: Job Config
+    :rtype: dict
+    """
+    template_vars = _template_variables(owner, repo, ref, commit=commit,)
+    try:
+        return config.load_config(
+            TOTEM_ENV, owner, repo, ref, default_variables=template_vars)
+    except BaseException as exc:
+        _handle_job_error.si(exc, CONFIG_PROVIDERS['default']['config'],
+                             notify_ctx, search_params).delay()
+        raise
+
+
+@app.task
+def _handle_job_error(error, job_config, notify_ctx, search_params,
+                      job_id=None):
+    """
+    Handles the error during job creation, processing / undeploy.
+
+    :param error: Error object (dictionary, exception or any object)
+    :type error: object
+    :param job_config: Job configuration
+    :type job_config: dict
+    :param notify_ctx: Notification context
+    :type notify_ctx: dict
+    :param search_params: Search parameters
+    :type search_params: dict
+    :keyword job_id: Job identifier (optional). Defaults to None. If specified
+        job state would be set to failed.
+    :type job_id: str
+    :return:
+    """
+    tasks = [
+        notify.s(
+            ctx=notify_ctx,
+            level=LEVEL_FAILED,
+            notifications=job_config.get('notifications'),
+            security_profile=job_config['security']['profile']),
+        add_search_event.si(
+            EVENT_JOB_FAILED, details={'job-error': util.as_dict(error)},
+            search_params=search_params)
+    ]
+    if job_id:
+        tasks.append(update_job_state.si(job_id, EVENT_JOB_FAILED))
+    return group(tasks).delay(error)
+
+
 @app.task
 def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
                          hook_status='success', hook_result=None, commit=None,
                          force_deploy=False):
-    template_vars = _template_variables(owner, repo, ref, commit=commit,)
+    """
+    Publicly exposed task to handle the callback webhook.
+
+    :param owner: Git repository owner
+    :type owner: str
+    :param repo: Git repository name
+    :type repo: str
+    :param ref: Git branch/tag
+    :type ref: str
+    :param hook_type: Post hook type (ci or builder)
+    :type hook_type: str
+    :param hook_name: Name of the hook (e.g: image-factory, travis)
+    :type hook_name: str
+    :keyword hook_status: Status for the hook (success, failed)
+    :type hook_status: str
+    :keyword hook_result: Results associated with the hook. In case of builder
+        hook type, the result contains the built container image url.
+    :type hook_result: dict
+    :keyword commit: Git commit. (Default: None)
+    :type commit: str
+    :keyword force_deploy: Flag controlling Force deploy
+    :type hook_result: bool
+    :return: Task result
+    """
     job_config = CONFIG_PROVIDERS['default']['config']
     notify_ctx = _notify_ctx(owner, repo, ref, commit=commit,
                              operation='handle_callback_hook')
+
+    # Create a notification for receiving webhook
     notify.si(
         {'message': 'Received webhook {0}/{1} with status {2}'.format(
             hook_type, hook_name, hook_status)},
@@ -71,48 +217,41 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
         security_profile=job_config['security']['profile']
     ).delay()
 
-    search_params = {
-        'meta-info': {
-            'owner': owner,
-            'repo': repo,
-            'ref': ref,
-            'commit': commit
-        }
-    }
+    # Create default search parameters
+    search_params = _job_meta(owner, repo, ref, commit=commit)
+    job_config = _load_job_config(owner, repo, ref, notify_ctx, search_params,
+                                  commit=None)
 
     try:
-        job_config = config.load_config(
-            TOTEM_ENV, owner, repo, ref, default_variables=template_vars)
         # Making create job sync call to get job-id
         job = _create_job(job_config, owner, repo, ref, commit=commit,
                           force_deploy=force_deploy)
     except BaseException as exc:
-        (
-            notify.si(
-                exc, ctx=notify_ctx,
-                level=LEVEL_FAILED,
-                notifications=job_config.get('notifications'),
-                security_profile=job_config['security']['profile'],
-            ) |
-            _add_error_search_event.si(exc, search_params)
-        ).delay()
+        _handle_job_error.si(exc, job_config, notify_ctx, search_params)\
+            .delay()
         raise
 
+    # Now that we have job, create search parameters using job
     search_params = create_search_parameters(job)
     job_id = job['meta-info']['job-id']
+    notify_ctx = _notify_ctx(owner, repo, ref, commit=commit, job_id=job_id,
+                             operation='handle_callback_hook')
     lock_name = '%s-%s-%s-%s' % (TOTEM_ENV, owner, repo, ref)
+
+    # Define error tasks to be executed when task fails. We will use it for
+    # add_search_event,_using_lock tasks to update job state,
+    # send notifications and update job events.
+    error_tasks = [
+        _handle_job_error.s(job_config, notify_ctx, search_params, job_id)]
     return (
         add_search_event.si(EVENT_CALLBACK_HOOK,
                             details={
-                                'hook': {
-                                    'name': hook_name,
-                                    'type': hook_type,
-                                    'status': hook_status,
-                                    'result': hook_result,
-                                    'force-deploy': force_deploy
-                                }
+                                'hook': _as_callback_hook(
+                                    hook_name, hook_type, hook_status,
+                                    hook_result, force_deploy)
                             },
-                            search_params=search_params) |
+                            search_params=search_params,
+                            error_tasks=error_tasks) |
         _using_lock.si(
             name=lock_name,
             do_task=(
@@ -127,18 +266,7 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
                 async_wait.s(
                     default_retry_delay=TASK_SETTINGS['JOB_WAIT_RETRY_DELAY'],
                     max_retries=TASK_SETTINGS['JOB_WAIT_RETRIES'],
-                    error_tasks=[
-                        notify.s(
-                            ctx=_notify_ctx(owner, repo, ref, commit=commit,
-                                            operation='handle_callback_hook',
-                                            job_id=job_id),
-                            level=LEVEL_FAILED,
-                            notifications=job_config.get('notifications'),
-                            security_profile=job_config['security']['profile']
-                        ),
-                        _add_error_search_event.s(search_params) |
-                        update_job_state.si(job_id, EVENT_JOB_FAILED)
-                    ]
+                    error_tasks=error_tasks
                 )
             ),
         )
@@ -146,22 +274,14 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
 
 
 @app.task
-def _add_error_search_event(error, search_params):
-    """
-    Adds the error search event
-
-    :param error: Error object
-    :type error: object
-    :param search_params: meta-params for search
-    :type search_params: dict
-    """
-    return add_search_event.si(
-        EVENT_JOB_FAILED, details={'job-error': util.as_dict(error)},
-        search_params=search_params).delay()
-
-
-@app.task
 def _handle_create_job(job):
+    """
+    Handles the creation of a job. A new job will be created id the state is
+    'NEW'
+    :param job: Job parameters
+    :type job: dict
+    :return: None
+    """
     if job['state'] == JOB_STATE_NEW:
         # Index job only if state is new
         search_params = create_search_parameters(job)
@@ -179,36 +299,17 @@ def undeploy(owner, repo, ref):
 
     :return: None
     """
-    template_vars = _template_variables(owner, repo, ref)
-    search_params = {
-        'meta-info': {
-            'git': {
-                'owner': owner,
-                'repo': repo,
-                'ref': ref
-            }
-        }
-    }
-    try:
-        job_config = config.load_config(
-            TOTEM_ENV, owner, repo, ref, default_variables=template_vars)
-    except BaseException as exc:
-
-        (
-            notify.si(
-                exc, ctx=_notify_ctx(owner, repo, ref, commit=None,
-                                     operation='undeploy'),
-                level=LEVEL_FAILED,
-                notifications=job_config.get('notifications'),
-                security_profile=job_config['security']['profile']) |
-            _add_error_search_event.si(exc, search_params)
-        ).delay()
-        raise
-
+    search_params = _job_meta(owner, repo, ref)
+    notify_ctx = _notify_ctx(owner, repo, ref, commit=None,
+                             operation='undeploy')
+    job_config = _load_job_config(owner, repo, ref, notify_ctx, search_params,
+                                  commit=None)
     lock_name = '%s-%s-%s-%s' % (TOTEM_ENV, owner, repo, ref)
+    error_tasks = [
+        _handle_job_error.s(job_config, notify_ctx, search_params)]
     return (
-        add_search_event.si(EVENT_UNDEPLOY_HOOK,
-                            search_params=search_params) |
+        add_search_event.si(EVENT_UNDEPLOY_HOOK, search_params=search_params,
+                            error_tasks=error_tasks) |
         _using_lock.si(
             name=lock_name,
             do_task=(
@@ -219,17 +320,7 @@ def undeploy(owner, repo, ref):
                 async_wait.s(
                     default_retry_delay=TASK_SETTINGS['JOB_WAIT_RETRY_DELAY'],
                     max_retries=TASK_SETTINGS['JOB_WAIT_RETRIES'],
-                    error_tasks=[
-                        notify.s(
-                            ctx=_notify_ctx(owner, repo, ref, commit=None,
-                                            operation='undeploy',
-                                            job_id=None),
-                            level=LEVEL_FAILED,
-                            notifications=job_config.get('notifications'),
-                            security_profile=job_config['security']['profile']
-                        ),
-                        _add_error_search_event.s(search_params)
-                    ]
+                    error_tasks=error_tasks
                 )
             )
         )
@@ -534,7 +625,7 @@ def _check_and_fire_deploy(job, etcd_cl=None, etcd_base=None):
     if failed_hooks:
         return (
             _delete.si(job_base, ret_value=job, recursive=True) |
-            _failed.si(failed_hooks)
+            _handle_failed_hooks.si(failed_hooks)
         ).delay()
     else:
         return (
@@ -664,14 +755,12 @@ def _undeploy(self, job_config, owner, repo, ref, deployer_name):
 
 
 @app.task
-def _failed(failed_hooks):
+def _handle_failed_hooks(failed_hooks):
     raise HooksFailed(failed_hooks)
 
 
-def _as_job(job_config, job_id,  owner, repo, ref, state=JOB_STATE_SCHEDULED,
-            commit=None, force_deploy=False):
+def _job_meta(owner, repo, ref, commit=None, job_id=None):
     return {
-        'config': copy.deepcopy(job_config),
         'meta-info': {
             'git': {
                 'owner': owner,
@@ -680,11 +769,18 @@ def _as_job(job_config, job_id,  owner, repo, ref, state=JOB_STATE_SCHEDULED,
                 'commit': commit
             },
             'job-id': job_id
-        },
+        }
+    }
+
+
+def _as_job(job_config, job_id,  owner, repo, ref, state=JOB_STATE_SCHEDULED,
+            commit=None, force_deploy=False):
+    return dict_merge({
+        'config': copy.deepcopy(job_config),
         'state': state,
         'hooks': {
             'ci': {},
             'builder': {}
         },
         'force-deploy': force_deploy
-    }
+    }, _job_meta(owner, repo, ref, commit=commit, job_id=job_id))
