@@ -18,7 +18,7 @@
     }
   },
   "additionalProperties": true,
-  "required": ["deleted", "ref", "repository"],
+  "required": ["ref", "repository"],
   "definitions": {
     "repository": {
       "type": "object",
