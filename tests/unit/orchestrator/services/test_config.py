@@ -364,9 +364,14 @@ def test_evaluate_config_with_deployers():
 def test_validate_schema_for_successful_validation(m_open, m_validate):
 
     # Given: Existing schema
-    m_open().__enter__().read.return_value = '''{
+    m_open.return_value.__enter__().read.return_value = '''{
     "title": "Schema for Job Config",
-    "id": "#generic-hook-v1"
+    "id": "#generic-hook-v1",
+    "properties": {
+        "mock": {
+            "$ref": "${base_url}/link/config#/properties/mock"
+        }
+    }
 }'''
 
     # And: Validator that succeeds validation
@@ -385,8 +390,14 @@ def test_validate_schema_for_successful_validation(m_open, m_validate):
     dict_compare(m_validate.call_args[0][0], config)
     dict_compare(m_validate.call_args[0][1], {
         'title': 'Schema for Job Config',
-        'id': '#generic-hook-v1'
+        'id': '#generic-hook-v1',
+        'properties': {
+            'mock': {
+                '$ref': 'http://localhost:9400/link/config#/properties/mock'
+            }
+        }
     })
+    m_open.assert_called_once_with('schemas/job-config-v1.json')
 
 
 @raises(ConfigValidationError)
@@ -516,7 +527,7 @@ def test_load_config(m_validate_schema, m_get_provider):
         }
     }
     m_get_provider.return_value.load.side_effect = [cfg1, cfg2]
-    m_validate_schema.side_effect = lambda vcfg: vcfg
+    m_validate_schema.side_effect = lambda vcfg, schema_name=None: vcfg
 
     # When: I load the config
     loaded_config = config.load_config('mockpath1', 'mockpath2')
@@ -552,7 +563,7 @@ def test_load_config_when_config_is_invalid(m_validate_schema, m_get_provider):
     """
     # Given: Existing valid config
     m_get_provider.return_value.load.side_effect = ParserError('Mock')
-    m_validate_schema.side_effect = lambda vcfg: vcfg
+    m_validate_schema.side_effect = lambda vcfg, schema_name=None: vcfg
 
     # When: I load the config
     config.load_config('mockpath1', 'mockpath2')

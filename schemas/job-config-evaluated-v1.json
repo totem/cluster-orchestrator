@@ -1,12 +1,12 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "type": "object",
-  "title": "Schema for Job Config",
-  "id": "#job-config-v1",
+  "title": "Schema for Evaluated Job Config",
+  "id": "#job-config-evaluated-v1",
   "type": "object",
   "properties": {
     "enabled": {
-      "$ref": "#/definitions/boolean-or-template-type"
+      "type": "boolean"
     },
     "hooks": {
       "$ref": "#/definitions/hooks"
@@ -17,13 +17,6 @@
           "$ref": "#/definitions/deployer"
         }
       }
-    },
-    "variables": {
-      "$ref": "#/definitions/variables"
-    },
-    "defaults": {
-      "type": "object",
-      "description": "Defaults for YAML substitution"
     },
     "security": {
       "type": "object",
@@ -36,106 +29,15 @@
   "required": ["enabled"],
   "additionalProperties": false,
   "definitions": {
-
-    "boolean-or-template-type": {
-      "oneOf": [
-        {
-          "type": "boolean"
-        },
-        {
-          "$ref": "#/definitions/template-type"
-        }
-      ]
-    },
-    "string-or-template-type": {
-      "oneOf": [
-        {
-          "type": "string"
-        },
-        {
-          "$ref": "#/definitions/template-type"
-        }
-      ]
-    },
-
-    "number-or-template-type": {
-      "oneOf": [
-        {
-          "type": "number"
-        },
-        {
-          "$ref": "#/definitions/template-type"
-        }
-      ]
-    },
-
-    "template-type": {
-      "type": "object",
-      "properties": {
-        "template": {
-          "type": "boolean"
-        },
-        "value": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false,
-      "required": ["value"]
-    },
-
     "encrypted-type": {
       "type": "object",
       "properties": {
-        "template": {
-          "$ref": "#/definitions/template-type/properties/template"
-        },
         "value": {
-          "$ref": "#/definitions/template-type/properties/value"
+          "type": "string"
         },
         "encrypted": {
           "type": "boolean",
           "default": false
-        }
-      },
-      "additionalProperties": false,
-      "required": ["value"]
-    },
-
-    "variables": {
-      "type": "object",
-      "patternProperties": {
-        ".*": {
-          "oneOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "number"
-            },
-            {
-              "$ref": "#/definitions/variable-type"
-            }
-          ]
-        }
-      }
-    },
-
-    "variable-type": {
-      "type": "object",
-      "properties": {
-        "template": {
-          "$ref": "#/definitions/template-type/properties/template"
-        },
-        "value": {
-          "$ref": "#/definitions/template-type/properties/value"
-        },
-        "priority": {
-          "type": "number",
-          "default": 0,
-          "description": "Order in which variable is evaluated."
         }
       },
       "additionalProperties": false,
@@ -175,14 +77,7 @@
 
     "hook-type": {
       "enabled": {
-        "oneOf": [
-          {
-            "type": "boolean"
-          },
-          {
-            "$ref": "#/definitions/template-type"
-          }
-        ]
+        "type": "boolean"
       }
     },
 
@@ -203,14 +98,11 @@
         },
         "url": {
           "description": "URL for the deployer",
-          "$ref": "#/definitions/string-or-template-type"
+          "type": "string"
         },
         "enabled": {
           "description": "Is deployer enabled?",
-          "$ref": "#/definitions/boolean-or-template-type"
-        },
-        "variables": {
-          "$ref": "#/definitions/variables"
+          "type": "boolean"
         }
       },
       "additionalProperties": false
@@ -253,14 +145,8 @@
       "properties": {
         "hostname": {
           "description": "Hostname(s) to be registered with proxy. If multiple hosts need to be specified, separate them using comma or space",
-          "oneOf": [
-            {
-              "$ref": "${base_url}/schemas/job-config-evaluated-v1#/definitions/host/properties/hostname"
-            },
-            {
-              "$ref": "#/definitions/template-type"
-            }
-          ]
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9\\-.\\s,]*[a-zA-Z0-9\\s\\-,]$"
         },
         "locations": {
           "description": "Locations for given proxy host.",
@@ -272,7 +158,7 @@
         },
         "enabled": {
           "description": "Is host enabled?",
-          "$ref": "#/definitions/boolean-or-template-type"
+          "type": "boolean"
         }
       },
       "additionalProperties": false
@@ -284,15 +170,15 @@
       "properties": {
         "path": {
           "description": "Path to be used for proxy",
-          "$ref": "#/definitions/string-or-template-type"
+          "type": "string"
         },
         "port": {
           "description": "Internal container port for proxy.",
-          "$ref": "#/definitions/number-or-template-type"
+          "type": "number"
         },
         "enabled": {
           "description": "Is location enabled?",
-          "$ref": "#/definitions/boolean-or-template-type"
+          "type": "boolean"
         },
         "denied-acls": {
           "type": "array",
@@ -307,7 +193,7 @@
         "force-ssl": {
           "description": "If SSL needs to be forced at the given path",
           "default": false,
-          "$ref": "#/definitions/boolean-or-template-type"
+          "type": "boolean"
         }
       },
       "additionalProperties": false
@@ -385,7 +271,7 @@
         },
         "level": {
           "description": "Min level for the message to activate this notifier",
-          "$ref": "#/definitions/number-or-template-type"
+          "type": "number"
         }
       },
       "additionalProperties": true
@@ -422,7 +308,7 @@
         },
         "level": {
           "description": "Min level for the message to activate this notifier",
-          "$ref": "#/definitions/number-or-template-type"
+          "type": "number"
         }
       },
       "additionalProperties": false
@@ -451,7 +337,7 @@
         },
         "level": {
           "description": "Min level for the message to activate this notifier",
-          "$ref": "#/definitions/number-or-template-type"
+          "type": "number"
         }
       },
       "additionalProperties": true
