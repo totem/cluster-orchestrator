@@ -1,5 +1,8 @@
 from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
+import functools
+import importlib
+
 from parser import ParserError
 from future.builtins import (  # noqa
     bytes, dict, int, list, object, range, str,
@@ -14,11 +17,12 @@ from orchestrator.cluster_config.effective import MergedConfigProvider
 from orchestrator.cluster_config.etcd import EtcdConfigProvider
 from orchestrator.cluster_config.s3 import S3ConfigProvider
 from orchestrator.services import config
-import orchestrator.services.config as service
 from orchestrator.services.errors import ConfigProviderNotFound
 from orchestrator.services.exceptions import ConfigValidationError, \
     ConfigParseError
 from tests.helper import dict_compare
+import orchestrator.services.config as service
+
 
 __author__ = 'sukrit'
 
@@ -373,6 +377,19 @@ def test_validate_schema_for_successful_validation(m_open, m_validate):
         }
     }
 }'''
+    # And: Mock Config Cache
+
+    def _no_cache(size):
+        def inner(fn):
+            @functools.wraps
+            def wrapped(*args):
+                return fn(*args)
+            return wrapped
+        return inner
+    service.lru_cache = _no_cache
+    patched_service = importlib.reload(service)
+    patched_service.open = m_open
+    patched_service.validate = m_validate
 
     # And: Validator that succeeds validation
     m_validate.return_value = None
@@ -383,7 +400,7 @@ def test_validate_schema_for_successful_validation(m_open, m_validate):
     }
 
     # When: I validate against existing schema
-    ret_value = service.validate_schema(config)
+    ret_value = patched_service.validate_schema(config)
 
     # Then: Validation succeeds
     dict_compare(ret_value, config)
