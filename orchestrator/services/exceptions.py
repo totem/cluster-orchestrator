@@ -52,12 +52,12 @@ class ConfigValidationError(Exception):
 
 class ConfigParseError(Exception):
 
-    def __init__(self, parse_error, paths):
+    def __init__(self, error_msg, paths):
         self.paths = paths
         self.message = 'Failed to parse configuration for paths: {0}. ' \
-                       'Reason: {1}'.format(paths, str(parse_error))
+                       'Reason: {1}'.format(paths, error_msg)
         self.code = 'CONFIG_PARSE_ERROR'
-        super(ConfigParseError, self).__init__(parse_error, paths)
+        super(ConfigParseError, self).__init__(error_msg, paths)
 
     def to_dict(self):
         return {

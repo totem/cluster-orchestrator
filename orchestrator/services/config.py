@@ -10,7 +10,8 @@ import types
 from jinja2 import TemplateSyntaxError
 from jinja2.environment import get_spontaneous_environment
 from jsonschema import validate, ValidationError
-from repoze.lru import lru_cache
+from jsonschema.exceptions import SchemaError
+import repoze.lru
 from conf.appconfig import CONFIG_PROVIDERS, CONFIG_PROVIDER_LIST, \
     BOOLEAN_TRUE_VALUES, DEFAULT_DEPLOYER_CONFIG, API_PORT, CONFIG_NAMES
 from orchestrator.cluster_config.default import DefaultConfigProvider
@@ -91,8 +92,8 @@ def _get_default_provider():
     return DefaultConfigProvider()
 
 
-@lru_cache(1)
-def _load_job_schema():
+@repoze.lru.lru_cache(1)
+def _load_job_schema(schema_name=None):
     """
     Helper function that loads given schema
 
@@ -100,9 +101,10 @@ def _load_job_schema():
     :return:
     """
     base_url = 'http://localhost:%d' % API_PORT
-    fname = 'schemas/job-config-v1.json'
-    with open(fname) as file:
-        data = file.read().replace('${base_url}', base_url)
+    schema_name = schema_name or 'job-config-v1'
+    fname = 'schemas/{0}.json'.format(schema_name)
+    with open(fname) as schema_file:
+        data = schema_file.read().replace('${base_url}', base_url)
         return json.loads(data)
 
 
@@ -125,7 +127,7 @@ def get_provider(provider_type):
         return globals()[locator]()
 
 
-def validate_schema(config):
+def validate_schema(config, schema_name=None):
     """
     Validates schema for given configuration.
 
@@ -134,12 +136,13 @@ def validate_schema(config):
     :return: config if validation passes
     :rtype: dict
     """
-    schema = _load_job_schema()
+    schema_name = schema_name or 'job-config-v1'
+    schema = _load_job_schema(schema_name)
     try:
         validate(config, schema)
     except ValidationError as ex:
-        message = 'Failed to validate config against schema job-config-v1. ' \
-                  'Reason: %s' % ex.message
+        message = 'Failed to validate config against schema {0}. ' \
+                  'Reason: {1}'.format(schema_name, ex.message)
         raise ConfigValidationError(message, '/'.join(ex.schema_path),
                                     ex.schema)
     return config
@@ -180,12 +183,15 @@ def load_config(*paths, **kwargs):
     try:
         configs = [provider.load(name, *paths) for name in config_names]
         unified_config = dict_merge(*configs)
-        return evaluate_config(
-            validate_schema(_json_compatible_config(unified_config)),
-            default_variables)
+        return validate_schema(
+            evaluate_config(
+                validate_schema(
+                    _json_compatible_config(unified_config)
+                ), default_variables
+            ), schema_name='job-config-evaluated-v1')
 
-    except (MarkedYAMLError, ParserError) as yaml_error:
-        raise ConfigParseError(yaml_error, paths)
+    except (MarkedYAMLError, ParserError, SchemaError) as error:
+        raise ConfigParseError(str(error), paths)
 
 
 def write_config(name, config, *paths, **kwargs):
