@@ -11,7 +11,7 @@ from jinja2 import TemplateSyntaxError
 from jinja2.environment import get_spontaneous_environment
 from jsonschema import validate, ValidationError
 from jsonschema.exceptions import SchemaError
-from repoze.lru import lru_cache
+import repoze.lru
 from conf.appconfig import CONFIG_PROVIDERS, CONFIG_PROVIDER_LIST, \
     BOOLEAN_TRUE_VALUES, DEFAULT_DEPLOYER_CONFIG, API_PORT, CONFIG_NAMES
 from orchestrator.cluster_config.default import DefaultConfigProvider
@@ -92,7 +92,7 @@ def _get_default_provider():
     return DefaultConfigProvider()
 
 
-@lru_cache(1)
+@repoze.lru.lru_cache(1)
 def _load_job_schema(schema_name=None):
     """
     Helper function that loads given schema

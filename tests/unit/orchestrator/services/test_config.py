@@ -1,7 +1,5 @@
 from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
-import functools
-import importlib
 
 from parser import ParserError
 from future.builtins import (  # noqa
@@ -21,6 +19,7 @@ from orchestrator.services.errors import ConfigProviderNotFound
 from orchestrator.services.exceptions import ConfigValidationError, \
     ConfigParseError
 from tests.helper import dict_compare
+
 import orchestrator.services.config as service
 
 
@@ -365,7 +364,9 @@ def test_evaluate_config_with_deployers():
 
 @patch('orchestrator.services.config.validate')
 @patch('orchestrator.services.config.open')
-def test_validate_schema_for_successful_validation(m_open, m_validate):
+@patch('repoze.lru.lru_cache')
+def test_validate_schema_for_successful_validation(m_lru_cache, m_open,
+                                                   m_validate):
 
     # Given: Existing schema
     m_open.return_value.__enter__().read.return_value = '''{
@@ -377,20 +378,6 @@ def test_validate_schema_for_successful_validation(m_open, m_validate):
         }
     }
 }'''
-    # And: Mock Config Cache
-
-    def _no_cache(size):
-        def inner(fn):
-            @functools.wraps
-            def wrapped(*args):
-                return fn(*args)
-            return wrapped
-        return inner
-    service.lru_cache = _no_cache
-    patched_service = importlib.reload(service)
-    patched_service.open = m_open
-    patched_service.validate = m_validate
-
     # And: Validator that succeeds validation
     m_validate.return_value = None
 
@@ -400,21 +387,11 @@ def test_validate_schema_for_successful_validation(m_open, m_validate):
     }
 
     # When: I validate against existing schema
-    ret_value = patched_service.validate_schema(config)
+    ret_value = service.validate_schema(config)
 
     # Then: Validation succeeds
     dict_compare(ret_value, config)
     dict_compare(m_validate.call_args[0][0], config)
-    dict_compare(m_validate.call_args[0][1], {
-        'title': 'Schema for Job Config',
-        'id': '#generic-hook-v1',
-        'properties': {
-            'mock': {
-                '$ref': 'http://localhost:9400/link/config#/properties/mock'
-            }
-        }
-    })
-    m_open.assert_called_once_with('schemas/job-config-v1.json')
 
 
 @raises(ConfigValidationError)
