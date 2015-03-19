@@ -72,7 +72,7 @@ def _check_celery():
     return 'Celery ping:%s' % output
 
 
-def get_health(check_celery=False):
+def get_health(check_celery=True):
     """
     Gets the health of the all the external services.
 
