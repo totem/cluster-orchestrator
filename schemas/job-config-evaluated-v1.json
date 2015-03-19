@@ -94,7 +94,7 @@
           "type": "object"
         },
         "deployment": {
-          "type": "object"
+          "type": "#/definitions/deployment"
         },
         "url": {
           "description": "URL for the deployer",
@@ -103,6 +103,62 @@
         "enabled": {
           "description": "Is deployer enabled?",
           "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "deployment": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "version": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "type": {
+          "enum": [ "blue-green", "red-green", "a/b", "custom"]
+        },
+        "nodes": {
+          "type": "number",
+          "maximum": 12,
+          "minimum": 1
+        },
+        "check": {
+          "$ref": "#/definitions/deployment-check"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "deployment-check": {
+      "properties": {
+        "min-nodes": {
+          "type": "number",
+          "description": "Minimum number of nodes for deployment. (Used for deployment check)",
+          "minimum": 1
+        },
+        "port": {
+          "type": "number",
+          "description": "Application internal Port to be used for discover check",
+          "minimum": 1
+        },
+        "path": {
+          "type": "string",
+          "description": "Optional path to be used for performing deployment check. If null, empty or un-specified, only discover check is performed.",
+          "default": ""
+        },
+        "timeout": {
+          "type": "string",
+          "description": "Deployment check timeout represented in terms of seconds or minutes. e.g: 20s for timeout of 20 seconds",
+          "default": "5s"
+        },
+        "attempts": {
+          "type": "number",
+          "description": "Maximum number of attempts for deployment check before marking deployment as failed.",
+          "default": "10"
         }
       },
       "additionalProperties": false

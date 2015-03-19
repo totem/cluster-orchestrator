@@ -375,8 +375,8 @@ def transform_string_values(config):
                             isinstance(each_v, str):
                         use_config[each_k] = each_v.lower() in \
                             BOOLEAN_TRUE_VALUES
-                    elif each_k in ('port', 'nodes', 'min-nodes',) and \
-                            isinstance(each_v, str):
+                    elif each_k in ('port', 'nodes', 'min-nodes', 'attempts')\
+                            and isinstance(each_v, str):
                         use_config[each_k] = int(each_v)
                     elif hasattr(each_v, 'items'):
                         convert_keys(each_v, '%s%s/' %
