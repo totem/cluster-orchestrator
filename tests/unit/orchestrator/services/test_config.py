@@ -442,6 +442,7 @@ def test_transform_string_values():
                 'port': '123',
                 'nodes': '13',
                 'min-nodes': '14',
+                'attempts': '10',
                 'enabled': False
             },
             'testval'
@@ -469,6 +470,7 @@ def test_transform_string_values():
                 'port': 123,
                 'nodes': 13,
                 'min-nodes': 14,
+                'attempts': 10,
                 'enabled': False
             },
             'testval'

@@ -31,7 +31,7 @@ class HealthApi(MethodView):
 
         :return: Flask Json Response containing version.
         """
-        check_celery = request.args.get('celery', 'false').lower() in \
+        check_celery = request.args.get('celery', 'true').lower() in \
             BOOLEAN_TRUE_VALUES
         health = get_health(check_celery)
         failed_checks = [

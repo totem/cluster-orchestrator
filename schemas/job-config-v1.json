@@ -199,7 +199,8 @@
           "type": "object"
         },
         "deployment": {
-          "type": "object"
+          "description": "Deployment configuration.",
+          "$ref": "#/definitions/deployment"
         },
         "url": {
           "description": "URL for the deployer",
@@ -211,6 +212,53 @@
         },
         "variables": {
           "$ref": "#/definitions/variables"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "deployment": {
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/string-or-template-type"
+        },
+        "version": {
+          "$ref": "#/definitions/string-or-template-type"
+        },
+        "type": {
+          "$ref": "#/definitions/string-or-template-type"
+        },
+        "nodes": {
+          "$ref": "#/definitions/number-or-template-type"
+        },
+        "check": {
+          "$ref": "#/definitions/deployment-check"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "deployment-check": {
+      "properties": {
+        "min-nodes": {
+          "$ref": "#/definitions/number-or-template-type",
+          "description": "Minimum number of nodes for deployment. (Used for deployment check)"
+        },
+        "port": {
+          "$ref": "#/definitions/number-or-template-type",
+          "description": "Application internal Port to be used for discover check"
+        },
+        "path": {
+          "$ref": "#/definitions/string-or-template-type",
+          "description": "Optional path to be used for performing deployment check. If null, empty or un-specified, only discover check is performed."
+        },
+        "timeout": {
+          "$ref": "#/definitions/string-or-template-type",
+          "description": "Deployment check timeout represented in terms of seconds or minutes. e.g: 20s for timeout of 20 seconds"
+        },
+        "attempts": {
+          "$ref": "#/definitions/number-or-template-type",
+          "description": "Maximum number of attempts for deployment check before marking deployment as failed."
         }
       },
       "additionalProperties": false
