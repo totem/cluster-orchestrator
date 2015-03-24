@@ -94,7 +94,8 @@
           "type": "object"
         },
         "deployment": {
-          "type": "#/definitions/deployment"
+          "description": "Deployment configuration.",
+          "$ref": "#/definitions/deployment"
         },
         "url": {
           "description": "URL for the deployer",
