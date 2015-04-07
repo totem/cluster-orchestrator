@@ -81,7 +81,7 @@ In order to run fully integrated server using docker using latest docker , run
 command: 
 
 ```
-sudo docker run -it --rm -h cluster-orchestrator-${USER} --name cluster-orchestrator -P totem/cluster-orchestrator
+sudo docker run -it --rm -h cluster-orchestrator-${USER} --name cluster-orchestrator -v /dev/log:/dev/log -P totem/cluster-orchestrator
 ```
 
 ### Run Configuration (Environment Variables)  
@@ -101,6 +101,7 @@ sudo docker run -it --rm -h cluster-orchestrator-${USER} --name cluster-orchestr
 | GITHUB_NOTIFICATION_ENABLED | Set it to true to enable github commit notifications. | false | false |
 | CLUSTER_NAME | Name of the cluster where orchestrator is deployed | local | local |
 | TOTEM_ENV | Name of totem environment (e.g. production, local, development) | local | local |
+| LOG_IDENTIFIER | Program name/tag used for syslog | N/A | yoda-proxy |
  
 
 ## Coding Standards and Guidelines
