@@ -8,8 +8,6 @@ export ETCD_YODA_BASE='${ETCD_YODA_BASE:-/yoda}'
 export CELERY_GEVENT_EXECUTORS='${CELERY_GEVENT_EXECUTORS:-1}'
 export CELERY_GEVENT_CONCURRENCY='${CELERY_GEVENT_CONCURRENCY:-50}'
 export API_EXECUTORS='${API_EXECUTORS:-2}'
-export SSH_HOST_KEY='${SSH_HOST_KEY:-/root/.ssh/id_rsa}'
-export SSH_PASSPHRASE='${SSH_PASSPHRASE}'
 export GITHUB_TOKEN='${GITHUB_TOKEN}'
 export ELASTICSEARCH_HOST='${ELASTICSEARCH_HOST:-172.17.42.1}'
 export ELASTICSEARCH_PORT='${ELASTICSEARCH_PORT:-9200}'
@@ -32,6 +30,7 @@ export HIPCHAT_ENABLED='${HIPCHAT_ENABLED:-false}'
 export HIPCHAT_TOKEN='${HIPCHAT_TOKEN}'
 export HIPCHAT_ROOM='${HIPCHAT_ROOM:-not-set}'
 export GITHUB_NOTIFICATION_ENABLED='${GITHUB_NOTIFICATION_ENABLED:-false}'
+export LOG_IDENTIFIER='${LOG_IDENTIFIER:-cluster-orchestrator}'
 END
 
 /bin/bash -le -c " envsubst  < /etc/supervisor/conf.d/supervisord.conf.template  > /etc/supervisor/conf.d/supervisord.conf; \

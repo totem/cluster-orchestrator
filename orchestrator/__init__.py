@@ -1,8 +1,9 @@
-import logging
-from conf.appconfig import LOG_FORMAT, LOG_DATE, LOG_ROOT_LEVEL
+from __future__ import absolute_import
+from celery.signals import setup_logging
+import orchestrator.logger
 
-__version__ = '0.1.10'
+__version__ = '0.2.1'
 __author__ = 'sukrit'
 
-logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATE, level=LOG_ROOT_LEVEL)
-logging.getLogger('boto').setLevel(logging.INFO)
+orchestrator.logger.init_logging('root')
+setup_logging.connect(orchestrator.logger.init_celery_logging)
