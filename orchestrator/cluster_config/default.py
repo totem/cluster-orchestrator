@@ -18,4 +18,7 @@ class DefaultConfigProvider(AbstractConfigProvider):
         :param paths: Paths is ignored by this provider.
         :return: Parsed Dictionary based config
         """
-        return CONFIG_PROVIDERS['default']['config']
+        if not len(paths):
+            return CONFIG_PROVIDERS['default']['config']
+        else:
+            return {}
