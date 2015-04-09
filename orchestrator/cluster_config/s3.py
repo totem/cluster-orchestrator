@@ -13,8 +13,7 @@ from orchestrator.cluster_config.base import AbstractConfigProvider
 
 class S3ConfigProvider(AbstractConfigProvider):
 
-    def __init__(self, bucket, config_base='totem/config',
-                 config_name='.totem.yml'):
+    def __init__(self, bucket, config_base='totem/config'):
         self.bucket = bucket
         self.config_base = config_base
 

@@ -35,6 +35,17 @@
       }
     },
     {
+      "rel": "github-delete-hook-internal",
+      "href": "/hooks/github",
+      "mediaType": "application/json",
+      "method": "POST",
+      "title":  "Internal github post hook for handling deletes.",
+      "encType": "application/json",
+      "schema": {
+        "$ref": "${base_url}/schemas/github-hook-v1"
+      }
+    },
+    {
       "rel": "external-generic-hook",
       "href": "/external/hooks/generic",
       "mediaType": "application/vnd.orch.task.v1+json",
@@ -62,6 +73,17 @@
       "mediaType": "application/vnd.orch.task.v1+json",
       "method": "POST",
       "title":  "External callback hook for travis",
+      "encType": "application/x-www-form-urlencoded",
+      "schema": {
+        "$ref": "${base_url}/schemas/travis-hook-v1"
+      }
+    },
+    {
+      "rel": "travis-hook-internal",
+      "href": "/hooks/travis",
+      "mediaType": "application/vnd.orch.task.v1+json",
+      "method": "POST",
+      "title":  "Internal callback hook for travis",
       "encType": "application/x-www-form-urlencoded",
       "schema": {
         "$ref": "${base_url}/schemas/travis-hook-v1"

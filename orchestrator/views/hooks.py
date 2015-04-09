@@ -227,9 +227,17 @@ def register(app, **kwargs):
     app.add_url_rule('/hooks/generic',
                      view_func=GenericInternalPostHookApi.as_view(
                          'generic-internal-hook'), methods=['POST'])
+
     app.add_url_rule('/external/hooks/github',
                      view_func=GithubHookApi.as_view('github'),
                      methods=['POST'])
+    app.add_url_rule('/hooks/github',
+                     view_func=GithubHookApi.as_view('github-internal'),
+                     methods=['POST'])
+
     app.add_url_rule('/external/hooks/travis',
                      view_func=TravisHookApi.as_view('travis'),
+                     methods=['POST'])
+    app.add_url_rule('/hooks/travis',
+                     view_func=TravisHookApi.as_view('travis-internal'),
                      methods=['POST'])
