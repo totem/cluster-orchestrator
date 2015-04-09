@@ -77,10 +77,10 @@ class GithubConfigProvider(AbstractConfigProvider):
         :return: Totem config as dictionary
         :rtype: dict
         """
-        if len(paths) < 3:
+        if len(paths) < 4:
             return {}
         else:
-            owner, repo, ref = paths[:3]
+            owner, repo, ref = paths[1:4]
         raw = self._github_fetch(owner, repo, ref, name)
         if raw:
             return yaml.load(raw)

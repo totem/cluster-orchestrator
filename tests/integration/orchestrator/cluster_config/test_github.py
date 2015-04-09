@@ -30,7 +30,7 @@ class TestGithubConfigProvider:
 
         # When: I load config using provider
         ret_value = self.provider.load(
-            'totem.yml', 'totem', 'cluster-orchestrator', 'develop')
+            'totem.yml', 'local', 'totem', 'cluster-orchestrator', 'develop')
 
         # Then: Config gets loaded
         dict_compare(ret_value, MOCK_CONFIG)

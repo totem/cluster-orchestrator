@@ -62,7 +62,7 @@ class TestGuthubConfigProvider:
 
         # When: I load config using provider
         ret_value = self.provider.load(
-            'totem.yml', 'totem', 'cluster-orchestrator', 'develop')
+            'totem.yml', 'local', 'totem', 'cluster-orchestrator', 'develop')
 
         # Then: Config gets loaded
         dict_compare(ret_value, {'variables': {}})
@@ -95,7 +95,8 @@ class TestGuthubConfigProvider:
         # When: I load config using provider
         with nose.tools.assert_raises(GithubFetchException) as cm:
             self.provider.load(
-                'totem.yml', 'totem', 'cluster-orchestrator', 'develop')
+                'totem.yml', 'local', 'totem', 'cluster-orchestrator',
+                'develop')
 
         # Then: Expected exception is raised
         dict_compare(cm.exception.response, {
