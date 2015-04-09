@@ -17,6 +17,7 @@ from conf.appconfig import CONFIG_PROVIDERS, CONFIG_PROVIDER_LIST, \
 from orchestrator.cluster_config.default import DefaultConfigProvider
 from orchestrator.cluster_config.effective import MergedConfigProvider
 from orchestrator.cluster_config.etcd import EtcdConfigProvider
+from orchestrator.cluster_config.github import GithubConfigProvider
 from orchestrator.cluster_config.s3 import S3ConfigProvider
 from orchestrator.jinja import conditions
 from orchestrator.services.errors import ConfigProviderNotFound
@@ -85,6 +86,19 @@ def _get_s3_provider():
     return S3ConfigProvider(
         bucket=CONFIG_PROVIDERS['s3']['bucket'],
         config_base=CONFIG_PROVIDERS['s3']['base']
+    )
+
+
+def _get_github_provider():
+    """
+    Gets Github Config Provider
+
+    :return: Instance of GithubConfigProvider
+    :rtype: GithubConfigProvider
+    """
+    return GithubConfigProvider(
+        token=CONFIG_PROVIDERS['github']['token'],
+        config_base=CONFIG_PROVIDERS['github']['config_base']
     )
 
 

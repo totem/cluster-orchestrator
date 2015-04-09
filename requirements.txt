@@ -10,6 +10,7 @@ boto==2.34.0
 Celery==3.1.16
 flower==0.7.2
 Jinja2==2.7.3
+requests
 https://github.com/totem/flask-hyperschema/archive/master.tar.gz
 https://github.com/totem/totem-encrypt/archive/master.tar.gz
 https://github.com/dlitz/pycrypto/archive/v2.7a1.tar.gz

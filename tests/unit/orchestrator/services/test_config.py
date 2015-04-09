@@ -13,6 +13,7 @@ from nose.tools import eq_, raises
 from conf.appconfig import DEFAULT_DEPLOYER_URL
 from orchestrator.cluster_config.effective import MergedConfigProvider
 from orchestrator.cluster_config.etcd import EtcdConfigProvider
+from orchestrator.cluster_config.github import GithubConfigProvider
 from orchestrator.cluster_config.s3 import S3ConfigProvider
 from orchestrator.services import config
 from orchestrator.services.errors import ConfigProviderNotFound
@@ -106,6 +107,30 @@ def test_get_s3_provider(mock_provider_list):
     # Then: Etcd Config Provider is returned
     eq_(isinstance(provider, S3ConfigProvider), True)
     eq_(provider.bucket, 'mockbucket')
+    eq_(provider.config_base, '/mock')
+
+
+@patch.dict('orchestrator.services.config.CONFIG_PROVIDERS', {
+    'github': {
+        'token': 'mocktoken',
+        'config_base': '/mock'
+    }
+})
+@patch('orchestrator.services.config.CONFIG_PROVIDER_LIST')
+def test_get_github_provider(mock_provider_list):
+    """
+    Should return github provider
+    """
+    # Given: Existing config provider list"
+    mock_provider_list.__contains__.return_value = True
+    mock_provider_list.__iter__.return_value = ['github']
+
+    # When: I fetch provider that does not exists
+    provider = service.get_provider('github')
+
+    # Then: Etcd Config Provider is returned
+    eq_(isinstance(provider, GithubConfigProvider), True)
+    eq_(provider.auth, ('mocktoken', 'x-oauth-basic'))
     eq_(provider.config_base, '/mock')
 
 

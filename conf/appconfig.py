@@ -111,7 +111,8 @@ CONFIG_PROVIDERS = {
         }
     },
     'github': {
-        'token': os.getenv('GITHUB_TOKEN', None)
+        'token': os.getenv('GITHUB_TOKEN', None),
+        'config_base': os.getenv('GITHUB_CONFIG_BASE', '/'),
     },
     'default': {
         'config': {
