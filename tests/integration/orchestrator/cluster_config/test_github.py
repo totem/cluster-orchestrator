@@ -5,6 +5,7 @@ from future.builtins import (  # noqa
     ascii, chr, hex, input, next, oct, open,
     pow, round, super,
     filter, map, zip)
+from nose.plugins.attrib import attr
 from orchestrator.cluster_config.github import GithubConfigProvider
 from tests.helper import dict_compare
 from tests.integration.orchestrator.cluster_config import MOCK_CONFIG
@@ -12,6 +13,7 @@ from tests.integration.orchestrator.cluster_config import MOCK_CONFIG
 __author__ = 'sukrit'
 
 
+@attr(github='true')
 class TestGithubConfigProvider:
     """
     Integration tests for GithubConfigProvider

@@ -16,7 +16,7 @@ install:
 # commands to run tests and style check
 script:
   - flake8 .
-  - nosetests -a '!s3' --with-coverage --cover-erase --cover-branches --cover-package=orchestrator
+  - nosetests -A '!s3 and !github' --with-coverage --cover-erase --cover-branches --cover-package=orchestrator
 
 after_success:
   - coveralls

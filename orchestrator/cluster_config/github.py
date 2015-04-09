@@ -108,8 +108,8 @@ class GithubFetchException(Exception):
             str(resp)
         self.message = 'Failed to fetch config from github using url:{0}. ' \
                        'Status:{1}. Reason: {2}'.format(
-                           resp.get('url'),
-                           resp.get('status'), reason)
+                           self.response.get('url'),
+                           self.response.get('status'), reason)
         super(GithubFetchException, self).__init__(github_response)
 
     def to_dict(self):

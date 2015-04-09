@@ -129,11 +129,10 @@ class TestGithubFetchException():
         # When: I initialize with empty response
         exc = GithubFetchException(github_response={
             'response': {
-                'response': 'mock cause',
                 'message': 'mock error',
-                'url': 'mock url',
-                'status': 500
-            }
+            },
+            'url': 'mock url',
+            'status': 500
         })
 
         # Then: Expected response is returned
@@ -162,11 +161,10 @@ class TestGithubFetchException():
         # Given: Existing instance of GithubFetchException
         exc = GithubFetchException(github_response={
             'response': {
-                'response': 'mock cause',
                 'message': 'mock error',
-                'url': 'mock url',
-                'status': 500
-            }
+            },
+            'url': 'mock url',
+            'status': 500
         })
 
         # When: I return string representation
