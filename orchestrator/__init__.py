@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from celery.signals import setup_logging
 import orchestrator.logger
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 __author__ = 'sukrit'
 
 orchestrator.logger.init_logging('root')
