@@ -6,10 +6,11 @@
   "properties":{
     "deleted": {
       "description": "Boolean value indicated if this is payload for delete hook",
-      "type": "boolean"
+      "type": "boolean",
+      "default": false
     },
     "ref":{
-      "description": "Boolean value indicated if this is payload for delete hook",
+      "description": "Github branch/tag",
       "type": "string",
       "maxLength": 255
     },
