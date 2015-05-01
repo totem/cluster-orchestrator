@@ -10,6 +10,7 @@ from conf.appconfig import TASK_SETTINGS, JOB_SETTINGS, JOB_STATE_NEW, \
     DEFAULT_DEPLOYER_URL, CONFIG_PROVIDERS, LEVEL_FAILED, LEVEL_STARTED, \
     LEVEL_SUCCESS, TOTEM_ENV
 from conf.celeryconfig import CLUSTER_NAME
+from orchestrator.services import job
 from orchestrator.celery import app
 from orchestrator.etcd import using_etcd, safe_delete, get_or_insert
 from orchestrator.services import config
@@ -22,13 +23,14 @@ from orchestrator.tasks.search import index_job, create_search_parameters, \
     add_search_event, EVENT_DEPLOY_REQUESTED, EVENT_JOB_COMPLETE, \
     EVENT_NEW_JOB, update_job_state, EVENT_ACQUIRED_LOCK, EVENT_JOB_FAILED, \
     EVENT_JOB_NOOP, EVENT_CALLBACK_HOOK, EVENT_UNDEPLOY_HOOK, \
-    EVENT_PENDING_HOOK
+    EVENT_PENDING_HOOK, EVENT_SETUP_APPLICATION, \
+    EVENT_SETUP_APPLICATION_COMPLETE, EVENT_UNDEPLOY_REQUESTED
 from orchestrator.tasks.common import async_wait
 from orchestrator.util import dict_merge
 
 __author__ = 'sukrit'
 
-__all__ = ['handle_callback_hook', 'undeploy']
+__all__ = ['handle_callback_hook', 'undeploy', 'setup_application']
 
 
 def _template_variables(owner, repo, ref, commit=None):
@@ -180,7 +182,7 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
                          hook_status='success', hook_result=None, commit=None,
                          force_deploy=False):
     """
-    Publicly exposed task to handle the callback webhook.
+    Task that handles the processing of a callback hook from CI, SCM or builder
 
     :param owner: Git repository owner
     :type owner: str
@@ -296,7 +298,7 @@ def undeploy(owner, repo, ref):
     """
     Undeploys the application using git meta data.
 
-    :return: None
+    :return: Task Result for undeploy
     """
     search_params = _job_meta(owner, repo, ref)
     notify_ctx = _notify_ctx(owner, repo, ref, commit=None,
@@ -307,6 +309,13 @@ def undeploy(owner, repo, ref):
     error_tasks = [
         _handle_job_error.s(job_config, notify_ctx, search_params)]
     return (
+        notify.si(
+            {'message': 'Undeploy Application for %s-%s-%s'.format(
+                owner, repo, ref)},
+            ctx=notify_ctx, level=LEVEL_STARTED,
+            notifications=job_config.get('notifications'),
+            security_profile=job_config['security']['profile']
+        ) |
         add_search_event.si(EVENT_UNDEPLOY_HOOK, search_params=search_params,
                             error_tasks=error_tasks) |
         _using_lock.si(
@@ -315,20 +324,92 @@ def undeploy(owner, repo, ref):
                 add_search_event.si(
                     EVENT_ACQUIRED_LOCK, details={'name': lock_name},
                     search_params=search_params) |
+                _update_freeze_status.si(owner, repo, ref, True) |
                 _undeploy_all.si(job_config, owner, repo, ref) |
                 async_wait.s(
                     default_retry_delay=TASK_SETTINGS['JOB_WAIT_RETRY_DELAY'],
                     max_retries=TASK_SETTINGS['JOB_WAIT_RETRIES'],
                     error_tasks=error_tasks
-                )
+                ) |
+                notify.si(
+                    {'message': 'Undeploy requested for for %s-%s-%s'.format(
+                        owner, repo, ref)},
+                    ctx=notify_ctx, level=LEVEL_SUCCESS,
+                    notifications=job_config.get('notifications'),
+                    security_profile=job_config['security']['profile']
+                ) |
+                add_search_event.si(
+                    EVENT_UNDEPLOY_REQUESTED, details={'name': lock_name},
+                    search_params=search_params)
             )
         )
     ).apply_async()
 
 
+def setup_application(owner, repo, ref):
+    """
+    Sets up a new application identified by SCM Repository owner, name and ref
+    Setup process essentially unfreezes the application for deploys.
+
+    :param owner: SCM Repository Owner
+    :param repo: SCM Repository name
+    :param ref: SCM Repository ref (tag/branch)
+    :return: Task Result for unfreeze
+    """
+    search_params = _job_meta(owner, repo, ref)
+    notify_ctx = _notify_ctx(owner, repo, ref, commit=None,
+                             operation='setup_application')
+    job_config = _load_job_config(owner, repo, ref, notify_ctx, search_params,
+                                  commit=None)
+    lock_name = '%s-%s-%s-%s' % (TOTEM_ENV, owner, repo, ref)
+    error_tasks = [
+        _handle_job_error.s(job_config, notify_ctx, search_params)]
+    return (
+        notify.si(
+            {'message': 'Setup Application for %s-%s-%s'.format(
+                owner, repo, ref)},
+            ctx=notify_ctx, level=LEVEL_STARTED,
+            notifications=job_config.get('notifications'),
+            security_profile=job_config['security']['profile']
+        ) |
+        add_search_event.si(EVENT_SETUP_APPLICATION,
+                            search_params=search_params,
+                            error_tasks=error_tasks) |
+        _using_lock.si(
+            name=lock_name,
+            do_task=(
+                add_search_event.si(
+                    EVENT_ACQUIRED_LOCK, details={'name': lock_name},
+                    search_params=search_params) |
+                _update_freeze_status.si(owner, repo, ref, True) |
+                async_wait.s(
+                    default_retry_delay=TASK_SETTINGS['JOB_WAIT_RETRY_DELAY'],
+                    max_retries=TASK_SETTINGS['JOB_WAIT_RETRIES'],
+                    error_tasks=error_tasks
+                ) |
+                notify.si(
+                    {'message': 'Finish Setup Application for %s-%s-%s'.format(
+                        owner, repo, ref)},
+                    ctx=notify_ctx, level=LEVEL_SUCCESS,
+                    notifications=job_config.get('notifications'),
+                    security_profile=job_config['security']['profile']
+                ) |
+                add_search_event.si(EVENT_SETUP_APPLICATION_COMPLETE,
+                                    search_params=search_params,
+                                    error_tasks=error_tasks)
+            )
+        )
+    ).apply_async()
+
+
+@app.task
+def _update_freeze_status(owner, repo, ref, freeze=True):
+    job.update_freeze_status(owner, repo, ref, freeze)
+
+
 def _job_base_location(owner, repo, ref, etcd_base, commit=None):
     commit = commit or 'not_set'
-    return '%s/orchestrator/jobs/%s/%s/%s/%s/%s' % \
+    return '%s/orchestrator/jobs/%s/%s/%s/%s/commits/%s' % \
            (etcd_base, TOTEM_ENV, owner, repo, ref, commit)
 
 
