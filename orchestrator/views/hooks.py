@@ -105,6 +105,13 @@ class GenericInternalPostHookApi(MethodView):
         else:
             return created_task(result)
 
+    def delete(self):
+        owner = request.args.get('owner', '')
+        repo = request.args.get('repo', '')
+        ref = request.args.get('ref', '')
+        return created_task(
+            undeploy.si(owner, repo, ref).delay())
+
 
 class GenericPostHookApi(GenericInternalPostHookApi):
     """
@@ -226,7 +233,7 @@ def register(app, **kwargs):
                      methods=['POST'])
     app.add_url_rule('/hooks/generic',
                      view_func=GenericInternalPostHookApi.as_view(
-                         'generic-internal-hook'), methods=['POST'])
+                         'generic-internal-hook'), methods=['POST', 'DELETE'])
 
     app.add_url_rule('/external/hooks/github',
                      view_func=GithubHookApi.as_view('github'),

@@ -8,9 +8,9 @@ from requests.exceptions import ConnectionError
 from conf.appconfig import TASK_SETTINGS, JOB_SETTINGS, JOB_STATE_NEW, \
     JOB_STATE_SCHEDULED, JOB_STATE_COMPLETE, JOB_STATE_NOOP, \
     DEFAULT_DEPLOYER_URL, CONFIG_PROVIDERS, LEVEL_FAILED, LEVEL_STARTED, \
-    LEVEL_SUCCESS, TOTEM_ENV
+    LEVEL_SUCCESS, TOTEM_ENV, LEVEL_PENDING
 from conf.celeryconfig import CLUSTER_NAME
-from orchestrator.services import job
+from orchestrator.services import job as job_service
 from orchestrator.celery import app
 from orchestrator.etcd import using_etcd, safe_delete, get_or_insert
 from orchestrator.services import config
@@ -23,14 +23,14 @@ from orchestrator.tasks.search import index_job, create_search_parameters, \
     add_search_event, EVENT_DEPLOY_REQUESTED, EVENT_JOB_COMPLETE, \
     EVENT_NEW_JOB, update_job_state, EVENT_ACQUIRED_LOCK, EVENT_JOB_FAILED, \
     EVENT_JOB_NOOP, EVENT_CALLBACK_HOOK, EVENT_UNDEPLOY_HOOK, \
-    EVENT_PENDING_HOOK, EVENT_SETUP_APPLICATION, \
+    EVENT_PENDING_HOOK, \
     EVENT_SETUP_APPLICATION_COMPLETE, EVENT_UNDEPLOY_REQUESTED
 from orchestrator.tasks.common import async_wait
 from orchestrator.util import dict_merge
 
 __author__ = 'sukrit'
 
-__all__ = ['handle_callback_hook', 'undeploy', 'setup_application']
+__all__ = ['handle_callback_hook', 'undeploy']
 
 
 def _template_variables(owner, repo, ref, commit=None):
@@ -346,63 +346,9 @@ def undeploy(owner, repo, ref):
     ).apply_async()
 
 
-def setup_application(owner, repo, ref):
-    """
-    Sets up a new application identified by SCM Repository owner, name and ref
-    Setup process essentially unfreezes the application for deploys.
-
-    :param owner: SCM Repository Owner
-    :param repo: SCM Repository name
-    :param ref: SCM Repository ref (tag/branch)
-    :return: Task Result for unfreeze
-    """
-    search_params = _job_meta(owner, repo, ref)
-    notify_ctx = _notify_ctx(owner, repo, ref, commit=None,
-                             operation='setup_application')
-    job_config = _load_job_config(owner, repo, ref, notify_ctx, search_params,
-                                  commit=None)
-    lock_name = '%s-%s-%s-%s' % (TOTEM_ENV, owner, repo, ref)
-    error_tasks = [
-        _handle_job_error.s(job_config, notify_ctx, search_params)]
-    notify_params = {
-        'ctx': notify_ctx,
-        'notifications': job_config.get('notifications'),
-        'security_profile': job_config['security']['profile']
-    }
-    return (
-        notify.si(
-            {'message': 'Setup Application for %s-%s-%s'.format(
-                owner, repo, ref)},
-            level=LEVEL_STARTED,
-            **notify_params
-        ) |
-        add_search_event.si(EVENT_SETUP_APPLICATION,
-                            search_params=search_params,
-                            error_tasks=error_tasks) |
-        _using_lock.si(
-            name=lock_name,
-            do_task=(
-                add_search_event.si(
-                    EVENT_ACQUIRED_LOCK, details={'name': lock_name},
-                    search_params=search_params) |
-                _update_freeze_status.si(owner, repo, ref, True) |
-                notify.si(
-                    {'message': 'Finish Setup Application for %s-%s-%s'.format(
-                        owner, repo, ref)},
-                    level=LEVEL_SUCCESS,
-                    **notify_params
-                ) |
-                add_search_event.si(EVENT_SETUP_APPLICATION_COMPLETE,
-                                    search_params=search_params)
-            ),
-            error_tasks=error_tasks
-        )
-    ).apply_async()
-
-
 @app.task
 def _update_freeze_status(owner, repo, ref, freeze=True):
-    job.update_freeze_status(owner, repo, ref, freeze)
+    job_service.update_freeze_status(owner, repo, ref, freeze)
 
 
 def _job_base_location(owner, repo, ref, etcd_base, commit=None):
@@ -507,18 +453,48 @@ def _create_job(job_config, owner, repo, ref, commit=None, etcd_cl=None,
 @app.task
 def _handle_hook(job, hook_type, hook_name, hook_status, hook_result):
     job_config = job['config']
+    git_meta = job['meta-info']['git']
+    notify_ctx = _notify_ctx(git_meta['owner'], git_meta['repo'],
+                             git_meta['ref'], commit=None,
+                             operation='handle_hook')
+    notify_params = {
+        'ctx': notify_ctx,
+        'notifications': job_config.get('notifications'),
+        'security_profile': job_config['security']['profile']
+    }
+    search_params = create_search_parameters(job)
 
     builder_hooks = [name for name, hook_obj in job_config['hooks']['builders']
                      .items() if hook_obj['enabled']]
 
+    tasks = []
+    if hook_type == 'scm-create':
+        tasks += (
+            notify.si(
+                {'message': 'Setup Application for %s-%s-%s'.format(
+                    git_meta['owner'], git_meta['repo'], git_meta['ref'])},
+                level=LEVEL_PENDING,
+                **notify_params
+            ),
+            _update_freeze_status.si(git_meta['owner'], git_meta['repo'],
+                                     git_meta['ref'], False),
+            add_search_event.si(EVENT_SETUP_APPLICATION_COMPLETE,
+                                search_params=search_params)
+        )
+        frozen = False
+    else:
+        frozen = job_service.is_frozen(
+            git_meta['owner'], git_meta['repo'], git_meta['ref'])
+
     if not job_config['enabled'] or not builder_hooks or \
-            not job_config['deployers']:
-        return _handle_noop.si(job).delay()
+            not job_config['deployers'] or frozen:
+        tasks.append(_handle_noop.si(job))
 
     else:
-        return _schedule_and_deploy.si(
+        tasks.append(_schedule_and_deploy.si(
             job, hook_type, hook_name, hook_status=hook_status,
-            hook_result=hook_result).delay()
+            hook_result=hook_result))
+    return chain(tasks).delay()
 
 
 @app.task
@@ -864,6 +840,8 @@ def _as_job(job_config, job_id,  owner, repo, ref, state=JOB_STATE_SCHEDULED,
         'state': state,
         'hooks': {
             'ci': {},
+            'scm-create': {},
+            'scm-push': {},
             'builder': {}
         },
         'force-deploy': force_deploy

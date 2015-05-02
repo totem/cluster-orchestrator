@@ -310,7 +310,9 @@ def test_create_job(m_uuid4):
     dict_compare(job, {
         'hooks': {
             'ci': {},
-            'builder': {}
+            'builder': {},
+            'scm-create': {},
+            'scm-push': {}
         },
         'state': 'NEW',
         'config': config,
@@ -350,7 +352,9 @@ def test_create_job_with_existing_id():
     dict_compare(job, {
         'hooks': {
             'ci': {},
-            'builder': {}
+            'builder': {},
+            'scm-create': {},
+            'scm-push': {}
         },
         'state': 'MOCKSTATE',
         'config': config,
@@ -700,7 +704,7 @@ def test_handle_job_error_without_job_id(
     eq_(m_update_job_state.si.call_count, 0)
 
 
-@patch('orchestrator.tasks.job.job')
+@patch('orchestrator.tasks.job.job_service')
 def test_update_freeze_status(m_job):
     """
     Updates the freeze status for a given application
@@ -711,3 +715,7 @@ def test_update_freeze_status(m_job):
 
     # Then: Application status is set to frozen
     m_job.update_freeze_status(MOCK_OWNER, MOCK_REPO, MOCK_REF, True)
+
+
+def test_handle_hook():
+    pass
