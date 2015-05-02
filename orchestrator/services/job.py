@@ -2,8 +2,13 @@
 Services related to job in orchestrator.
 All services defined here are synchronous in nature
 """
-
-import etcd
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
+from future.builtins import (  # noqa
+    bytes, dict, int, list, object, range, str,
+    ascii, chr, hex, input, next, oct, open,
+    pow, round, super,
+    filter, map, zip)
 from conf.appconfig import TOTEM_ENV, BOOLEAN_TRUE_VALUES
 from orchestrator.etcd import using_etcd
 
@@ -25,7 +30,7 @@ def _app_jobs_base(owner, repo, ref, etcd_base):
     :param etcd_base:
     :return:
     """
-    return '%s/orchestrator/jobs/%s/%s/%s/%s/%s' % \
+    return '%s/orchestrator/jobs/%s/%s/%s/%s' % \
            (etcd_base, TOTEM_ENV, owner, repo, ref)
 
 

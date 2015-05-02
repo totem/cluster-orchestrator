@@ -3,7 +3,6 @@ Provides distributed locking using Etcd Backed store
 """
 import uuid
 
-import etcd
 from conf.appconfig import TOTEM_ETCD_SETTINGS
 from orchestrator.etcd import get_etcd_client
 

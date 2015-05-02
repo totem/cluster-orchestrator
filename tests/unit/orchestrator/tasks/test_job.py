@@ -396,10 +396,10 @@ def test_update_etcd_job_as_expected():
     etcd_cl.write.assert_called_twice()
     etcd_cl.write.assert_any_call(
         '/mockbase/orchestrator/jobs/local/mock-owner/mock-repo/mock-ref/'
-        'mock-commit/job-id', MOCK_JOB_ID)
+        'commits/mock-commit/job-id', MOCK_JOB_ID)
     etcd_cl.write.assert_any_call(
         '/mockbase/orchestrator/jobs/local/mock-owner/mock-repo/mock-ref/'
-        'mock-commit/state', JOB_STATE_SCHEDULED)
+        'commits/mock-commit/state', JOB_STATE_SCHEDULED)
     dict_compare(ret_value, job)
 
 
