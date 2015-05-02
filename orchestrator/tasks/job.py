@@ -341,7 +341,7 @@ def undeploy(owner, repo, ref):
                 add_search_event.si(
                     EVENT_UNDEPLOY_REQUESTED, details={'name': lock_name},
                     search_params=search_params)
-            )
+            ),
         )
     ).apply_async()
 
@@ -364,13 +364,17 @@ def setup_application(owner, repo, ref):
     lock_name = '%s-%s-%s-%s' % (TOTEM_ENV, owner, repo, ref)
     error_tasks = [
         _handle_job_error.s(job_config, notify_ctx, search_params)]
+    notify_params = {
+        'ctx': notify_ctx,
+        'notifications': job_config.get('notifications'),
+        'security_profile': job_config['security']['profile']
+    }
     return (
         notify.si(
             {'message': 'Setup Application for %s-%s-%s'.format(
                 owner, repo, ref)},
-            ctx=notify_ctx, level=LEVEL_STARTED,
-            notifications=job_config.get('notifications'),
-            security_profile=job_config['security']['profile']
+            level=LEVEL_STARTED,
+            **notify_params
         ) |
         add_search_event.si(EVENT_SETUP_APPLICATION,
                             search_params=search_params,
@@ -382,22 +386,16 @@ def setup_application(owner, repo, ref):
                     EVENT_ACQUIRED_LOCK, details={'name': lock_name},
                     search_params=search_params) |
                 _update_freeze_status.si(owner, repo, ref, True) |
-                async_wait.s(
-                    default_retry_delay=TASK_SETTINGS['JOB_WAIT_RETRY_DELAY'],
-                    max_retries=TASK_SETTINGS['JOB_WAIT_RETRIES'],
-                    error_tasks=error_tasks
-                ) |
                 notify.si(
                     {'message': 'Finish Setup Application for %s-%s-%s'.format(
                         owner, repo, ref)},
-                    ctx=notify_ctx, level=LEVEL_SUCCESS,
-                    notifications=job_config.get('notifications'),
-                    security_profile=job_config['security']['profile']
+                    level=LEVEL_SUCCESS,
+                    **notify_params
                 ) |
                 add_search_event.si(EVENT_SETUP_APPLICATION_COMPLETE,
-                                    search_params=search_params,
-                                    error_tasks=error_tasks)
-            )
+                                    search_params=search_params)
+            ),
+            error_tasks=error_tasks
         )
     ).apply_async()
 

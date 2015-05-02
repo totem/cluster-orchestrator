@@ -18,7 +18,7 @@ from orchestrator.tasks.job import _undeploy_all, _undeploy, _deploy_all, \
     _deploy, _notify_ctx, _create_job, _update_etcd_job, _job_complete, \
     _schedule_and_deploy, _template_variables, _handle_create_job, \
     _as_callback_hook, _handle_failed_hooks, _load_job_config, _release_lock, \
-    _handle_job_error
+    _handle_job_error, _update_freeze_status
 from orchestrator.tasks.search import EVENT_JOB_COMPLETE, \
     EVENT_NEW_JOB, EVENT_JOB_FAILED
 from orchestrator.util import dict_merge
@@ -698,3 +698,16 @@ def test_handle_job_error_without_job_id(
 
     # Then: Job state is not updated
     eq_(m_update_job_state.si.call_count, 0)
+
+
+@patch('orchestrator.tasks.job.job')
+def test_update_freeze_status(m_job):
+    """
+    Updates the freeze status for a given application
+    """
+
+    # When: I update the freeze status for a give application
+    _update_freeze_status(MOCK_OWNER, MOCK_REPO, MOCK_REF)
+
+    # Then: Application status is set to frozen
+    m_job.update_freeze_status(MOCK_OWNER, MOCK_REPO, MOCK_REF, True)
