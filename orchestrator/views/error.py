@@ -4,6 +4,7 @@ import traceback
 from flask import request, make_response
 import flask
 from werkzeug.exceptions import HTTPException
+from orchestrator.exceptions import BusinessRuleViolation
 from orchestrator.services.exceptions import ConfigValueError
 from orchestrator.tasks.exceptions import TaskExecutionException
 
@@ -64,13 +65,13 @@ def register(app, **kwargs):
             'status': 500,
         })
 
-    @app.errorhandler(ConfigValueError)
-    def job_config_error(error):
+    @app.errorhandler(BusinessRuleViolation)
+    def business_rule_violation(error):
         return as_flask_error(error, **{
             'code': error.code,
             'message': error.message,
             'details': error.to_dict()['details'],
-            'status': 400,
+            'status': 422,
             })
 
     @app.errorhandler(Exception)

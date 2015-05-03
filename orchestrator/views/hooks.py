@@ -9,6 +9,7 @@ from conf.appconfig import HOOK_SETTINGS, MIME_GENERIC_HOOK_V1, \
     SCHEMA_GENERIC_HOOK_V1, MIME_JSON, MIME_JOB_V1, SCHEMA_JOB_V1, \
     SCHEMA_TASK_V1, MIME_TASK_V1, MIME_GITHUB_HOOK_V1, SCHEMA_GITHUB_HOOK_V1, \
     MIME_FORM_URL_ENC, SCHEMA_TRAVIS_HOOK_V1
+from orchestrator.exceptions import BusinessRuleViolation
 from orchestrator.views import hypermedia, task_client
 from orchestrator.views.error import raise_error
 from hashlib import sha1, sha256
@@ -105,10 +106,21 @@ class GenericInternalPostHookApi(MethodView):
         else:
             return created_task(result)
 
-    def delete(self):
+    @hypermedia.produces(
+        {
+            MIME_JSON: SCHEMA_TASK_V1,
+            MIME_TASK_V1: SCHEMA_TASK_V1
+        }, default=MIME_TASK_V1)
+    def delete(self, **kwargs):
         owner = request.args.get('owner', '')
         repo = request.args.get('repo', '')
         ref = request.args.get('ref', '')
+        if not repo or not owner:
+            raise BusinessRuleViolation(
+                'DELETE can only be performed for a repository or a commit '
+                'for a repository. Ensure that valid owner, repo and commit '
+                'parameters are passed as part of query parameters')
+
         return created_task(
             undeploy.si(owner, repo, ref).delay())
 
