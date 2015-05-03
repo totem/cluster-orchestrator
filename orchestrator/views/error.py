@@ -5,7 +5,6 @@ from flask import request, make_response
 import flask
 from werkzeug.exceptions import HTTPException
 from orchestrator.exceptions import BusinessRuleViolation
-from orchestrator.services.exceptions import ConfigValueError
 from orchestrator.tasks.exceptions import TaskExecutionException
 
 logger = logging.getLogger(__name__)

@@ -1,4 +1,3 @@
-import pickle
 from orchestrator.exceptions import BusinessRuleViolation
 
 
@@ -9,7 +8,7 @@ class ConfigValueError(BusinessRuleViolation):
         self.value = value
         self.reason = reason
         message = 'Error happened while parsing path:%s value:%s.  %s' % \
-                       (path, value, reason)
+                  (path, value, reason)
         details = {
             'path': self.path,
             'value': self.value,
@@ -41,7 +40,7 @@ class ConfigParseError(BusinessRuleViolation):
         self.paths = paths
         self.error_msg = error_msg
         message = 'Failed to parse configuration for paths: {0}. ' \
-                       'Reason: {1}'.format(paths, error_msg)
+                  'Reason: {1}'.format(paths, error_msg)
         code = 'CONFIG_PARSE_ERROR'
         details = {
             'paths': self.paths
