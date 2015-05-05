@@ -19,7 +19,7 @@
     }
   },
   "additionalProperties": true,
-  "required": ["ref", "repository"],
+  "required": ["repository"],
   "definitions": {
     "repository": {
       "type": "object",
