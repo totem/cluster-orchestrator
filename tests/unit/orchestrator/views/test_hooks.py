@@ -387,3 +387,48 @@ class TestGenericInternalPostHookApi:
         eq_(resp.status_code, 422)
         data = json.loads(resp.data.decode('UTF-8'))
         eq_(data['code'], 'BUSINESS_RULE_VIOLATION')
+
+
+class TestGenericPostHookApi:
+
+    mock_payload = '''{
+        "git": {
+            "owner": "totem",
+            "repo": "totem-demo",
+            "ref": "master",
+            "commit": "87c4419d3e278036055ca2cd022583e0397d3a5d"
+        },
+        "type": "builder",
+        "name": "imagefactory",
+        "status": "success"
+    }'''
+
+    def setup(self):
+        self.client = app.test_client()
+
+    @patch('orchestrator.views.hooks.handle_callback_hook')
+    def test_post(self, mock_callback):
+        """
+        Should return accepted response when a valid travis hook is posted.
+        """
+
+        # Given: Mock Implementation of handle_callback_hook
+        mock_callback.delay.return_value = 'mock_task_id'
+
+        # When I post to external generic hook endpoint
+        resp = self.client.post(
+            '/external/hooks/generic',
+            data=self.mock_payload,
+            headers={
+                'Content-Type': MIME_JSON,
+                'X-Hook-Signature': '559ddad4d2d59957cb674cb66a358084cf9d3cd9'
+            }
+        )
+
+        # Then: Expected response is returned
+        logger.info('Response: %s', resp.data)
+        eq_(resp.status_code, 202)
+        data = json.loads(resp.data.decode('UTF-8'))
+        dict_compare(data, {
+            'task_id': 'mock_task_id'
+        })
