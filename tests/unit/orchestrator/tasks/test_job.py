@@ -18,9 +18,10 @@ from orchestrator.tasks.job import _undeploy_all, _undeploy, _deploy_all, \
     _deploy, _notify_ctx, _create_job, _update_etcd_job, _job_complete, \
     _schedule_and_deploy, _template_variables, _handle_create_job, \
     _as_callback_hook, _handle_failed_hooks, _load_job_config, _release_lock, \
-    _handle_job_error, _update_freeze_status
+    _handle_job_error, _update_freeze_status, _handle_hook, _handle_noop
 from orchestrator.tasks.search import EVENT_JOB_COMPLETE, \
-    EVENT_NEW_JOB, EVENT_JOB_FAILED
+    EVENT_NEW_JOB, EVENT_JOB_FAILED, add_search_event, \
+    EVENT_SETUP_APPLICATION_COMPLETE
 from orchestrator.util import dict_merge
 from tests.helper import dict_compare
 
@@ -34,6 +35,22 @@ MOCK_OPERATION = 'mock-operation'
 MOCK_HOOK_NAME = 'mock-hook'
 MOCK_HOOK_TYPE = 'builder'
 MOCK_HOOK_STATUS = 'success'
+
+MOCK_JOB = {
+    'config': dict_merge(
+        {
+            'enabled': True,
+        },
+        CONFIG_PROVIDERS['default']['config']),
+    'meta-info': {
+        'git': {
+            'owner': MOCK_OWNER,
+            'repo': MOCK_REPO,
+            'ref': MOCK_REF
+        },
+        'job-id': MOCK_JOB_ID
+    }
+}
 
 
 def test_notify_ctx():
@@ -717,5 +734,70 @@ def test_update_freeze_status(m_job):
     m_job.update_freeze_status(MOCK_OWNER, MOCK_REPO, MOCK_REF, True)
 
 
-def test_handle_hook():
-    pass
+@patch('orchestrator.tasks.job.chain')
+def test_handle_scm_create_hook(m_chain):
+    # When: I invoke _handle_hook for scm-create hook
+    result = _handle_hook(MOCK_JOB, 'scm-create', 'mock-create', 'success',
+                          None)
+
+    invoked_tasks = m_chain.call_args[0][0]
+
+    # Then: Freeze status is cleared and no deployment is created
+    eq_(invoked_tasks[0].task, 'orchestrator.tasks.notification.notify')
+    eq_(invoked_tasks[0].args,
+        ({'message': 'Setup Application for mock-owner-mock-repo-mock-ref'},))
+    eq_(invoked_tasks[1],
+        _update_freeze_status.si(MOCK_OWNER, MOCK_REPO, MOCK_REF, False))
+    eq_(invoked_tasks[2],
+        add_search_event.si(
+            EVENT_SETUP_APPLICATION_COMPLETE,
+            search_params={
+                'meta-info': MOCK_JOB['meta-info']
+            }))
+
+    eq_(invoked_tasks[3].task, 'orchestrator.tasks.notification.notify')
+    eq_(invoked_tasks[3].args,
+        ({'message': 'Finished Application Setup for '
+                     'mock-owner-mock-repo-mock-ref'},))
+    eq_(invoked_tasks[4], _handle_noop.si(MOCK_JOB))
+
+    # And: Asynchronous result is returned
+    eq_(result, m_chain.return_value.delay.return_value)
+
+
+@patch('orchestrator.tasks.job.chain')
+@patch('orchestrator.tasks.job.job_service')
+def test_handle_hook_for_frozen_ref(m_job_service, m_chain):
+    # Given: Frozen repository
+    m_job_service.is_frozen.return_value = True
+
+    # When: I invoke _handle_hook for frozen repository
+    result = _handle_hook(MOCK_JOB, 'ci', 'mock-ci', 'success', None)
+
+    invoked_tasks = m_chain.call_args[0][0]
+
+    # Then: No deployment is created
+    eq_(invoked_tasks[0], _handle_noop.si(MOCK_JOB))
+
+    # And: Asynchronous result is returned
+    eq_(result, m_chain.return_value.delay.return_value)
+
+
+@patch('orchestrator.tasks.job.chain')
+@patch('orchestrator.tasks.job.job_service')
+def test_handle_hook_for_non_frozen_ref(m_job_service, m_chain):
+    # Given: Frozen repository
+    m_job_service.is_frozen.return_value = False
+
+    # When: I invoke _handle_hook for frozen repository
+    result = _handle_hook(MOCK_JOB, 'ci', 'mock-ci', 'success', None)
+
+    invoked_tasks = m_chain.call_args[0][0]
+
+    # Then: Job gets scheduled
+    eq_(invoked_tasks[0],
+        _schedule_and_deploy.si(MOCK_JOB, 'ci', 'mock-ci',
+                                hook_status='success', hook_result=None))
+
+    # And: Asynchronous result is returned
+    eq_(result, m_chain.return_value.delay.return_value)

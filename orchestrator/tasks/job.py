@@ -310,7 +310,7 @@ def undeploy(owner, repo, ref):
         _handle_job_error.s(job_config, notify_ctx, search_params)]
     return (
         notify.si(
-            {'message': 'Undeploy Application for %s-%s-%s'.format(
+            {'message': 'Undeploy Application for {}-{}-{}'.format(
                 owner, repo, ref)},
             ctx=notify_ctx, level=LEVEL_STARTED,
             notifications=job_config.get('notifications'),
@@ -471,7 +471,7 @@ def _handle_hook(job, hook_type, hook_name, hook_status, hook_result):
     if hook_type == 'scm-create':
         tasks += (
             notify.si(
-                {'message': 'Setup Application for %s-%s-%s'.format(
+                {'message': 'Setup Application for {}-{}-{}'.format(
                     git_meta['owner'], git_meta['repo'], git_meta['ref'])},
                 level=LEVEL_PENDING,
                 **notify_params
@@ -479,15 +479,23 @@ def _handle_hook(job, hook_type, hook_name, hook_status, hook_result):
             _update_freeze_status.si(git_meta['owner'], git_meta['repo'],
                                      git_meta['ref'], False),
             add_search_event.si(EVENT_SETUP_APPLICATION_COMPLETE,
-                                search_params=search_params)
+                                search_params=search_params),
+            notify.si(
+                {'message': 'Finished Application Setup for {}-{}-{}'.format(
+                    git_meta['owner'], git_meta['repo'], git_meta['ref'])},
+                level=LEVEL_SUCCESS,
+                **notify_params
+            ),
         )
-        frozen = False
+        # Even though we unfreeze the application, we will consider this
+        #  job to be noop as no deployment will be created.
+        noop = True
     else:
-        frozen = job_service.is_frozen(
+        noop = job_service.is_frozen(
             git_meta['owner'], git_meta['repo'], git_meta['ref'])
 
     if not job_config['enabled'] or not builder_hooks or \
-            not job_config['deployers'] or frozen:
+            not job_config['deployers'] or noop:
         tasks.append(_handle_noop.si(job))
 
     else:
