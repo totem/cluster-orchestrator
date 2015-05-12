@@ -115,9 +115,9 @@ class GenericInternalPostHookApi(MethodView):
         owner = request.args.get('owner', '')
         repo = request.args.get('repo', '')
         ref = request.args.get('ref', '')
-        if not repo or not owner:
+        if not repo or not owner or not ref:
             raise BusinessRuleViolation(
-                'DELETE can only be performed for a repository or a commit '
+                'DELETE can only be performed for a given ref(branch/tag) '
                 'for a repository. Ensure that valid owner, repo and commit '
                 'parameters are passed as part of query parameters')
 
