@@ -3,22 +3,11 @@ Provides distributed locking using Etcd Backed store
 """
 import uuid
 
-import etcd
 from conf.appconfig import TOTEM_ETCD_SETTINGS
+from orchestrator.etcd import get_etcd_client
 
 
 __author__ = 'sukrit'
-
-
-def get_etcd_client():
-    """
-    Gets the Etcd Client instance using host and port defined in
-    TOTEM_ETCD_SETTINGS
-    :return: Instance of etcd.Client
-    :rtype: etcd.Client
-    """
-    return etcd.Client(host=TOTEM_ETCD_SETTINGS['host'],
-                       port=TOTEM_ETCD_SETTINGS['port'])
 
 
 class LockService:

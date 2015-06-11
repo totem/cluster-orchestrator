@@ -9,6 +9,7 @@ from conf.appconfig import HOOK_SETTINGS, MIME_GENERIC_HOOK_V1, \
     SCHEMA_GENERIC_HOOK_V1, MIME_JSON, MIME_JOB_V1, SCHEMA_JOB_V1, \
     SCHEMA_TASK_V1, MIME_TASK_V1, MIME_GITHUB_HOOK_V1, SCHEMA_GITHUB_HOOK_V1, \
     MIME_FORM_URL_ENC, SCHEMA_TRAVIS_HOOK_V1
+from orchestrator.exceptions import BusinessRuleViolation
 from orchestrator.views import hypermedia, task_client
 from orchestrator.views.error import raise_error
 from hashlib import sha1, sha256
@@ -105,6 +106,24 @@ class GenericInternalPostHookApi(MethodView):
         else:
             return created_task(result)
 
+    @hypermedia.produces(
+        {
+            MIME_JSON: SCHEMA_TASK_V1,
+            MIME_TASK_V1: SCHEMA_TASK_V1
+        }, default=MIME_TASK_V1)
+    def delete(self, **kwargs):
+        owner = request.args.get('owner', '')
+        repo = request.args.get('repo', '')
+        ref = request.args.get('ref', '')
+        if not repo or not owner or not ref:
+            raise BusinessRuleViolation(
+                'DELETE can only be performed for a given ref(branch/tag) '
+                'for a repository. Ensure that valid owner, repo and commit '
+                'parameters are passed as part of query parameters')
+
+        return created_task(
+            undeploy.si(owner, repo, ref).delay())
+
 
 class GenericPostHookApi(GenericInternalPostHookApi):
     """
@@ -140,12 +159,19 @@ class GithubHookApi(MethodView):
 
         :return: Flask Json Response containing version.
         """
+        owner = request_data['repository']['owner'].get('name') or \
+            request_data['repository']['owner'].get('login')
+        repo = request_data['repository']['name']
         if request.headers.get('X-GitHub-Event') == 'delete':
             ref = basename(request_data['ref'])
-            owner = request_data['repository']['owner'].get('name') or \
-                request_data['repository']['owner'].get('login')
-            repo = request_data['repository']['name']
             task = undeploy.delay(owner, repo, ref)
+            return created_task(task)
+        elif request.headers.get('X-GitHub-Event') == 'create' and \
+                request_data.get('ref_type') == 'branch' and \
+                request_data.get('ref'):
+            ref = basename(request_data['ref'])
+            task = handle_callback_hook.delay(
+                owner, repo, ref, 'scm-create', 'github-create')
             return created_task(task)
         else:
             # Ignore if it is not a delete request. For the github push, we
@@ -226,7 +252,7 @@ def register(app, **kwargs):
                      methods=['POST'])
     app.add_url_rule('/hooks/generic',
                      view_func=GenericInternalPostHookApi.as_view(
-                         'generic-internal-hook'), methods=['POST'])
+                         'generic-internal-hook'), methods=['POST', 'DELETE'])
 
     app.add_url_rule('/external/hooks/github',
                      view_func=GithubHookApi.as_view('github'),
