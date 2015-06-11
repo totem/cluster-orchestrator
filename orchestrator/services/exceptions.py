@@ -1,72 +1,49 @@
+from orchestrator.exceptions import BusinessRuleViolation
 
 
-class ConfigValueError(Exception):
+class ConfigValueError(BusinessRuleViolation):
 
     def __init__(self, path, value, reason):
         self.path = path
         self.value = value
-        self.message = 'Error happened while parsing path:%s value:%s.  %s' % \
-                       (path, value, reason)
         self.reason = reason
-        self.code = 'CONFIG_ERROR'
-        super(ConfigValueError, self).__init__(path, value, reason)
-
-    def to_dict(self):
-        return {
-            'message': self.message,
-            'code': self.code,
-            'details': {
-                'path': self.path,
-                'value': self.value,
-                'reason': self.reason
-            }
+        message = 'Error happened while parsing path:%s value:%s.  %s' % \
+                  (path, value, reason)
+        details = {
+            'path': self.path,
+            'value': self.value,
+            'reason': self.reason
         }
 
-    def __str__(self):
-        return self.message
+        super(ConfigValueError, self).__init__(
+            message, code='CONFIG_ERROR', details=details)
 
 
-class ConfigValidationError(Exception):
+class ConfigValidationError(BusinessRuleViolation):
 
     def __init__(self, message, schema_path, schema):
-        self.message = message
         self.schema_path = schema_path
         self.schema = schema
-        self.code = 'CONFIG_VALIDATION_ERROR'
-        super(ConfigValidationError, self).__init__(message, schema_path,
-                                                    schema)
-
-    def to_dict(self):
-        return {
-            'message': self.message,
-            'code': self.code,
-            'details': {
-                'schema-path': self.schema_path,
-                'schema': self.schema
-            }
+        code = 'CONFIG_VALIDATION_ERROR'
+        details = {
+            'schema-path': self.schema_path,
+            'schema': self.schema
         }
 
-    def __str__(self):
-        return self.message
+        super(ConfigValidationError, self).__init__(
+            message, code=code, details=details)
 
 
-class ConfigParseError(Exception):
+class ConfigParseError(BusinessRuleViolation):
 
     def __init__(self, error_msg, paths):
         self.paths = paths
-        self.message = 'Failed to parse configuration for paths: {0}. ' \
-                       'Reason: {1}'.format(paths, error_msg)
-        self.code = 'CONFIG_PARSE_ERROR'
-        super(ConfigParseError, self).__init__(error_msg, paths)
-
-    def to_dict(self):
-        return {
-            'message': self.message,
-            'code': self.code,
-            'details': {
-                'paths': self.paths
-            }
+        self.error_msg = error_msg
+        message = 'Failed to parse configuration for paths: {0}. ' \
+                  'Reason: {1}'.format(paths, error_msg)
+        code = 'CONFIG_PARSE_ERROR'
+        details = {
+            'paths': self.paths
         }
-
-    def __str__(self):
-        return self.message
+        super(ConfigParseError, self).__init__(message, code=code,
+                                               details=details)

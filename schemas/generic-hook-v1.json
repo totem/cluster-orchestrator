@@ -14,7 +14,7 @@
     },
     "type": {
       "description": "Type of the hook (e.g. builder, ci)",
-      "enum": ["builder", "ci"]
+      "enum": ["builder", "ci", "scm-create", "scm-push"]
     },
     "status": {
       "description": "Status for the hook (failed, success)",

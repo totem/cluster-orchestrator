@@ -1,4 +1,4 @@
-# cluster-orchestrator [![Build Status](https://travis-ci.org/totem/cluster-orchestrator.svg)](https://travis-ci.org/totem/cluster-orchestrator) [![Coverage Status](https://img.shields.io/coveralls/totem/cluster-orchestrator.svg)](https://coveralls.io/r/totem/cluster-orchestrator) [![Documentation Status](https://readthedocs.org/projects/cluster-orchestrator/badge/?version=latest)](https://readthedocs.org/projects/cluster-orchestrator/?badge=latest)
+# cluster-orchestrator [![Build Status](https://travis-ci.org/totem/cluster-orchestrator.svg)](https://travis-ci.org/totem/cluster-orchestrator) [![Coverage Status](https://img.shields.io/coveralls/totem/cluster-orchestrator.svg)](https://coveralls.io/r/totem/cluster-orchestrator) [![Documentation Status](https://readthedocs.org/projects/cluster-orchestrator/badge/?version=latest)](https://readthedocs.org/projects/cluster-orchestrator/?badge=latest)[![](https://badge.imagelayers.io/totem/cluster-orchestrator.svg)](https://imagelayers.io/?images=totem/cluster-orchestrator:develop 'Get your own badge on imagelayers.io')
 
 Provides orchestration for continuous deployment to Totem Cluster. 
 

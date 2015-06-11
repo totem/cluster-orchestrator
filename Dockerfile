@@ -1,19 +1,18 @@
-FROM totem/python-base:2.7-trusty
+FROM totem/python-base:2.7-trusty-b2
 
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update --fix-missing && apt-get install -y \
-    libffi-dev \
     gettext \
-    libyaml-dev \
-    nano
+    libyaml-dev
 
 #Etcdctl
 ENV ETCDCTL_VERSION v0.4.6
 RUN curl -L https://github.com/coreos/etcd/releases/download/$ETCDCTL_VERSION/etcd-$ETCDCTL_VERSION-linux-amd64.tar.gz -o /tmp/etcd-$ETCDCTL_VERSION-linux-amd64.tar.gz && \
     cd /tmp && gzip -dc etcd-$ETCDCTL_VERSION-linux-amd64.tar.gz | tar -xof - && \
     cp -f /tmp/etcd-$ETCDCTL_VERSION-linux-amd64/etcdctl /usr/local/bin && \
-    rm -rf /tmp/etcd-$ETCDCTL_VERSION-linux-amd64.tar.gz
+    rm -rf /tmp/etcd-$ETCDCTL_VERSION-linux-amd64.tar.gz && \
+    rm -rf /tmp/etcd-$ETCDCTL_VERSION-linux-amd64
 
 # Supervisor and App dependencies
 RUN pip install supervisor==3.1.2
