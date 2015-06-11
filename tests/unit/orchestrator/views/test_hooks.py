@@ -187,6 +187,81 @@ class TestGithubHookApi:
         # Then: Expected response is returned
         eq_(resp.status_code, 202)
 
+    @patch('orchestrator.views.hooks.handle_callback_hook')
+    def test_post_for_create_branch_event(self, m_handle_callback_hook):
+        """
+        Should return accepted response when a valid github create branch event
+        is posted
+        """
+
+        # Given: Mock payload
+
+        mock_payload = '''{
+            "ref_type": "branch",
+            "repository": {
+                "name": "mock_repo",
+                "owner": {
+                    "login": "mock_owner"
+                }
+            },
+            "ref": "develop"
+        }'''
+
+        # When I post to github endpoint
+        resp = self.client.post(
+            '/external/hooks/github',
+            data=mock_payload,
+            headers={
+                'Content-Type': MIME_JSON,
+                'X-Hub-Signature':
+                    'sha1=029893cc480a1e399a9af18c833a35182bc2d80f',
+                'X-GitHub-Event': 'create'
+            }
+        )
+        logger.info('Response: %s', resp.data)
+
+        # Then: Expected response is returned
+        eq_(resp.status_code, 202)
+        m_handle_callback_hook.delay.assert_called_once_with(
+            u'mock_owner', u'mock_repo', u'develop', u'scm-create',
+            u'github-create')
+
+    @patch('orchestrator.views.hooks.handle_callback_hook')
+    def test_post_for_create_non_branch_event(self, m_handle_callback_hook):
+        """
+        Should return expected response when a valid github create repo event
+        is posted
+        """
+
+        # Given: Mock payload
+
+        mock_payload = '''{
+            "ref_type": "repository",
+            "repository": {
+                "name": "mock_repo",
+                "owner": {
+                    "login": "mock_owner"
+                }
+            }
+        }'''
+
+        # When I post to github endpoint
+        resp = self.client.post(
+            '/external/hooks/github',
+            data=mock_payload,
+            headers={
+                'Content-Type': MIME_JSON,
+                'X-Hub-Signature':
+                    'sha1=2b100de728c7a0614923b63887024e26afbfa2b9',
+                'X-GitHub-Event': 'create'
+            }
+        )
+        logger.info('Response: %s', resp.data)
+
+        # Then: Expected response is returned
+        eq_(resp.status_code, 204)
+        m_handle_callback_hook.delay.assert_not_called()
+
 
 class TestTravisHookApi:
 

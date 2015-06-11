@@ -159,12 +159,19 @@ class GithubHookApi(MethodView):
 
         :return: Flask Json Response containing version.
         """
+        owner = request_data['repository']['owner'].get('name') or \
+            request_data['repository']['owner'].get('login')
+        repo = request_data['repository']['name']
         if request.headers.get('X-GitHub-Event') == 'delete':
             ref = basename(request_data['ref'])
-            owner = request_data['repository']['owner'].get('name') or \
-                request_data['repository']['owner'].get('login')
-            repo = request_data['repository']['name']
             task = undeploy.delay(owner, repo, ref)
+            return created_task(task)
+        elif request.headers.get('X-GitHub-Event') == 'create' and \
+                request_data.get('ref_type') == 'branch' and \
+                request_data.get('ref'):
+            ref = basename(request_data['ref'])
+            task = handle_callback_hook.delay(
+                owner, repo, ref, 'scm-create', 'github-create')
             return created_task(task)
         else:
             # Ignore if it is not a delete request. For the github push, we
