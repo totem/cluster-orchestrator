@@ -32,9 +32,9 @@ CELERY_RESULT_BACKEND = 'amqp'
 CELERY_RESULT_EXCHANGE = 'orchestrator-%s-results' % CLUSTER_NAME
 CELERY_IMPORTS = ('orchestrator.tasks', 'orchestrator.tasks.job',
                   'orchestrator.tasks.common', 'celery.task')
-CELERY_ACCEPT_CONTENT = ['json', 'pickle']
-CELERY_TASK_SERIALIZER = 'pickle'
-CELERY_RESULT_SERIALIZER = 'pickle'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
 CELERY_ALWAYS_EAGER = literal_eval(os.getenv('CELERY_ALWAYS_EAGER', 'False'))
 CELERY_CHORD_PROPAGATES = True
 

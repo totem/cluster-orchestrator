@@ -1,6 +1,7 @@
 import socket
 from celery.exceptions import ChordError
-from celery.result import ResultBase, AsyncResult, GroupResult
+from celery.result import ResultBase, AsyncResult, GroupResult, \
+    from_serializable
 import orchestrator
 from orchestrator.tasks.exceptions import TaskExecutionException
 from orchestrator.util import retry
@@ -8,17 +9,37 @@ from orchestrator.util import retry
 __author__ = 'sukrit'
 
 
+def convert_serialized_result(result):
+    """
+    Safely converts Serialized celery result into Result object. This is added
+    to address json serialization/de-serialization of task
+    """
+    if isinstance(result, (list, tuple)) and len(result) == 2:
+        # This check is not sufficient to asy that result will be AsyncResult
+        # At this point we will assume it is, and if it can not be
+        # de-serialized, we will use original result
+        try:
+            result = from_serializable(result)
+        except:
+            # This is not ideal. However, it is safe to assume for now that
+            # result need not be de-serialized if this fails.
+            pass
+    return result
+
+
 def check_or_raise_task_exception(result):
+    result = convert_serialized_result(result)
     if isinstance(result, GroupResult):
         for result in result.results:
             check_or_raise_task_exception(result)
     elif isinstance(result, AsyncResult) and result.failed():
-        if isinstance(result.result, TaskExecutionException):
-            raise result.result
-        elif isinstance(result.result, ChordError):
+        next_result = convert_serialized_result(result.result)
+        if isinstance(next_result, TaskExecutionException):
+            raise next_result
+        elif isinstance(next_result, ChordError):
             check_or_raise_task_exception(result.parent)
         else:
-            raise TaskExecutionException(result.result, result.traceback)
+            raise TaskExecutionException(next_result, result.traceback)
 
 
 def _check_error(result):
@@ -34,6 +55,7 @@ def simple_result(result):
     # Explanation: https://github.com/celery/celery/issues/2315
     orchestrator.celery.app.set_current()
 
+    result = convert_serialized_result(result)
     if isinstance(result, GroupResult):
         return simple_result(result.results)
     elif hasattr(result, '__iter__') and not isinstance(result, dict):

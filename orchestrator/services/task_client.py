@@ -7,6 +7,7 @@ from celery.result import ResultBase, AsyncResult
 from conf.appconfig import TASK_SETTINGS
 from orchestrator import util
 from orchestrator.tasks.exceptions import TaskExecutionException
+from orchestrator.tasks.util import convert_serialized_result
 
 
 class TaskClient:
@@ -16,6 +17,7 @@ class TaskClient:
 
     def find_error_task(self, task, wait=False, raise_error=False,
                         timeout=TASK_SETTINGS['DEFAULT_GET_TIMEOUT']):
+        task = convert_serialized_result(task)
         if not task or not isinstance(task, ResultBase):
             return
 
@@ -59,7 +61,7 @@ class TaskClient:
                     if wait:
                         output.get(timeout=timeout, propagate=raise_error)
                     if output.ready():
-                        output = output.result
+                        output = convert_serialized_result(output.result)
                     else:
                         status = 'PENDING'
                         output = None
