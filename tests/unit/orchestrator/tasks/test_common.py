@@ -1,3 +1,4 @@
+from celery import signature
 from mock import MagicMock, patch
 from nose.tools import eq_, raises
 from orchestrator.tasks.common import ErrorHandlerTask, ping, async_wait
@@ -11,7 +12,7 @@ def test_on_failure_for_error_handler_task(m_group):
     """
     # Given: Keyword args with error tasks
     kwargs = {
-        'error_tasks': MagicMock()
+        'error_tasks': signature('mocktask')
     }
     # And: Mock Error
     exc = MagicMock(spec=BaseException)

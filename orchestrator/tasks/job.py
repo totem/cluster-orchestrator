@@ -3,7 +3,7 @@ import json
 import uuid
 import requests
 from os.path import basename, dirname
-from celery import chain, chord, group
+from celery import chain, chord, group, signature
 from requests.exceptions import ConnectionError
 from conf.appconfig import TASK_SETTINGS, JOB_SETTINGS, JOB_STATE_NEW, \
     JOB_STATE_SCHEDULED, JOB_STATE_COMPLETE, JOB_STATE_NOOP, \
@@ -383,6 +383,12 @@ def _using_lock(self, name, do_task, cleanup_tasks=None,
 
     error_tasks.append(_release_lock_s)
     cleanup_tasks.append(_release_lock_s)
+
+    # Convert Serialized signatures
+    do_task = signature(do_task)
+
+    error_tasks = [signature(error_task) for error_task in error_tasks]
+    cleanup_tasks = [signature(cleanup_task) for cleanup_task in cleanup_tasks]
 
     return (
         do_task

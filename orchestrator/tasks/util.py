@@ -14,7 +14,7 @@ def convert_serialized_result(result):
     Safely converts Serialized celery result into Result object. This is added
     to address json serialization/de-serialization of task
     """
-    if isinstance(result, (list, tuple)) and len(result) == 2:
+    if result and isinstance(result, (list, tuple)) and len(result) == 2:
         # This check is not sufficient to asy that result will be AsyncResult
         # At this point we will assume it is, and if it can not be
         # de-serialized, we will use original result
