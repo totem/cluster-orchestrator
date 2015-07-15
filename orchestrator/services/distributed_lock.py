@@ -52,7 +52,7 @@ class LockService:
         :rtype: dict
         """
         lock_key = '%s%s/%s' % (self.etcd_base, self.lock_base, app_name)
-        lock_value = uuid.uuid4()
+        lock_value = str(uuid.uuid4())
         try:
             self.etcd_cl.write(lock_key, lock_value, ttl=self.lock_ttl,
                                prevExist=False)

@@ -1,7 +1,8 @@
 from celery import Task, group, signature
 from conf.appconfig import TASK_SETTINGS
 from orchestrator.celery import app
-from orchestrator.tasks.util import simple_result, TaskNotReadyException
+from orchestrator.tasks.util import simple_result, TaskNotReadyException, \
+    as_dict
 
 
 class ErrorHandlerTask(Task):
@@ -13,7 +14,7 @@ class ErrorHandlerTask(Task):
             if not isinstance(error_tasks, list):
                 error_tasks = [error_tasks]
             error_tasks = [signature(error_task) for error_task in error_tasks]
-            group(*error_tasks).delay(exc)
+            group(*error_tasks).delay(as_dict(exc))
 
 
 @app.task(bind=True, base=ErrorHandlerTask)

@@ -138,7 +138,8 @@ def _load_job_config(owner, repo, ref, notify_ctx, search_params, commit=None):
         return config.load_config(
             TOTEM_ENV, owner, repo, ref, default_variables=template_vars)
     except BaseException as exc:
-        _handle_job_error.si(exc, CONFIG_PROVIDERS['default']['config'],
+        _handle_job_error.si(util.as_dict(exc),
+                             CONFIG_PROVIDERS['default']['config'],
                              notify_ctx, search_params).delay()
         raise
 
@@ -508,7 +509,7 @@ def _handle_hook(job, hook_type, hook_name, hook_status, hook_result):
         tasks.append(_schedule_and_deploy.si(
             job, hook_type, hook_name, hook_status=hook_status,
             hook_result=hook_result))
-    return chain(tasks).delay()
+    return chain(tasks).delay().serializable()
 
 
 @app.task
@@ -766,7 +767,7 @@ def _deploy(self, job, deployer_name):
         response = requests.post(apps_url, data=json.dumps(data),
                                  headers=headers)
     except ConnectionError as error:
-        raise self.retry(exc=error)
+        raise self.retry(exc=RuntimeError(error.message))
 
     search_params = create_search_parameters(job)
     deploy_response = {

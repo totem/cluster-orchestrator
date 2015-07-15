@@ -17,7 +17,8 @@ def test_to_dict_for_orchestrator_error():
     dict_compare(result, {
         'message': 'mockerror',
         'code': 'ORCHESTRATOR_ERROR',
-        'details': {}
+        'details': {},
+        'traceback': None
     })
 
 

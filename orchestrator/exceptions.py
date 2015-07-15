@@ -7,17 +7,20 @@ class OrchestratorError(Exception):
     """
     Base Orchestrator error.
     """
-    def __init__(self, message, code=None, details=None):
+    def __init__(self, message, code=None, details=None, traceback=None):
         self.message = message
         self.code = code or 'ORCHESTRATOR_ERROR'
         self.details = details or {}
-        super(OrchestratorError, self).__init__(message, code, details)
+        self.traceback = traceback
+        super(OrchestratorError, self).__init__(message, code, details,
+                                                traceback)
 
     def to_dict(self):
         return {
             'message': self.message,
             'code': self.code,
-            'details': self.details
+            'details': self.details,
+            'traceback': self.traceback
         }
 
     def __str__(self):

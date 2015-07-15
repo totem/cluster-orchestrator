@@ -618,7 +618,11 @@ def test_load_job_config_when_failed(m_load_config, m_handle_job_error):
     # Then: Config fails to get loaded
     eq_(raise_ctx.exception, error)
     m_handle_job_error.si.assert_called_once_with(
-        raise_ctx.exception, CONFIG_PROVIDERS['default']['config'], {}, {})
+        {
+            'message': 'RuntimeError(u\'MockError\',)',
+            'code': 'INTERNAL'
+        },
+        CONFIG_PROVIDERS['default']['config'], {}, {})
     m_handle_job_error.si.return_value.delay.assert_called_once_with()
 
 

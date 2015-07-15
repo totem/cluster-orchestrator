@@ -22,7 +22,8 @@ def test_to_dict_for_config_value_error():
             'path': '/mockpath',
             'value': 'mockvalue',
             'reason': 'mockreason'
-        }
+        },
+        'traceback': None
     })
 
 
@@ -40,7 +41,8 @@ def test_to_dict_for_config_validation_error():
         'details': {
             'schema-path': '/mockpath',
             'schema': 'mockschema'
-        }
+        },
+        'traceback': None
     })
 
 
@@ -58,5 +60,6 @@ def test_to_dict_for_config_parse_error():
         'code': 'CONFIG_PARSE_ERROR',
         'details': {
             'paths': ('path1', 'path2')
-        }
+        },
+        'traceback': None
     })
