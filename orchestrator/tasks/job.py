@@ -743,13 +743,20 @@ def _job_complete(job):
 def _deploy(self, job, deployer_name):
     job_config = job['config']
     deployer = job_config['deployers'][deployer_name]
-    apps_url = '%s/apps' % deployer.get('url', DEFAULT_DEPLOYER_URL)
+    deployer_url = deployer.get('url', DEFAULT_DEPLOYER_URL)
+    apps_url = '{}/apps'.format(deployer_url)
     headers = {
         'content-type': 'application/vnd.deployer.app.version.create.v1+json',
         'accept': 'application/vnd.deployer.task.v1+json'
     }
+    meta_info = dict_merge(job['meta-info'], {
+        'deployer': {
+            'name': deployer_name,
+            'url': deployer_url
+        }
+    })
     data = {
-        'meta-info': job['meta-info'],
+        'meta-info': meta_info,
         'proxy': deployer['proxy'],
         'templates': deployer['templates'],
         'deployment': dict_merge(deployer['deployment']),

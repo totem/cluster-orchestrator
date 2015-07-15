@@ -288,7 +288,14 @@ def test_deploy(m_notify, m_requests, m_add_search_event):
             'templates': {},
             'deployment': {},
             'security': job['config']['security'],
-            'meta-info': job['meta-info'],
+            'meta-info': {
+                'job-id': MOCK_JOB_ID,
+                'git': job['meta-info']['git'],
+                'deployer': {
+                    'name': 'default',
+                    'url': 'http://mockurl'
+                }
+            },
             'notifications': {}
         },
         'response': {
