@@ -15,7 +15,7 @@ RUN curl -L https://github.com/coreos/etcd/releases/download/$ETCDCTL_VERSION/et
     rm -rf /tmp/etcd-$ETCDCTL_VERSION-linux-amd64
 
 # Supervisor and App dependencies
-RUN pip install supervisor==3.1.2
+RUN pip install supervisor==3.1.2 supervisor-stdout
 ADD requirements.txt /opt/requirements.txt
 RUN pip install -r /opt/requirements.txt
 
