@@ -57,8 +57,7 @@ def _check_etcd():
         host=TOTEM_ETCD_SETTINGS['host'],
         port=TOTEM_ETCD_SETTINGS['port'])
     return {
-        'machines': etcd_cl.machines,
-        'leader': etcd_cl.leader,
+        'machines': etcd_cl.machines
     }
 
 

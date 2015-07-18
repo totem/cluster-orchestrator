@@ -29,8 +29,8 @@ def test_get_health_when_elasticsearch_is_enabled(client, get_es, ping):
     # Given: Operational external services"
     ping.delay().get.return_value = 'pong'
     get_es().info.return_value = 'mock'
-    EtcdInfo = namedtuple('Info', ('machines', 'leader'))
-    client.Client.return_value = EtcdInfo(['machine1'], 'machine1')
+    EtcdInfo = namedtuple('Info', ('machines',))
+    client.Client.return_value = EtcdInfo(['machine1'])
 
     # When: I get the health of external services
     health_status = health.get_health()
@@ -40,8 +40,7 @@ def test_get_health_when_elasticsearch_is_enabled(client, get_es, ping):
         'etcd': {
             'status': HEALTH_OK,
             'details': {
-                'machines': ['machine1'],
-                'leader': 'machine1'
+                'machines': ['machine1']
             }
         },
         'elasticsearch': {
@@ -67,8 +66,8 @@ def test_get_health_when_elasticsearch_is_disabled(client, ping):
 
     # Given: Operational external services"
     ping.delay().get.return_value = 'pong'
-    EtcdInfo = namedtuple('Info', ('machines', 'leader'))
-    client.Client.return_value = EtcdInfo(['machine1'], 'machine1')
+    EtcdInfo = namedtuple('Info', ('machines',))
+    client.Client.return_value = EtcdInfo(['machine1'])
 
     # When: I get the health of external services
     health_status = health.get_health()
@@ -78,8 +77,7 @@ def test_get_health_when_elasticsearch_is_disabled(client, ping):
         'etcd': {
             'status': HEALTH_OK,
             'details': {
-                'machines': ['machine1'],
-                'leader': 'machine1'
+                'machines': ['machine1']
             }
         },
         'celery': {
@@ -100,8 +98,8 @@ def test_get_health_when_celery_is_disabled(client, ping):
     """
 
     # Given: Operational external services"
-    EtcdInfo = namedtuple('Info', ('machines', 'leader'))
-    client.Client.return_value = EtcdInfo(['machine1'], 'machine1')
+    EtcdInfo = namedtuple('Info', ('machines',))
+    client.Client.return_value = EtcdInfo(['machine1'])
 
     # When: I get the health of external services
     health_status = health.get_health(check_celery=False)
@@ -111,8 +109,7 @@ def test_get_health_when_celery_is_disabled(client, ping):
         'etcd': {
             'status': HEALTH_OK,
             'details': {
-                'machines': ['machine1'],
-                'leader': 'machine1'
+                'machines': ['machine1']
             }
         }
     })
