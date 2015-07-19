@@ -4,6 +4,7 @@ from ast import literal_eval
 
 from celery.schedules import crontab
 from kombu import Queue
+from conf.appconfig import MONGODB_DB, MONGODB_URL
 
 TOTEM_ENV = os.getenv('TOTEM_ENV', 'local')
 CLUSTER_NAME = os.getenv('CLUSTER_NAME', TOTEM_ENV)
@@ -28,7 +29,12 @@ CELERY_DEFAULT_EXCHANGE = 'orchestrator-%s' % CLUSTER_NAME
 CELERY_DEFAULT_EXCHANGE_TYPE = 'direct'
 CELERY_DEFAULT_ROUTING_KEY = 'default'
 
-CELERY_RESULT_BACKEND = 'amqp'
+# Backend Settings
+CELERY_RESULT_BACKEND = MONGODB_URL
+CELERY_MONGODB_BACKEND_SETTINGS = {
+    'database': MONGODB_DB,
+    'taskmeta_collection': 'orchestrator-task-results-%s' % CLUSTER_NAME,
+}
 CELERY_RESULT_EXCHANGE = 'orchestrator-%s-results' % CLUSTER_NAME
 CELERY_IMPORTS = ('orchestrator.tasks', 'orchestrator.tasks.job',
                   'orchestrator.tasks.common', 'celery.task')

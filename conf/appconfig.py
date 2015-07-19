@@ -199,3 +199,15 @@ JOB_STATE_FAILED = 'FAILED'
 # Doc types for elastic search
 DOC_TYPE_JOBS = 'jobs'
 DOC_TYPE_EVENTS = 'events'
+
+# Mongo Settings
+MONGODB_USERNAME = os.getenv('MONODB_USERNAME', '')
+MONGODB_PASSWORD = os.getenv('MONODB_PASSWORD', '')
+MONGODB_HOST = os.getenv('MONGODB_HOST', '172.17.42.1')
+MONGODB_PORT = int(os.getenv('MONGODB_PORT', '27017'))
+MONGODB_DB = os.getenv('MONGODB_DB', 'totem')
+MONGODB_AUTH = '{0}:{1}@'.format(MONGODB_USERNAME, MONGODB_PASSWORD) \
+    if MONGODB_USERNAME else ''
+MONGODB_DEFAULT_URL = 'mongodb://{0}{1}:{2}/{3}'.format(
+    MONGODB_AUTH, MONGODB_HOST, MONGODB_PORT, MONGODB_DB)
+MONGODB_URL = os.getenv('MONGODB_URL') or MONGODB_DEFAULT_URL
