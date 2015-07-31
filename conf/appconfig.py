@@ -12,7 +12,7 @@ API_PORT = int(os.getenv('API_PORT', '9400'))
 
 TOTEM_ETCD_SETTINGS = {
     'base': os.getenv('ETCD_TOTEM_BASE', '/totem'),
-    'host': os.getenv('ETCD_HOST', '172.17.42.1'),
+    'host': os.getenv('ETCD_HOST', '127.0.0.1'),
     'port': int(os.getenv('ETCD_PORT', '4001')),
 }
 
