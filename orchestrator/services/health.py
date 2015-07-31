@@ -1,9 +1,7 @@
 from functools import wraps
 import sys
 from etcd import client
-from conf.appconfig import HEALTH_OK, HEALTH_FAILED, TOTEM_ETCD_SETTINGS, \
-    SEARCH_SETTINGS
-from orchestrator.elasticsearch import get_search_client
+from conf.appconfig import HEALTH_OK, HEALTH_FAILED, TOTEM_ETCD_SETTINGS
 from orchestrator.tasks.common import ping
 from orchestrator.util import timeout
 
@@ -43,15 +41,6 @@ def _check(func):
 
 @timeout(HEALTH_TIMEOUT_SECONDS)
 @_check
-def _check_elasticsearch():
-    """
-    Checks elasticsearch health by querying info.
-    """
-    return get_search_client().info()
-
-
-@timeout(HEALTH_TIMEOUT_SECONDS)
-@_check
 def _check_etcd():
     etcd_cl = client.Client(
         host=TOTEM_ETCD_SETTINGS['host'],
@@ -86,6 +75,4 @@ def get_health(check_celery=True):
     }
     if check_celery:
         health_status['celery'] = _check_celery()
-    if SEARCH_SETTINGS['enabled']:
-        health_status['elasticsearch'] = _check_elasticsearch()
     return health_status

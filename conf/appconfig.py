@@ -18,15 +18,6 @@ TOTEM_ETCD_SETTINGS = {
 
 TOTEM_ENV = os.getenv('TOTEM_ENV', 'local')
 CLUSTER_NAME = os.getenv('CLUSTER_NAME', TOTEM_ENV)
-SEARCH_INDEX = os.getenv('SEARCH_INDEX', 'totem-{0}'.format(TOTEM_ENV))
-
-SEARCH_SETTINGS = {
-    'enabled': os.getenv('SEARCH_ENABLED', 'false').strip().lower() in
-    BOOLEAN_TRUE_VALUES,
-    'host': os.getenv('ELASTICSEARCH_HOST', '172.17.42.1'),
-    'port': os.getenv('ELASTICSEARCH_PORT', '9200'),
-    'default-index': SEARCH_INDEX
-}
 
 CORS_SETTINGS = {
     'enabled': os.getenv('CORS_ENABLED', 'true').strip().lower() in
@@ -214,10 +205,6 @@ HOOK_STATUS_FAILED = 'failed'
 HOOK_TYPE_CI = 'ci'
 HOOK_TYPE_BUILDER = 'builder'
 HOOK_TYPE_SCM_PUSH = 'scm-push'
-
-# Doc types for elastic search
-DOC_TYPE_JOBS = 'jobs'
-DOC_TYPE_EVENTS = 'events'
 
 # Store Settings
 DEFAULT_STORE_NAME = 'mongo'
