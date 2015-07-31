@@ -6,6 +6,7 @@ from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
 import copy
 import uuid
+import etcd
 from future.builtins import (  # noqa
     bytes, dict, int, list, object, range, str,
     ascii, chr, hex, input, next, oct, open,
@@ -93,7 +94,7 @@ def is_frozen(owner, repo, ref, etcd_cl=None, etcd_base=None):
     app_base = _app_jobs_base(owner, repo, ref, etcd_base)
     try:
         return etcd_cl.read(app_base + '/frozen').value in BOOLEAN_TRUE_VALUES
-    except KeyError:
+    except etcd.EtcdKeyNotFound:
         # Key is not found. Application is not frozen
         return False
 
@@ -181,6 +182,11 @@ def create_job(job_config, owner, repo, ref, commit=None, force_deploy=False,
     else:
         job = as_job(job_config, job_id, owner, repo, ref, commit=commit,
                      state=JOB_STATE_NEW, force_deploy=force_deploy)
+        search_params = dict_merge({
+            'meta-info': {
+                'job-id': job['meta-info']['job-id']
+            }
+        }, search_params)
         store.add_event(EVENT_NEW_JOB, details=job,
                         search_params=search_params)
     store.update_job(job)
@@ -352,7 +358,8 @@ def get_build_image(hook_name, hook_type, hook_status, hook_result):
             if tags:
                 return '{}:{}'.format(image_base_url, tags[0])
             return image_base_url
-        return hook_result.get('image')
+        if hook_result:
+            return hook_result.get('image')
     return None
 
 

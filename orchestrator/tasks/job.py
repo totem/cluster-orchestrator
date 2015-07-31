@@ -6,7 +6,7 @@ from requests.exceptions import ConnectionError
 from conf.appconfig import TASK_SETTINGS, \
     JOB_STATE_COMPLETE, JOB_STATE_NOOP, \
     DEFAULT_DEPLOYER_URL, CONFIG_PROVIDERS, LEVEL_FAILED, LEVEL_STARTED, \
-    LEVEL_SUCCESS, TOTEM_ENV, JOB_STATE_FAILED
+    LEVEL_SUCCESS, TOTEM_ENV, JOB_STATE_FAILED, HOOK_STATUS_SUCCESS
 from orchestrator.services import job as job_service
 from orchestrator.celery import app
 from orchestrator.services import config
@@ -26,7 +26,7 @@ from orchestrator.services.storage.base import \
     EVENT_PENDING_HOOK, \
     EVENT_SETUP_APPLICATION_COMPLETE, EVENT_UNDEPLOY_REQUESTED, \
     EVENT_COMMIT_IGNORED
-from orchestrator.tasks.common import async_wait
+from orchestrator.tasks.common import async_wait, ErrorHandlerTask
 from orchestrator.util import dict_merge
 
 __author__ = 'sukrit'
@@ -80,7 +80,8 @@ def _handle_job_error(error, job_config, notify_ctx, search_params,
     :type job_id: str
     :return:
     """
-    notify.s(
+    notify.si(
+        error,
         ctx=notify_ctx,
         level=LEVEL_FAILED,
         notifications=job_config.get('notifications'),
@@ -96,7 +97,7 @@ def _handle_job_error(error, job_config, notify_ctx, search_params,
 
 @app.task
 def _new_job(job_config, owner, repo, ref, hook_type, hook_name,
-             hook_status='success', hook_result=None, commit=None,
+             hook_status=HOOK_STATUS_SUCCESS, hook_result=None, commit=None,
              force_deploy=None):
     notify_ctx = as_notify_ctx(
         owner, repo, ref, commit=commit, operation='handle_callback_hook')
@@ -132,7 +133,7 @@ def _new_job(job_config, owner, repo, ref, hook_type, hook_name,
 
     return (
         _handle_hook.si(job, hook_type, hook_name, hook_status=hook_status,
-                        hook_result=hook_result) |
+                        hook_result=hook_result, error_tasks=error_tasks) |
         async_wait.s(
             default_retry_delay=TASK_SETTINGS['JOB_WAIT_RETRY_DELAY'],
             max_retries=TASK_SETTINGS['JOB_WAIT_RETRIES'],
@@ -169,9 +170,12 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
     :type hook_result: bool
     :return: Task result
     """
-    job_config = CONFIG_PROVIDERS['default']['config']
     notify_ctx = as_notify_ctx(owner, repo, ref, commit=commit,
                                operation='handle_callback_hook')
+    # Create default search parameters
+    search_params = as_job_meta(owner, repo, ref, commit=commit)
+    job_config = _load_job_config(owner, repo, ref, notify_ctx, search_params,
+                                  commit=commit)
 
     # Create a notification for receiving webhook
     notify.si(
@@ -181,9 +185,6 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
         notifications=job_config.get('notifications'),
         security_profile=job_config['security']['profile']
     ).delay()
-
-    # Create default search parameters
-    search_params = as_job_meta(owner, repo, ref, commit=commit)
 
     lock_name = '{}-{}-{}-{}'.format(TOTEM_ENV, owner, repo, ref)
 
@@ -204,7 +205,7 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
             name=lock_name,
             do_task=(
                 _new_job.si(
-                    owner, repo, ref, hook_type, hook_name,
+                    job_config, owner, repo, ref, hook_type, hook_name,
                     hook_status=hook_status, hook_result=hook_result,
                     commit=commit, force_deploy=force_deploy)
             ),
@@ -308,13 +309,14 @@ def _release_lock(lock):
     return LockService().release(lock)
 
 
-@app.task
-def _handle_hook(job, hook_type, hook_name, hook_status, hook_result):
+@app.task(base=ErrorHandlerTask)
+def _handle_hook(job, hook_type, hook_name, hook_status, hook_result,
+                 error_tasks=None):
     job_config = job['config']
     git_meta = job['meta-info']['git']
     search_params = create_search_parameters(job)
 
-    builder_hooks = [name for name, hook_obj in job_config['hooks']['builders']
+    builder_hooks = [name for name, hook_obj in job_config['hooks']['builder']
                      .items() if hook_obj['enabled']]
     store = get_store()
 
@@ -450,8 +452,7 @@ def _deploy(self, job, deployer_name):
         'name': deployer_name,
         'url': apps_url,
         'request': data,
-        'response': response.json() if 'json' in
-        response.headers['content-type'] else {'raw': response.text},
+        'response': {'raw': response.text},
         'status': response.status_code
     }
     store = get_store()

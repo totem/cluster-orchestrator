@@ -93,9 +93,9 @@ CONFIG_PROVIDERS = {
         'base': os.getenv('CONFIG_S3_BUCKET_BASE', 'totem/config'),
     },
     'etcd': {
-        'base': os.getenv('ETCD_TOTEM_BASE', '/totem'),
-        'host': os.getenv('ETCD_HOST', '172.17.42.1'),
-        'port': int(os.getenv('ETCD_PORT', '4001')),
+        'base': TOTEM_ETCD_SETTINGS['base'],
+        'host': TOTEM_ETCD_SETTINGS['host'],
+        'port': TOTEM_ETCD_SETTINGS['port'],
     },
     'effective': {
         'cache': {
@@ -125,7 +125,7 @@ CONFIG_PROVIDERS = {
                         'enabled': False,
                     }
                 },
-                'builders': {
+                'builder': {
                     'image-factory': {
                         'enabled': True,
                     }

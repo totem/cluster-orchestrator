@@ -1,5 +1,6 @@
 from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
+import json
 
 from parser import ParserError
 from future.builtins import (  # noqa
@@ -425,13 +426,15 @@ def test_validate_schema_for_successful_validation(m_lru_cache, m_open,
 def test_validate_schema_for_failed_validation(m_open, m_validate):
 
         # Given: Existing schema
-        m_open().__enter__().read.return_value = '''{
+        schema = '''{
         "title": "Schema for Job Config",
         "id": "#generic-hook-v1"
 }'''
+        m_open().__enter__().read.return_value = schema
 
         # And: Validator that succeeds validation
-        m_validate.side_effect = ValidationError('MockError')
+        m_validate.side_effect = ValidationError('MockError',
+                                                 schema=json.loads(schema))
 
         # And: Config that needs to be validated
         config = {

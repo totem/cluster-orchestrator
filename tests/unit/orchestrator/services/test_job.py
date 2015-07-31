@@ -3,6 +3,7 @@ Tests for job service
 """
 from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
+import etcd
 from future.builtins import (  # noqa
     bytes, dict, int, list, object, range, str,
     ascii, chr, hex, input, next, oct, open,
@@ -139,7 +140,7 @@ def test_is_frozen_for_non_existing_key(m_etcd_cl):
     """
 
     # Given: Application with existing frozen status
-    m_etcd_cl.return_value.read.side_effect = KeyError
+    m_etcd_cl.return_value.read.side_effect = etcd.EtcdKeyNotFound
 
     # When: I get the freeze status for existing application
     frozen = job.is_frozen(MOCK_OWNER, MOCK_REPO, MOCK_REF)
@@ -225,7 +226,9 @@ def test_create_job(m_get_store, m_uuid4):
     dict_compare(job, expected_job)
 
     m_get_store.return_value.add_event.assert_called_once_with(
-        EVENT_NEW_JOB, search_params=None, details=expected_job)
+        EVENT_NEW_JOB,
+        search_params={u'meta-info': {'job-id': MOCK_JOB_ID}},
+        details=expected_job)
 
 
 @patch('orchestrator.services.job.get_store')

@@ -31,6 +31,9 @@
     },
     "notifications": {
       "$ref": "#/definitions/notifications"
+    },
+    "scm": {
+      "type": "object"
     }
   },
   "required": ["enabled"],
@@ -148,8 +151,8 @@
         "ci": {
           "$ref": "#/definitions/ci"
         },
-        "builders": {
-          "$ref": "#/definitions/builders"
+        "builder": {
+          "$ref": "#/definitions/builder"
         }
       },
       "additionalProperties": false
@@ -164,7 +167,7 @@
       }
     },
 
-    "builders": {
+    "builder": {
       "type": "object",
       "patternProperties": {
         ".*": {
