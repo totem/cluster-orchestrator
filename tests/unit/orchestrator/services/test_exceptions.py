@@ -38,8 +38,8 @@ def test_to_dict_for_config_validation_error():
         'message': 'mockmessage',
         'code': 'CONFIG_VALIDATION_ERROR',
         'details': {
-            'schema-path': '/mockpath',
-            'schema': 'mockschema'
+            'schema': '"mockschema"',
+            'schema-path': '/mockpath'
         }
     })
 

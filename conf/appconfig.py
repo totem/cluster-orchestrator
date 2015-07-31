@@ -12,21 +12,12 @@ API_PORT = int(os.getenv('API_PORT', '9400'))
 
 TOTEM_ETCD_SETTINGS = {
     'base': os.getenv('ETCD_TOTEM_BASE', '/totem'),
-    'host': os.getenv('ETCD_HOST', '172.17.42.1'),
+    'host': os.getenv('ETCD_HOST', '127.0.0.1'),
     'port': int(os.getenv('ETCD_PORT', '4001')),
 }
 
 TOTEM_ENV = os.getenv('TOTEM_ENV', 'local')
 CLUSTER_NAME = os.getenv('CLUSTER_NAME', TOTEM_ENV)
-SEARCH_INDEX = os.getenv('SEARCH_INDEX', 'totem-{0}'.format(TOTEM_ENV))
-
-SEARCH_SETTINGS = {
-    'enabled': os.getenv('SEARCH_ENABLED', 'false').strip().lower() in
-    BOOLEAN_TRUE_VALUES,
-    'host': os.getenv('ELASTICSEARCH_HOST', '172.17.42.1'),
-    'port': os.getenv('ELASTICSEARCH_PORT', '9200'),
-    'default-index': SEARCH_INDEX
-}
 
 CORS_SETTINGS = {
     'enabled': os.getenv('CORS_ENABLED', 'true').strip().lower() in
@@ -67,6 +58,9 @@ LEVEL_SUCCESS = 3
 LEVEL_STARTED = 4
 LEVEL_PENDING = 5
 
+SCM_TYPE_GITHUB = 'github'
+SCM_TYPE_OTHER = 'other'
+
 ENCRYPTION = {
     'store': os.getenv('ENCRYPTION_STORE', None),
     's3': {
@@ -99,9 +93,9 @@ CONFIG_PROVIDERS = {
         'base': os.getenv('CONFIG_S3_BUCKET_BASE', 'totem/config'),
     },
     'etcd': {
-        'base': os.getenv('ETCD_TOTEM_BASE', '/totem'),
-        'host': os.getenv('ETCD_HOST', '172.17.42.1'),
-        'port': int(os.getenv('ETCD_PORT', '4001')),
+        'base': TOTEM_ETCD_SETTINGS['base'],
+        'host': TOTEM_ETCD_SETTINGS['host'],
+        'port': TOTEM_ETCD_SETTINGS['port'],
     },
     'effective': {
         'cache': {
@@ -116,6 +110,12 @@ CONFIG_PROVIDERS = {
     },
     'default': {
         'config': {
+            'scm': {
+                'type': SCM_TYPE_GITHUB,
+                'auth': {
+                    'token': None
+                }
+            },
             'deployers': {
                 'default': DEFAULT_DEPLOYER_CONFIG
             },
@@ -125,7 +125,7 @@ CONFIG_PROVIDERS = {
                         'enabled': False,
                     }
                 },
-                'builders': {
+                'builder': {
                     'image-factory': {
                         'enabled': True,
                     }
@@ -196,18 +196,35 @@ JOB_STATE_COMPLETE = 'COMPLETE'
 JOB_STATE_NOOP = 'NOOP'
 JOB_STATE_FAILED = 'FAILED'
 
-# Doc types for elastic search
-DOC_TYPE_JOBS = 'jobs'
-DOC_TYPE_EVENTS = 'events'
+# Hook status
+HOOK_STATUS_SUCCESS = 'success'
+HOOK_STATUS_PENDING = 'pending'
+HOOK_STATUS_FAILED = 'failed'
+
+# Hook Type
+HOOK_TYPE_CI = 'ci'
+HOOK_TYPE_BUILDER = 'builder'
+HOOK_TYPE_SCM_PUSH = 'scm-push'
+
+# Store Settings
+DEFAULT_STORE_NAME = 'mongo'
+DEFAULT_JOB_EXPIRY_SECONDS = 4 * 7 * 24 * 3600  # 4 weeks
+JOB_EXPIRY_SECONDS = int(
+    os.getenv('JOB_EXPIRY_SECONDS', DEFAULT_JOB_EXPIRY_SECONDS))
 
 # Mongo Settings
 MONGODB_USERNAME = os.getenv('MONODB_USERNAME', '')
 MONGODB_PASSWORD = os.getenv('MONODB_PASSWORD', '')
-MONGODB_HOST = os.getenv('MONGODB_HOST', '172.17.42.1')
+MONGODB_HOST = os.getenv('MONGODB_HOST', '127.0.0.1')
 MONGODB_PORT = int(os.getenv('MONGODB_PORT', '27017'))
-MONGODB_DB = os.getenv('MONGODB_DB', 'totem')
+MONGODB_DB = os.getenv('MONGODB_DB', 'totem-{}'.format(TOTEM_ENV))
 MONGODB_AUTH = '{0}:{1}@'.format(MONGODB_USERNAME, MONGODB_PASSWORD) \
     if MONGODB_USERNAME else ''
 MONGODB_DEFAULT_URL = 'mongodb://{0}{1}:{2}/{3}'.format(
     MONGODB_AUTH, MONGODB_HOST, MONGODB_PORT, MONGODB_DB)
 MONGODB_URL = os.getenv('MONGODB_URL') or MONGODB_DEFAULT_URL
+
+MONGODB_JOB_COLLECTION = os.getenv('MONGODB_JOB_COLLECTION') or \
+    'orchestrator-jobs'
+MONGODB_EVENT_COLLECTION = os.getenv('MONGODB_EVENT_COLLECTION') or \
+    'events'

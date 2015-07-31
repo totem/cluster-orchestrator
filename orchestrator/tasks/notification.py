@@ -9,7 +9,7 @@ from future.builtins import (  # noqa
 
 import requests
 
-from conf.appconfig import CONFIG_PROVIDERS, SEARCH_SETTINGS, \
+from conf.appconfig import CONFIG_PROVIDERS, \
     DEFAULT_HIPCHAT_TOKEN, LEVEL_FAILED, DEFAULT_GITHUB_TOKEN, \
     LEVEL_FAILED_WARN, LEVEL_STARTED, LEVEL_SUCCESS, LEVEL_PENDING
 from orchestrator import templatefactory
@@ -44,7 +44,6 @@ def notify(obj, ctx=None, level=LEVEL_FAILED,
 def notify_hipchat(obj, ctx, level, config, security_profile):
     config = decrypt_config(config, profile=security_profile)
     ctx.setdefault('github', True)
-    ctx.setdefault('search', SEARCH_SETTINGS)
     base_url = config.get('url') or 'https://api.hipchat.com'
     room_url = '{0}/v2/room/{1}/notification'.format(
         base_url, config.get('room'))

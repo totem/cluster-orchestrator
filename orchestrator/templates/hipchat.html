@@ -90,11 +90,7 @@
                     <td valign="top"><b>Job-ID:</b></td>
 
                     <td valign="bottom">
-                        {% if ctx.search.enabled %}
-                        <a href="http://{{ctx.search.host}}:{{ctx.search.port}}/{{ctx.search['default-index']}}/jobs/{{ctx['job-id']}}">{{ ctx['job-id'] }}</a>
-                        {% else %}
                         {{ ctx['job-id'] }}
-                        {% endif %}
                     </td>
 
                 </tr>
