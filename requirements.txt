@@ -11,7 +11,9 @@ celery[mongodb]==3.1.18
 pymongo==3.0.3
 flower==0.7.2
 Jinja2==2.7.3
-requests
+requests==2.7.0
+requests[security]
+urllib3==1.11
 https://github.com/totem/flask-hyperschema/archive/master.tar.gz
 https://github.com/totem/totem-encrypt/archive/master.tar.gz
 https://github.com/dlitz/pycrypto/archive/v2.7a1.tar.gz

@@ -2,7 +2,8 @@ import copy
 import datetime
 from freezegun import freeze_time
 import pymongo
-from conf.appconfig import JOB_STATE_NEW, JOB_STATE_COMPLETE, JOB_STATE_FAILED
+from conf.appconfig import JOB_STATE_NEW, JOB_STATE_COMPLETE, JOB_STATE_FAILED, \
+    JOB_STATE_SCHEDULED
 from orchestrator.services.storage.mongo import create
 from nose.tools import ok_, eq_
 from orchestrator.util import dict_merge
@@ -112,23 +113,23 @@ class TestMongoStore():
             ok_(idx in indexes, '{} was not created'.format(idx))
 
     @freeze_time(NOW)
-    def test_find_or_create_job_for_existing_job(self):
+    def test_update_existing_job(self):
         # When:  I execute find or create for existing job
-        job = self.store.find_or_create_job({
-            'meta-info': {
-                'git': EXISTING_JOBS['job-1']['meta-info']['git'],
-                'job-id': 'find-create-job-id'
-            },
-            'state': JOB_STATE_NEW
-        })
+        self.store.update_job(dict_merge({
+            'state': JOB_STATE_SCHEDULED
+        }, EXISTING_JOBS['job-1']))
 
         # Then: Existing job is returned
-        expected_job = copy.deepcopy(EXISTING_JOBS['job-1'])
-        del(expected_job['_expiry'])
-        dict_compare(job, expected_job)
+        updated_job = self._get_raw_document_without_internal_id('job-1')
+        expected_job = dict_merge({
+            'state': JOB_STATE_SCHEDULED,
+            '_expiry': NOW,
+            'modified': NOW,
+        }, EXISTING_JOBS['job-1'])
+        dict_compare(updated_job, expected_job)
 
     @freeze_time(NOW)
-    def test_find_or_create_job_for_non_existing_job(self):
+    def test_create_new_job(self):
         # Given: Job that needs to be created
         job = {
             'meta-info': {
@@ -144,30 +145,15 @@ class TestMongoStore():
         }
 
         # When:  I execute find or create for non existing job
-        created_job = self.store.find_or_create_job(job)
+        self.store.update_job(job)
 
         # Then: Existing job is returned
-        expected_job = copy.deepcopy(job)
-        expected_job['modified'] = NOW
-        dict_compare(created_job, expected_job)
-
-    @freeze_time(NOW)
-    def test_find_or_create_job_for_no_running_job(self):
-        # Given: Job that needs to be created
-        job = {
-            'meta-info': {
-                'git': EXISTING_JOBS['job-2']['meta-info']['git'],
-                'job-id': 'find-create-job-id'
-            },
-            'state': JOB_STATE_NEW
-        }
-
-        # When:  I execute find or create for non existing job
-        created_job = self.store.find_or_create_job(job)
-
-        # Then: Existing job is returned
-        expected_job = copy.deepcopy(job)
-        expected_job['modified'] = NOW
+        created_job = self._get_raw_document_without_internal_id(
+            'find-create-job-id')
+        expected_job = dict_merge({
+            'modified': NOW,
+            '_expiry': NOW
+        }, job)
         dict_compare(created_job, expected_job)
 
     def test_get_job(self):
@@ -193,87 +179,6 @@ class TestMongoStore():
             '_expiry': NOW,
             'modified': NOW,
             'state': JOB_STATE_FAILED
-        }, EXISTING_JOBS['job-1'])
-        dict_compare(job, expected_job)
-
-    @freeze_time(NOW)
-    def test_reset_hooks(self):
-
-        # Given: Reset hooks
-        hooks = {
-            'ci': {
-                'test1': {
-                    'status': 'pending'
-                }
-            }
-        }
-
-        # When: I reset hooks for existing job
-        self.store.reset_hooks('job-1', hooks, commit='commit1!')
-
-        # Then: Deployment state is changed to promoted and set to never expire
-        job = self._get_raw_document_without_internal_id('job-1')
-        expected_job = dict_merge({
-            '_expiry': NOW,
-            'modified': NOW,
-            'hooks': hooks,
-            'meta-info': {
-                'git': {
-                    'commit': 'commit1!',
-                    'commit-set': ['commit1', 'commit1!']
-                }
-            }
-        }, EXISTING_JOBS['job-1'])
-        dict_compare(job, expected_job)
-
-    @freeze_time(NOW)
-    def test_update_hook(self):
-
-        # When: I update hooks for existing job
-        self.store.update_hook('job-1', 'ci', 'test2', 'failed',
-                               image='mockimage')
-
-        # Then: Deployment state is changed to promoted and set to never expire
-        job = self._get_raw_document_without_internal_id('job-1')
-        expected_job = dict_merge({
-            '_expiry': NOW,
-            'modified': NOW,
-            'hooks': {
-                'ci': {
-                    'test2': {
-                        'status': 'failed'
-                    }
-                }
-            },
-            'templates': {
-                'app': {
-                    'args': {
-                        'image': 'mockimage'
-                    }
-                }
-            }
-        }, EXISTING_JOBS['job-1'])
-        dict_compare(job, expected_job)
-
-    @freeze_time(NOW)
-    def test_reset_hooks_without_commit(self):
-
-        # Given: Reset hooks
-        hooks = {
-            'ci': {
-                'test1': {
-                    'status': 'pending'
-                }
-            }
-        }
-
-        # When: I reset hooks for existing job
-        self.store.reset_hooks('job-1', hooks)
-
-        # Then: Job hooks get reset
-        job = self._get_raw_document_without_internal_id('job-1')
-        expected_job = dict_merge({
-            'hooks': hooks,
         }, EXISTING_JOBS['job-1'])
         dict_compare(job, expected_job)
 
@@ -329,9 +234,19 @@ class TestMongoStore():
             owner=EXISTING_JOBS['job-1']['meta-info']['git']['owner'],
             repo=EXISTING_JOBS['job-1']['meta-info']['git']['repo'],
             ref=EXISTING_JOBS['job-1']['meta-info']['git']['ref'],
-            commit=EXISTING_JOBS['job-1']['meta-info']['git']['commit']
+            commit=EXISTING_JOBS['job-1']['meta-info']['git']['commit'],
+            state_in=[JOB_STATE_NEW, JOB_STATE_SCHEDULED]
         )
 
         # Then: All jobs are returned
         eq_(len(jobs), 1)
         dict_compare(jobs[0], EXISTING_JOBS['job-1'])
+
+    def test_filter_jobs_by_non_matching_critera(self):
+        # When: I filter jobs from the store
+        jobs = self.store.filter_jobs(
+            state_in=['INVALID']
+        )
+
+        # Then: All jobs are returned
+        eq_(len(jobs), 0)

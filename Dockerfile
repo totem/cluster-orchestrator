@@ -1,4 +1,4 @@
-FROM totem/python-base:2.7-trusty-b2
+FROM totem/python-base:2.7-trusty-b3
 
 ENV DEBIAN_FRONTEND noninteractive
 

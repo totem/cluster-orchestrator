@@ -41,20 +41,18 @@ class AbstractStore:
         raise NotImplementedError(
             'Store: {} does not support this operation'.format(self.__class__))
 
-    def find_or_create_job(self, job):
+    def update_job(self, job):
         """
-        Finds or creates new job.
-        If a scheduled/new job with given owner, repo and ref exists , existing
-        job is returned else a new job is created
+        Creates/updates a job
 
         :param job: Dictionary containing job information
         :type job: dict
-        :return: Created job
-        :rtype: dict
+        :return: None
         """
         self.not_supported()
 
-    def filter_jobs(self, owner=None, repo=None, ref=None, commit=None):
+    def filter_jobs(self, owner=None, repo=None, ref=None, commit=None,
+                    state_in=None):
         """
         Filter jobs by owner, repo , ref , commit
 
@@ -65,6 +63,8 @@ class AbstractStore:
         :keyword ref: Branch/Tag name
         :type ref: str
         :keyword commit: SHA Commit ID
+        :type commit: str
+        :keyword state_in: Valid job states
         :type commit: str
         :return: List of filtered jobs where each job is represented as a dict
         :rtype: list
@@ -88,38 +88,6 @@ class AbstractStore:
         :type job_id: str
         :param state: State of the job (e.g. PROMOTED, NEW, etc)
         :type state: str
-        :return: None
-        """
-        self.not_supported()
-
-    def reset_hooks(self, job_id, hooks, commit=None):
-        """
-        Reset hooks for given job and updates its commit sha.
-
-        :param job_id: Job id
-        :type job_id: str
-        :param hooks: Hooks dictionary
-        :type hooks: dict
-        :keyword commit: Git commit sha
-        :type commit: str
-        :return: None
-        """
-        self.not_supported()
-
-    def update_hook(self, job_id, hook_type, hook_name, hook_status,
-                    image=None):
-        """
-        Update the hook for a job with given id
-        :param job_id: Job id
-        :type job_id: str
-        :param hook_type: Type of hook
-        :type hook_type: str
-        :param hook_name: Type of hook
-        :type hook_name: str
-        :param hook_status: Hook status (pending, failed, successful)
-        :type hook_status: str
-        :keyword image: Container Image location
-        :type image: str
         :return: None
         """
         self.not_supported()

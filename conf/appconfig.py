@@ -67,6 +67,9 @@ LEVEL_SUCCESS = 3
 LEVEL_STARTED = 4
 LEVEL_PENDING = 5
 
+SCM_TYPE_GITHUB = 'github'
+SCM_TYPE_OTHER = 'other'
+
 ENCRYPTION = {
     'store': os.getenv('ENCRYPTION_STORE', None),
     's3': {
@@ -116,6 +119,12 @@ CONFIG_PROVIDERS = {
     },
     'default': {
         'config': {
+            'scm': {
+                'type': SCM_TYPE_GITHUB,
+                'auth': {
+                    'token': None
+                }
+            },
             'deployers': {
                 'default': DEFAULT_DEPLOYER_CONFIG
             },
@@ -195,6 +204,16 @@ JOB_STATE_SCHEDULED = 'SCHEDULED'
 JOB_STATE_COMPLETE = 'COMPLETE'
 JOB_STATE_NOOP = 'NOOP'
 JOB_STATE_FAILED = 'FAILED'
+
+# Hook status
+HOOK_STATUS_SUCCESS = 'success'
+HOOK_STATUS_PENDING = 'pending'
+HOOK_STATUS_FAILED = 'failed'
+
+# Hook Type
+HOOK_TYPE_CI = 'ci'
+HOOK_TYPE_BUILDER = 'builder'
+HOOK_TYPE_SCM_PUSH = 'scm-push'
 
 # Doc types for elastic search
 DOC_TYPE_JOBS = 'jobs'

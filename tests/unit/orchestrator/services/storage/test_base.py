@@ -3,6 +3,7 @@ from freezegun import freeze_time
 from mock import MagicMock
 from nose.tools import raises
 import pytz
+from conf.appconfig import JOB_STATE_NEW
 from orchestrator.services.storage.base import AbstractStore
 from tests.helper import dict_compare
 
@@ -17,8 +18,8 @@ class TestAbstractStore:
         self.store = AbstractStore()
 
     @raises(NotImplementedError)
-    def test_find_or_create_job(self):
-        self.store.find_or_create_job(MagicMock())
+    def test_update_job(self):
+        self.store.update_job(MagicMock())
 
     @raises(NotImplementedError)
     def test_get_job(self):
@@ -29,17 +30,8 @@ class TestAbstractStore:
         self.store.update_state('fake_id', 'PROMOTED')
 
     @raises(NotImplementedError)
-    def test_update_hook(self):
-        self.store.update_hook('fake_id', 'mock_hook_type', 'mock_hook_name',
-                               'mock_hook_status')
-
-    @raises(NotImplementedError)
     def test_get_health(self):
         self.store.health()
-
-    @raises(NotImplementedError)
-    def test_reset_hooks(self):
-        self.store.reset_hooks('fake_id', {}, commit='fake-commit')
 
     @freeze_time(NOW_NOTZ)
     def test_add_event(self):
@@ -68,7 +60,8 @@ class TestAbstractStore:
 
     @raises(NotImplementedError)
     def test_filter_jobs(self):
-        self.store.filter_jobs()
+        self.store.filter_jobs(owner='mock-owner', repo='mock-repo',
+                               ref='mock-branch', state_in=[JOB_STATE_NEW])
 
     @freeze_time(NOW)
     def test_apply_modified_ts(self):

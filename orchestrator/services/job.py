@@ -11,8 +11,9 @@ from future.builtins import (  # noqa
     ascii, chr, hex, input, next, oct, open,
     pow, round, super,
     filter, map, zip)
-from conf.appconfig import TOTEM_ENV, BOOLEAN_TRUE_VALUES, JOB_STATE_SCHEDULED, \
-    JOB_STATE_NEW, CLUSTER_NAME, JOB_STATE_NOOP, LEVEL_SUCCESS
+from conf.appconfig import TOTEM_ENV, BOOLEAN_TRUE_VALUES, \
+    JOB_STATE_SCHEDULED, JOB_STATE_NEW, CLUSTER_NAME, HOOK_STATUS_PENDING, \
+    HOOK_STATUS_SUCCESS
 from orchestrator.etcd import using_etcd
 from orchestrator.services.storage.base import EVENT_NEW_JOB
 from orchestrator.services.storage.factory import get_store
@@ -111,6 +112,19 @@ def as_job_meta(owner, repo, ref, commit=None, job_id=None):
     }
 
 
+def reset_hook_status(job):
+    job = copy.deepcopy(job)
+    job_config = job['config']
+
+    for hook_type, hooks in job_config['hooks'].items():
+        for hookname, hook in hooks.items():
+            if hook.get('enabled', False):
+                job['hooks'][hook_type][hookname] = {
+                    'status': HOOK_STATUS_PENDING
+                }
+    return job
+
+
 def as_job(job_config, job_id,  owner, repo, ref, state=JOB_STATE_SCHEDULED,
            commit=None, force_deploy=False):
     job = dict_merge({
@@ -127,15 +141,8 @@ def as_job(job_config, job_id,  owner, repo, ref, state=JOB_STATE_SCHEDULED,
             'builder': {}
         },
         'force-deploy': force_deploy
-    }, as_job_meta(owner, repo, ref, commit=commit, job_id=job_id),)
-
-    for hook_type, hooks  in job_config['hooks'].items():
-        for hookname, hook in hooks.items():
-            if hook.get('enabled', False):
-                job['hooks'][hook_type][hookname] = {
-                    'status': 'pending'
-                }
-    return job
+    }, as_job_meta(owner, repo, ref, commit=commit, job_id=job_id))
+    return reset_hook_status(job)
 
 
 def create_job(job_config, owner, repo, ref, commit=None, force_deploy=False,
@@ -154,17 +161,29 @@ def create_job(job_config, owner, repo, ref, commit=None, force_deploy=False,
     """
     job_id = str(uuid.uuid4())
     store = get_store()
-    job = as_job(job_config, job_id, owner, repo, ref, commit=commit,
-                 state=JOB_STATE_NEW, force_deploy=force_deploy)
-    hooks = job['hooks']
-    job = store.find_or_create_job(job)
-    if commit and commit not in job['meta-info']['git']['commit-set']:
-        job['meta-info']['git']['commit-set'].append(commit)
-        job['meta-info']['git']['commit'] = commit
-        store.reset_hooks(job_id, hooks, commit=commit)
-    if job['state'] == JOB_STATE_NEW:
+    existing_jobs = store.filter_jobs(
+        owner=owner, repo=repo, ref=ref,
+        state_in=[JOB_STATE_NEW, JOB_STATE_SCHEDULED])
+    if existing_jobs:
+        job = existing_jobs[0]
+        if not commit:
+            job = reset_hook_status(job)
+            job['config'] = job_config
+        elif commit not in job['meta-info']['git']['commit-set']:
+            job['meta-info']['git']['commit-set'].append(commit)
+            job['meta-info']['git']['commit'] = commit
+            job = reset_hook_status(job)
+            job['config'] = job_config
+        else:
+            # Skip modification to existing job
+            return job
+
+    else:
+        job = as_job(job_config, job_id, owner, repo, ref, commit=commit,
+                     state=JOB_STATE_NEW, force_deploy=force_deploy)
         store.add_event(EVENT_NEW_JOB, details=job,
                         search_params=search_params)
+    store.update_job(job)
     return job
 
 
@@ -180,7 +199,7 @@ def create_search_parameters(job, defaults=None):
 
     job = dict_merge(job or {}, defaults or {}, {
         'meta-info': {
-            'job-id': 'not_set'
+            'job-id': None
         }
     })
     return {
@@ -255,7 +274,7 @@ def as_callback_hook(hook_name, hook_type, hook_status, force_deploy):
     :type hook_name: str
     :param hook_type: Type of the hook ('ci' or 'builder')
     :type hook_type: str
-    :param hook_status: Status of the hook ('failed' or 'success')
+    :param hook_status: Status of the hook ('failed' or HOOK_STATUS_SUCCESS)
     :type hook_status: str
     :param hook_result: Result of the callback hook.
     :type hook_result: object
@@ -271,32 +290,62 @@ def as_callback_hook(hook_name, hook_type, hook_status, force_deploy):
     }
 
 
-def prepare_job(job, hook_type, hook_name, hook_status='success',
+def prepare_job(job, hook_type, hook_name, hook_status=HOOK_STATUS_SUCCESS,
                 hook_result=None):
-    job = copy.deepcopy(job)
-    job['state'] = JOB_STATE_SCHEDULED
-    job_id = job['meta-info']['job-id']
+    """
+    Prepares job prior to deploy by updating hook status and updating the
+    state.
 
+    :param job: Job
+    :type job: dict
+    :param hook_type: Hook type (ci. scm-push, builder)
+    :type hook_type: str
+    :param hook_name: Name of the hook (imag-factory, travis, ...)
+    :type hook_name: str
+    :param hook_status: Status of hook (HOOK_STATUS_SUCCESS / 'failed')
+    :type hook_status: str
+    :keyword hook_result: Result of hook
+    :type hook_result: dict
+    :return: Updated job
+    :rtype: dict
+    """
+    job = copy.deepcopy(job)
     store = get_store()
-    if job['state'] != JOB_STATE_SCHEDULED:
-        store.update_state(job_id, JOB_STATE_SCHEDULED)
 
     if hook_type in job['hooks'] and hook_name in job['hooks'][hook_type]:
-        job[hook_type][hook_name] = {
+        job['state'] = JOB_STATE_SCHEDULED
+
+        # Update hook status if we were expecting this hook
+        job['hooks'][hook_type][hook_name] = {
             'status': hook_status
         }
+
+        # Check if image is associated with this hook
         image = get_build_image(hook_name, hook_type, hook_status,
                                 hook_result)
+
+        # If image is associated , update the image for the job
         if image:
             for deployer in job['config']['deployers'].values():
                 deployer['templates']['app']['args']['image'] = image
-        get_store().update_hook(job_id, hook_type, hook_name, hook_status,
-                                image)
+
+        # Update the job
+        store.update_job(job)
     return job
 
 
 def get_build_image(hook_name, hook_type, hook_status, hook_result):
-    if hook_type == 'builder' and hook_status == 'success':
+    """
+    Determines the build image from hook info
+
+    :param hook_name:
+    :param hook_type:
+    :param hook_status:
+    :param hook_result:
+    :return: image (non builder hook and failed hooks returns None)
+    :rtype: str
+    """
+    if hook_type == 'builder' and hook_status == HOOK_STATUS_SUCCESS:
         if hook_name == 'quay':
             image_base_url = hook_result.get('docker_url')
             tags = hook_result.get('docker_tags')
@@ -316,15 +365,15 @@ def check_ready(job):
     if job.get('force-deploy'):
         return {
             'failed': [],
-            'pending': []
+            HOOK_STATUS_PENDING: []
         }
 
     failed_hooks = []
     pending_hooks = []
     for hook_type, hooks in job['hooks'].items():
         for hookname, hook in hooks.items():
-            status = hook.get('status', 'pending')
-            if status == 'pending':
+            status = hook.get('status', HOOK_STATUS_PENDING)
+            if status == HOOK_STATUS_PENDING:
                 pending_hooks.append(hookname)
             elif status == 'failed':
                 failed_hooks.append(hookname)

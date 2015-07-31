@@ -1,11 +1,10 @@
 import datetime
 from pymongo import MongoClient
 import pymongo
-from pymongo.collection import ReturnDocument
 import pytz
 from conf.appconfig import MONGODB_URL, MONGODB_JOB_COLLECTION, \
     MONGODB_DB, MONGODB_EVENT_COLLECTION, \
-    JOB_EXPIRY_SECONDS, JOB_STATE_SCHEDULED, JOB_STATE_NEW
+    JOB_EXPIRY_SECONDS
 from orchestrator.services.storage.base import AbstractStore
 
 __author__ = 'sukrit'
@@ -94,29 +93,12 @@ class MongoStore(AbstractStore):
         """
         return self._db[self.event_coll]
 
-    def find_or_create_job(self, job):
+    def update_job(self, job):
         job = self.apply_modified_ts(job)
         job['_expiry'] = datetime.datetime.now(tz=pytz.UTC)
-        git = job['meta-info']['git']
-        return self._jobs.find_one_and_update(
-            {
-                'meta-info.git.owner': git['owner'],
-                'meta-info.git.repo': git['repo'],
-                'meta-info.git.ref': git['ref'],
-                'state': {
-                    '$in': [JOB_STATE_SCHEDULED, JOB_STATE_NEW]
-                }
-            },
-            {
-                '$setOnInsert': job,
-            },
-            projection={
-                '_id': False,
-                '_expiry': False
-            },
-            return_document=ReturnDocument.AFTER,
-            upsert=True
-        )
+        self._jobs.replace_one({
+            'meta-info.job-id': job['meta-info']['job-id']
+        }, job, upsert=True)
 
     def update_state(self, job_id, state):
         self._jobs.update_one(
@@ -161,7 +143,8 @@ class MongoStore(AbstractStore):
         """
         self._events.insert_one(event)
 
-    def filter_jobs(self, owner=None, repo=None, ref=None, commit=None):
+    def filter_jobs(self, owner=None, repo=None, ref=None, commit=None,
+                    state_in=None):
         u_filter = {}
         if owner:
             u_filter['meta-info.git.owner'] = owner
@@ -175,6 +158,11 @@ class MongoStore(AbstractStore):
         if commit:
             u_filter['meta-info.git.commit'] = commit
 
+        if state_in:
+            u_filter['state'] = {
+                '$in': state_in
+            }
+
         projection = {
             '_id': False
         }
@@ -184,38 +172,3 @@ class MongoStore(AbstractStore):
             self._jobs.find(u_filter, projection=projection)
                 .sort('modified')
         ]
-
-    def reset_hooks(self, job_id, hooks, commit=None):
-        update = {
-            '$set': {
-                'hooks': hooks
-            },
-        }
-        if commit:
-            update['$set']['meta-info.git.commit'] = commit
-            update['$addToSet'] = {
-                'meta-info.git.commit-set': commit
-            }
-
-        self._jobs.update_one({
-            'meta-info.job-id': job_id
-        }, update)
-
-    def update_hook(self, job_id, hook_type, hook_name, hook_status,
-                    image=None):
-        hook_key = 'hooks.{}.{}'.format(hook_type, hook_name)
-        update = {
-            '$set': {
-                hook_key: {
-                    'status': hook_status
-                }
-            }
-        }
-        if image:
-            update['$set']['templates.app.args'] = {
-                'image': image
-            }
-
-        self._jobs.update_one({
-            'meta-info.job-id': job_id
-        }, update)
