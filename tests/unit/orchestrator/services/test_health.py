@@ -17,7 +17,8 @@ __author__ = 'sukrit'
 
 @patch('orchestrator.services.health.ping')
 @patch('orchestrator.services.health.client')
-def test_get_health(client, ping):
+@patch('orchestrator.services.health.get_store')
+def test_get_health(get_store, client, ping):
     """
     Should get the health status when elastic search is enabled
     """
@@ -26,6 +27,7 @@ def test_get_health(client, ping):
     ping.delay().get.return_value = 'pong'
     EtcdInfo = namedtuple('Info', ('machines',))
     client.Client.return_value = EtcdInfo(['machine1'])
+    get_store.return_value.health.return_value = {'type': 'mock'}
 
     # When: I get the health of external services
     health_status = health.get_health()
@@ -38,6 +40,12 @@ def test_get_health(client, ping):
                 'machines': ['machine1']
             }
         },
+        'store': {
+            'status': HEALTH_OK,
+            'details': {
+                'type': 'mock'
+            }
+        },
         'celery': {
             'status': HEALTH_OK,
             'details': 'Celery ping:pong'
@@ -47,7 +55,8 @@ def test_get_health(client, ping):
 
 @patch('orchestrator.services.health.ping')
 @patch('orchestrator.services.health.client')
-def test_get_health_when_celery_is_disabled(client, ping):
+@patch('orchestrator.services.health.get_store')
+def test_get_health_when_celery_is_disabled(get_store, client, ping):
     """
     Should get the health status when elastic search is enabled
     """
@@ -55,6 +64,7 @@ def test_get_health_when_celery_is_disabled(client, ping):
     # Given: Operational external services"
     EtcdInfo = namedtuple('Info', ('machines',))
     client.Client.return_value = EtcdInfo(['machine1'])
+    get_store.return_value.health.return_value = {'type': 'mock'}
 
     # When: I get the health of external services
     health_status = health.get_health(check_celery=False)
@@ -65,6 +75,12 @@ def test_get_health_when_celery_is_disabled(client, ping):
             'status': HEALTH_OK,
             'details': {
                 'machines': ['machine1']
+            }
+        },
+        'store': {
+            'status': HEALTH_OK,
+            'details': {
+                'type': 'mock'
             }
         }
     })

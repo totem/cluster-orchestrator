@@ -2,6 +2,7 @@ from functools import wraps
 import sys
 from etcd import client
 from conf.appconfig import HEALTH_OK, HEALTH_FAILED, TOTEM_ETCD_SETTINGS
+from orchestrator.services.storage.factory import get_store
 from orchestrator.tasks.common import ping
 from orchestrator.util import timeout
 
@@ -52,6 +53,15 @@ def _check_etcd():
 
 @timeout(HEALTH_TIMEOUT_SECONDS)
 @_check
+def _check_store():
+    """
+    Checks health of default store
+    """
+    return get_store().health()
+
+
+@timeout(HEALTH_TIMEOUT_SECONDS)
+@_check
 def _check_celery():
     """
     Checks health for celery integration using ping-pong task output.
@@ -71,7 +81,8 @@ def get_health(check_celery=True):
     """
 
     health_status = {
-        'etcd': _check_etcd()
+        'etcd': _check_etcd(),
+        'store': _check_store()
     }
     if check_celery:
         health_status['celery'] = _check_celery()
