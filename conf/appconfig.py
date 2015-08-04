@@ -217,7 +217,7 @@ MONGODB_USERNAME = os.getenv('MONODB_USERNAME', '')
 MONGODB_PASSWORD = os.getenv('MONODB_PASSWORD', '')
 MONGODB_HOST = os.getenv('MONGODB_HOST', '127.0.0.1')
 MONGODB_PORT = int(os.getenv('MONGODB_PORT', '27017'))
-MONGODB_DB = os.getenv('MONGODB_DB', 'totem-{}'.format(TOTEM_ENV))
+MONGODB_DB = os.getenv('MONGODB_DB') or 'totem-{}'.format(TOTEM_ENV)
 MONGODB_AUTH = '{0}:{1}@'.format(MONGODB_USERNAME, MONGODB_PASSWORD) \
     if MONGODB_USERNAME else ''
 MONGODB_DEFAULT_URL = 'mongodb://{0}{1}:{2}/{3}'.format(
