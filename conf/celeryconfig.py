@@ -33,7 +33,7 @@ CELERY_DEFAULT_ROUTING_KEY = 'default'
 CELERY_RESULT_BACKEND = MONGODB_URL
 CELERY_MONGODB_BACKEND_SETTINGS = {
     'database': MONGODB_DB,
-    'taskmeta_collection': 'orchestrator-task-results-%s' % CLUSTER_NAME,
+    'taskmeta_collection': 'orchestrator-task-results',
 }
 CELERY_RESULT_EXCHANGE = 'orchestrator-%s-results' % CLUSTER_NAME
 CELERY_IMPORTS = ('orchestrator.tasks', 'orchestrator.tasks.job',
