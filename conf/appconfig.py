@@ -18,6 +18,7 @@ TOTEM_ETCD_SETTINGS = {
 
 TOTEM_ENV = os.getenv('TOTEM_ENV', 'local')
 CLUSTER_NAME = os.getenv('CLUSTER_NAME', TOTEM_ENV)
+GIT_COMMIT = os.getenv('GIT_COMMIT', 'latest')
 
 CORS_SETTINGS = {
     'enabled': os.getenv('CORS_ENABLED', 'true').strip().lower() in
