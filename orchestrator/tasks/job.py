@@ -386,7 +386,7 @@ def _check_and_fire_deploy(job):
 
     elif check['pending']:
         store.add_event(EVENT_PENDING_HOOK, details={
-            'hooks': check['pending']
+            'pending-hooks': check['pending']
         }, search_params=search_params)
         return job
 
