@@ -51,7 +51,7 @@
         },
         "commit": {
           "title": "Git SHA Commit ID",
-          "type": "string",
+          "type": ["string", "null"],
           "maxLength": 100
         }
       },
