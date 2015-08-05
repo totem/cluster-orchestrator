@@ -229,7 +229,7 @@ class TravisHookApi(MethodView):
         expected_digest = self._get_travis_digest(owner, repo)
         self._assert_digest(expected_digest, actual_digest, owner, repo)
         ref = request_data['branch']
-        commit = request_data['commit']
+        commit = request_data.get('commit')
         status = 'success' if request_data['status'] == 0 else 'failed'
         request_data.setdefault('result', None)
         result = handle_callback_hook.delay(
