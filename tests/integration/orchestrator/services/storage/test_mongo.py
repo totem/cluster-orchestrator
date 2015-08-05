@@ -2,6 +2,7 @@ import copy
 import datetime
 from freezegun import freeze_time
 import pymongo
+import pytz
 from conf.appconfig import JOB_STATE_NEW, JOB_STATE_COMPLETE, JOB_STATE_FAILED, \
     JOB_STATE_SCHEDULED
 from orchestrator.services.storage.mongo import create
@@ -16,8 +17,8 @@ __author__ = 'sukrit'
 Integration test for mongo storage. These requires mongo instance running
 """
 
-NOW = datetime.datetime(2022, 01, 01)
-NOW_JOB2 = datetime.datetime(2022, 02, 01)
+NOW = datetime.datetime(2022, 01, 01, tzinfo=pytz.UTC)
+NOW_JOB2 = datetime.datetime(2022, 02, 01, tzinfo=pytz.UTC)
 
 
 EXISTING_JOBS = {

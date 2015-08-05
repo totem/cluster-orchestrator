@@ -36,7 +36,7 @@ class MongoStore(AbstractStore):
     """
 
     def __init__(self, url, dbname, job_coll, event_coll):
-        self.client = MongoClient(url)
+        self.client = MongoClient(url, tz_aware=True)
         self.dbname = dbname
         self.job_coll = job_coll
         self.event_coll = event_coll
