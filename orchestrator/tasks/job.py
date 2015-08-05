@@ -133,7 +133,8 @@ def _new_job(job_config, owner, repo, ref, hook_type, hook_name,
 
     return (
         _handle_hook.si(job, hook_type, hook_name, hook_status=hook_status,
-                        hook_result=hook_result, error_tasks=error_tasks) |
+                        hook_result=hook_result, error_tasks=error_tasks,
+                        force_deploy=force_deploy) |
         async_wait.s(
             default_retry_delay=TASK_SETTINGS['JOB_WAIT_RETRY_DELAY'],
             max_retries=TASK_SETTINGS['JOB_WAIT_RETRIES'],
@@ -311,7 +312,7 @@ def _release_lock(lock):
 
 @app.task(base=ErrorHandlerTask)
 def _handle_hook(job, hook_type, hook_name, hook_status, hook_result,
-                 error_tasks=None):
+                 error_tasks=None, force_deploy=None):
     job_config = job['config']
     git_meta = job['meta-info']['git']
     search_params = create_search_parameters(job)
@@ -336,7 +337,8 @@ def _handle_hook(job, hook_type, hook_name, hook_status, hook_result,
             not job_config['deployers'] or noop:
         return _handle_noop(job)
 
-    job = prepare_job(job, hook_type, hook_name, hook_status, hook_result)
+    job = prepare_job(job, hook_type, hook_name, hook_status, hook_result,
+                      force_deploy=force_deploy)
     return _check_and_fire_deploy.si(job).delay()
 
 

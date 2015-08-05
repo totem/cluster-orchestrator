@@ -297,7 +297,7 @@ def as_callback_hook(hook_name, hook_type, hook_status, force_deploy):
 
 
 def prepare_job(job, hook_type, hook_name, hook_status=HOOK_STATUS_SUCCESS,
-                hook_result=None):
+                force_depoy=None, hook_result=None):
     """
     Prepares job prior to deploy by updating hook status and updating the
     state.
@@ -325,6 +325,8 @@ def prepare_job(job, hook_type, hook_name, hook_status=HOOK_STATUS_SUCCESS,
         job['hooks'][hook_type][hook_name] = {
             'status': hook_status
         }
+
+        job['force-deploy'] = force_depoy or False
 
         # Check if image is associated with this hook
         image = get_build_image(hook_name, hook_type, hook_status,

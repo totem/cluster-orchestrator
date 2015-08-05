@@ -433,6 +433,7 @@ def test_prepare_job(m_get_store):
 
     # Then: Job state and hook info gets updated as expected
     expected_job = dict_merge({
+        'force-deploy': False,
         'state': JOB_STATE_SCHEDULED,
         'hooks': {
             'builder': {
