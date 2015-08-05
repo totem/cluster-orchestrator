@@ -149,25 +149,19 @@
       "type": "object",
       "properties": {
         "ci": {
-          "$ref": "#/definitions/ci"
+          "$ref": "#/definitions/hook-list"
         },
         "builder": {
-          "$ref": "#/definitions/builder"
+          "$ref": "#/definitions/hook-list"
+        },
+        "scm-push": {
+          "$ref": "#/definitions/hook-list"
         }
       },
       "additionalProperties": false
     },
 
-    "ci": {
-      "type": "object",
-      "patternProperties": {
-        ".*": {
-          "$ref": "#/definitions/hook-type"
-        }
-      }
-    },
-
-    "builder": {
+    "hook-list": {
       "type": "object",
       "patternProperties": {
         ".*": {

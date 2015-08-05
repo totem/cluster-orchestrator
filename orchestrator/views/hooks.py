@@ -91,7 +91,7 @@ class GenericInternalPostHookApi(MethodView):
         request_data.setdefault('result', None)
         result = handle_callback_hook.delay(
             git['owner'], git['repo'], git['ref'], request_data['type'],
-            request_data['name'], commit=git['commit'],
+            request_data['name'], commit=git.get('commit'),
             hook_status=request_data['status'],
             hook_result=request_data['result'],
             force_deploy=request_data.get('force-deploy', False))
@@ -166,6 +166,14 @@ class GithubHookApi(MethodView):
             ref = basename(request_data['ref'])
             task = undeploy.delay(owner, repo, ref)
             return created_task(task)
+        elif request.headers.get('X-GitHub-Event') == 'push' and \
+                request_data.get('ref') and \
+                not request_data.get('deleted'):
+            ref = basename(request_data['ref'])
+            commit = request_data['after']
+            task = handle_callback_hook.delay(
+                owner, repo, ref, 'scm-push', 'github-push', commit=commit)
+            return created_task(task)
         elif request.headers.get('X-GitHub-Event') == 'create' and \
                 request_data.get('ref_type') == 'branch' and \
                 request_data.get('ref'):
@@ -174,9 +182,7 @@ class GithubHookApi(MethodView):
                 owner, repo, ref, 'scm-create', 'github-create')
             return created_task(task)
         else:
-            # Ignore if it is not a delete request. For the github push, we
-            # will delay the job creation till we receive notification from
-            # image builder or ci job.
+            # Ignore all other hooks
             return build_response('', status=204)
 
 
