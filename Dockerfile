@@ -3,8 +3,10 @@ FROM totem/python-base:2.7-trusty-b3
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update --fix-missing && apt-get install -y \
-    gettext \
-    libyaml-dev
+        gettext \
+        libyaml-dev  \
+    && apt-get clean \
+    && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
 
 #Etcdctl
 ENV ETCDCTL_VERSION v0.4.6
