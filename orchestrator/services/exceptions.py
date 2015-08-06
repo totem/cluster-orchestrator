@@ -1,3 +1,4 @@
+import json
 from orchestrator.exceptions import BusinessRuleViolation
 
 
@@ -27,7 +28,7 @@ class ConfigValidationError(BusinessRuleViolation):
         code = 'CONFIG_VALIDATION_ERROR'
         details = {
             'schema-path': self.schema_path,
-            'schema': self.schema
+            'schema': json.dumps(self.schema)
         }
 
         super(ConfigValidationError, self).__init__(

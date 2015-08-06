@@ -1,6 +1,6 @@
 import flask
 from flask.views import MethodView
-from conf.appconfig import MIME_ROOT_V1, SCHEMA_ROOT_V1, MIME_JSON
+from conf.appconfig import MIME_ROOT_V1, SCHEMA_ROOT_V1, MIME_JSON, GIT_COMMIT
 import orchestrator
 from orchestrator.views import hypermedia
 
@@ -20,7 +20,10 @@ class RootApi(MethodView):
 
         :return: Flask Json Response containing version.
         """
-        return flask.jsonify({'version': orchestrator.__version__})
+        return flask.jsonify({
+            'version': orchestrator.__version__,
+            'commit': GIT_COMMIT
+        })
 
 
 def register(app, **kwargs):

@@ -24,6 +24,9 @@
     },
     "notifications": {
       "$ref": "#/definitions/notifications"
+    },
+    "scm": {
+      "type": "object"
     }
   },
   "required": ["enabled"],
@@ -48,16 +51,19 @@
       "type": "object",
       "properties": {
         "ci": {
-          "$ref": "#/definitions/ci"
+          "$ref": "#/definitions/hook-list"
         },
-        "builders": {
-          "$ref": "#/definitions/builders"
+        "builder": {
+          "$ref": "#/definitions/hook-list"
+        },
+        "scm-push": {
+          "$ref": "#/definitions/hook-list"
         }
       },
       "additionalProperties": false
     },
 
-    "ci": {
+    "hook-list": {
       "type": "object",
       "patternProperties": {
         ".*": {
@@ -65,16 +71,6 @@
         }
       }
     },
-
-    "builders": {
-      "type": "object",
-      "patternProperties": {
-        ".*": {
-          "$ref": "#/definitions/hook-type"
-        }
-      }
-    },
-
     "hook-type": {
       "enabled": {
         "type": "boolean"

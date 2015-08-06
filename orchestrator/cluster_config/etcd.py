@@ -50,13 +50,13 @@ class EtcdConfigProvider(AbstractConfigProvider):
         try:
             self.etcd_cl.delete(self._etcd_path(name, *paths))
             return True
-        except KeyError:
+        except etcd.EtcdKeyNotFound:
             # Ignore as it is safe delete operation
             return False
 
     def load(self, name, *paths):
         try:
             raw = self.etcd_cl.read(self._etcd_path(name, *paths)).value
-        except KeyError:
+        except etcd.EtcdKeyNotFound:
             return dict()
         return yaml.load(raw)

@@ -131,7 +131,8 @@ class TestGithubHookApi:
         eq_(resp.status_code, 202)
 
     @patch('orchestrator.views.hooks.undeploy')
-    def test_post_for_non_delete_request(self, mock_start_job):
+    @patch('orchestrator.views.hooks.handle_callback_hook')
+    def test_post_for_non_delete_request(self, m_undeploy, m_callback_hook):
         """
         Should return accepted response when a valid github hook is posted.
         """
@@ -150,7 +151,7 @@ class TestGithubHookApi:
         logger.info('Response: %s', resp.data)
 
         # Then: Expected response is returned
-        eq_(resp.status_code, 204)
+        eq_(resp.status_code, 202)
 
     @patch('orchestrator.views.hooks.undeploy')
     def test_post_with_owner_login_in_payload(self, mock_start_job):

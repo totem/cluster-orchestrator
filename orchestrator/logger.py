@@ -6,9 +6,10 @@ from conf.appconfig import LOG_FORMAT, LOG_DATE, LOG_ROOT_LEVEL, TOTEM_ENV, \
     LOG_IDENTIFIER
 
 
-def init_logging(name):
+def init_logging(name=None):
     app_logger = logging.getLogger(name)
     app_logger.setLevel(LOG_ROOT_LEVEL)
+    app_logger.propagate = False
     if TOTEM_ENV == 'local':
         formatter = logging.Formatter(fmt=LOG_FORMAT, datefmt=LOG_DATE)
         handler = logging.StreamHandler()

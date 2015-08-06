@@ -1,5 +1,5 @@
 from mock import patch
-from conf.appconfig import SEARCH_SETTINGS, LEVEL_FAILED, LEVEL_FAILED_WARN, \
+from conf.appconfig import LEVEL_FAILED, LEVEL_FAILED_WARN, \
     LEVEL_SUCCESS
 from orchestrator.tasks import notification
 
@@ -109,7 +109,7 @@ def test_notify_hipchat(m_json, m_templatefactory, m_requests):
     m_templatefactory.render_template.assert_called_once_with(
         'hipchat.html',
         notification={'message': 'mock'},
-        ctx={'search': SEARCH_SETTINGS, 'github': True},
+        ctx={'github': True},
         level=LEVEL_FAILED,
     )
 
