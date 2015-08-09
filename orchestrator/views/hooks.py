@@ -229,6 +229,11 @@ class TravisHookApi(MethodView):
     def post(self, request_data=None, accept_mimetype=None, **kwargs):
         owner = request_data['repository']['owner_name']
         repo = request_data['repository']['name']
+        build_type = request_data['type']
+
+        if build_type != 'push':
+            # No job is created for non push request
+            return build_response('', status=204)
 
         # Authorize token
         actual_digest = request.headers.get('Authorization', '')

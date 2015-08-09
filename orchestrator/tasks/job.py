@@ -25,7 +25,7 @@ from orchestrator.services.storage.base import \
     EVENT_JOB_NOOP, EVENT_CALLBACK_HOOK, EVENT_UNDEPLOY_HOOK, \
     EVENT_PENDING_HOOK, \
     EVENT_SETUP_APPLICATION_COMPLETE, EVENT_UNDEPLOY_REQUESTED, \
-    EVENT_COMMIT_IGNORED
+    EVENT_COMMIT_IGNORED, EVENT_HOOK_IGNORED
 from orchestrator.tasks.common import async_wait, ErrorHandlerTask
 from orchestrator.util import dict_merge
 
@@ -124,11 +124,31 @@ def _new_job(job_config, owner, repo, ref, hook_type, hook_name,
 
     job_commit = job['meta-info']['git']['commit']
     if commit and commit != job_commit:
-        get_store().add_event(EVENT_COMMIT_IGNORED, details={
-            'message': 'Commit: {} was superseded by {}'.format(
-                commit, job_commit),
-            'commit': commit
-        })
+        get_store().add_event(
+            EVENT_COMMIT_IGNORED,
+            details={
+                'message': 'Commit: {} was superseded by {}'.format(
+                    commit, job_commit),
+                'commit': commit
+            },
+            search_params=search_params
+        )
+        return job
+
+    job_config = job['config']
+    if hook_type not in job_config['hooks'] or \
+            hook_name not in job_config['hooks'][hook_type] or \
+            not job_config['hooks'][hook_type][hook_name].get('enabled'):
+        get_store().add_event(
+            EVENT_HOOK_IGNORED,
+            details={
+                'message': 'Hook: {} with type {} is not configured/disabled '
+                           'and will be ignored'.format(hook_name, hook_type),
+                'hook_name': hook_name,
+                'hook_type': hook_type
+            },
+            search_params=search_params
+        )
         return job
 
     return (
@@ -377,14 +397,13 @@ def _check_and_fire_deploy(job):
     # Check and fires deploy
     job_id = job['meta-info']['job-id']
 
-    failed_hooks = []
     search_params = create_search_parameters(job)
     store = get_store()
 
     check = check_ready(job)
-    if check['failed']:
+    if check.get('failed'):
         store.update_state(job_id, JOB_STATE_FAILED)
-        raise HooksFailed(failed_hooks)
+        raise HooksFailed(check['failed'])
 
     elif check['pending']:
         store.add_event(EVENT_PENDING_HOOK, details={
