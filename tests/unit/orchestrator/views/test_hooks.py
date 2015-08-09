@@ -273,7 +273,19 @@ class TestTravisHookApi:
         },
         "branch": "mock_branch",
         "commit": "mock_commit",
-        "status": 0
+        "status": 0,
+        "type" : "push"
+    }'''
+
+    mock_pr_payload = '''{
+        "repository": {
+            "owner_name": "mock_owner",
+            "name": "mock_name"
+        },
+        "branch": "mock_branch",
+        "commit": "mock_commit",
+        "status": 0,
+        "type" : "pull-request"
     }'''
 
     def setup(self):
@@ -308,6 +320,32 @@ class TestTravisHookApi:
         dict_compare(data, {
             'task_id': 'mock_task_id'
         })
+
+    @patch('orchestrator.views.hooks.handle_callback_hook')
+    def test_post_for_pr(self, mock_callback):
+        """
+        Should return accepted response when a valid travis hook is posted for
+        PR
+        """
+
+        # When I post to travis hook endpoint
+        resp = self.client.post(
+            '/external/hooks/travis',
+            data={
+                'payload': self.mock_pr_payload
+            },
+            headers={
+                'Content-Type': MIME_FORM_URL_ENC,
+                'Authorization': 'e33bdc56114cb51a638356dd967d53ff01793fb959e7'
+                                 '993f345e2e523da0c5dd'
+            }
+        )
+
+        # Then: Expected No processing is done
+        logger.info('Response: %s', resp.data)
+        eq_(resp.status_code, 204)
+        dict_compare(resp.data.decode('UTF-8'), '')
+        mock_callback.delay.assert_not_called()
 
     @patch('orchestrator.views.hooks.handle_callback_hook')
     def test_post_when_unauthorized(self, mock_callback):
