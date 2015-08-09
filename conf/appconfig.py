@@ -130,6 +130,16 @@ CONFIG_PROVIDERS = {
                     'image-factory': {
                         'enabled': True,
                     }
+                },
+                'scm-push': {
+                    'github-push': {
+                        'enabled': True,
+                    }
+                },
+                'scm-create': {
+                    'github-create': {
+                        'enabled': True,
+                    }
                 }
             },
             'enabled': False,
