@@ -377,14 +377,13 @@ def _check_and_fire_deploy(job):
     # Check and fires deploy
     job_id = job['meta-info']['job-id']
 
-    failed_hooks = []
     search_params = create_search_parameters(job)
     store = get_store()
 
     check = check_ready(job)
-    if check['failed']:
+    if check.get('failed'):
         store.update_state(job_id, JOB_STATE_FAILED)
-        raise HooksFailed(failed_hooks)
+        raise HooksFailed(check['failed'])
 
     elif check['pending']:
         store.add_event(EVENT_PENDING_HOOK, details={
