@@ -156,6 +156,9 @@
         },
         "scm-push": {
           "$ref": "#/definitions/hook-list"
+        },
+        "scm-create": {
+          "$ref": "#/definitions/hook-list"
         }
       },
       "additionalProperties": false
