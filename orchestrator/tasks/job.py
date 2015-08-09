@@ -124,11 +124,15 @@ def _new_job(job_config, owner, repo, ref, hook_type, hook_name,
 
     job_commit = job['meta-info']['git']['commit']
     if commit and commit != job_commit:
-        get_store().add_event(EVENT_COMMIT_IGNORED, details={
-            'message': 'Commit: {} was superseded by {}'.format(
-                commit, job_commit),
-            'commit': commit
-        })
+        get_store().add_event(
+            EVENT_COMMIT_IGNORED,
+            details={
+                'message': 'Commit: {} was superseded by {}'.format(
+                    commit, job_commit),
+                'commit': commit
+            },
+            search_params=search_params
+        )
         return job
 
     return (
