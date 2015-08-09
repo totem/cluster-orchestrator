@@ -135,9 +135,10 @@ def _new_job(job_config, owner, repo, ref, hook_type, hook_name,
         )
         return job
 
-    if hook_type not in job['hooks'] or \
-            hook_name not in job['hooks'][hook_type] or \
-            not job['hooks'][hook_type][hook_name].get('enabled'):
+    job_config = job['config']
+    if hook_type not in job_config['hooks'] or \
+            hook_name not in job_config['hooks'][hook_type] or \
+            not job_config['hooks'][hook_type][hook_name].get('enabled'):
         get_store().add_event(
             EVENT_HOOK_IGNORED,
             details={
