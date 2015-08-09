@@ -25,7 +25,7 @@ from orchestrator.services.storage.base import \
     EVENT_JOB_NOOP, EVENT_CALLBACK_HOOK, EVENT_UNDEPLOY_HOOK, \
     EVENT_PENDING_HOOK, \
     EVENT_SETUP_APPLICATION_COMPLETE, EVENT_UNDEPLOY_REQUESTED, \
-    EVENT_COMMIT_IGNORED
+    EVENT_COMMIT_IGNORED, EVENT_HOOK_IGNORED
 from orchestrator.tasks.common import async_wait, ErrorHandlerTask
 from orchestrator.util import dict_merge
 
@@ -130,6 +130,21 @@ def _new_job(job_config, owner, repo, ref, hook_type, hook_name,
                 'message': 'Commit: {} was superseded by {}'.format(
                     commit, job_commit),
                 'commit': commit
+            },
+            search_params=search_params
+        )
+        return job
+
+    if hook_type not in job['hooks'] or \
+            hook_name not in job['hooks'][hook_type] or \
+            not job['hooks'][hook_type][hook_name['enabled']:
+        get_store().add_event(
+            EVENT_HOOK_IGNORED,
+            details={
+                'message': 'Hook: {} with type {} is not configured '
+                           'and will be ignored'.format(hook_name, hook_type),
+                'hook_name': hook_name,
+                'hook_type': hook_type
             },
             search_params=search_params
         )
