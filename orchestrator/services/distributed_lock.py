@@ -2,6 +2,7 @@
 Provides distributed locking using Etcd Backed store
 """
 import uuid
+from etcd import EtcdAlreadyExist, EtcdKeyNotFound
 
 from conf.appconfig import TOTEM_ETCD_SETTINGS
 from orchestrator.etcd import get_etcd_client
@@ -56,7 +57,7 @@ class LockService:
         try:
             self.etcd_cl.write(lock_key, lock_value, ttl=self.lock_ttl,
                                prevExist=False)
-        except KeyError:
+        except EtcdAlreadyExist:
             raise ResourceLockedException(name=app_name, key=lock_key)
         return {
             'key': lock_key,
@@ -75,7 +76,7 @@ class LockService:
             try:
                 self.etcd_cl.delete(lock['key'], prevValue=lock['value'])
                 return True
-            except KeyError:
+            except EtcdKeyNotFound:
                 return False
             except ValueError:
                 return False

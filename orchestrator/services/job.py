@@ -139,7 +139,8 @@ def as_job(job_config, job_id,  owner, repo, ref, state=JOB_STATE_SCHEDULED,
         'hooks': {
             'ci': {},
             'scm-push': {},
-            'builder': {}
+            'builder': {},
+            'scm-create': {}
         },
         'force-deploy': force_deploy
     }, as_job_meta(owner, repo, ref, commit=commit, job_id=job_id))
@@ -379,8 +380,8 @@ def check_ready(job):
 
     failed_hooks = []
     pending_hooks = []
-    for hook_type, hooks in job['hooks'].items():
-        for hookname, hook in hooks.items():
+    for hook_type in ('ci', 'builder'):
+        for hookname, hook in job['hooks'][hook_type].items():
             status = hook.get('status', HOOK_STATUS_PENDING)
             if status == HOOK_STATUS_PENDING:
                 pending_hooks.append(hookname)
