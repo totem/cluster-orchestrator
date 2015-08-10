@@ -380,8 +380,8 @@ def check_ready(job):
 
     failed_hooks = []
     pending_hooks = []
-    for hook_type, hooks in job['hooks'].items():
-        for hookname, hook in hooks.items():
+    for hook_type in ('ci', 'builder'):
+        for hookname, hook in job['hooks'][hook_type].items():
             status = hook.get('status', HOOK_STATUS_PENDING)
             if status == HOOK_STATUS_PENDING:
                 pending_hooks.append(hookname)

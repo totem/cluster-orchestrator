@@ -48,7 +48,8 @@ MOCK_EXISTING_JOB = {
                 'status': HOOK_STATUS_PENDING
             }
         },
-        'scm-push': {}
+        'scm-push': {},
+        'scm-create': {}
     },
     'state': 'NEW',
     'config': {
@@ -530,11 +531,22 @@ def test_check_ready_for_pending_hooks():
                 'image-factory': {
                     'status': HOOK_STATUS_FAILED
                 }
+            },
+            'scm-create': {
+                'scm1': {
+                    'status': HOOK_STATUS_PENDING
+                }
+            },
+            'scm-push': {
+                'scm1': {
+                    'status': HOOK_STATUS_PENDING
+                }
             }
         }
     }, MOCK_EXISTING_JOB))
 
-    # Then: Job has no failed / pending hooks
+    # Then: Job has failed / pending hooks and scm hooks are not included in
+    # pending hooks
     dict_compare(status, {
         'pending': ['ci1'],
         'failed': ['image-factory']
