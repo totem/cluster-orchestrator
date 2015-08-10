@@ -1,5 +1,6 @@
 import copy
 import json
+import logging
 import requests
 from celery import chain, chord, group
 from requests.exceptions import ConnectionError
@@ -32,6 +33,8 @@ from orchestrator.util import dict_merge
 __author__ = 'sukrit'
 
 __all__ = ['handle_callback_hook', 'undeploy']
+
+logger = logging.getLogger(__name__)
 
 
 def _load_job_config(owner, repo, ref, notify_ctx, search_params, commit=None):
@@ -108,6 +111,7 @@ def _new_job(job_config, owner, repo, ref, hook_type, hook_name,
                          force_deploy=force_deploy,
                          search_params=search_params)
     except BaseException as exc:
+        logger.exception('An unknown error happened while creating job')
         _handle_job_error.si(exc, job_config, notify_ctx, search_params) \
             .delay()
         raise

@@ -139,7 +139,8 @@ def as_job(job_config, job_id,  owner, repo, ref, state=JOB_STATE_SCHEDULED,
         'hooks': {
             'ci': {},
             'scm-push': {},
-            'builder': {}
+            'builder': {},
+            'scm-create': {}
         },
         'force-deploy': force_deploy
     }, as_job_meta(owner, repo, ref, commit=commit, job_id=job_id))
