@@ -37,6 +37,7 @@ export HIPCHAT_TOKEN='${HIPCHAT_TOKEN}'
 export HIPCHAT_ROOM='${HIPCHAT_ROOM:-not-set}'
 export GITHUB_NOTIFICATION_ENABLED='${GITHUB_NOTIFICATION_ENABLED:-false}'
 export LOG_IDENTIFIER='${LOG_IDENTIFIER:-cluster-orchestrator}'
+export LOG_ROOT_LEVEL='${LOG_ROOT_LEVEL}'
 END
 
 /bin/bash -le -c " envsubst  < /etc/supervisor/conf.d/supervisord.conf.template  > /etc/supervisor/conf.d/supervisord.conf; \
