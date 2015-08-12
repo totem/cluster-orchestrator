@@ -114,7 +114,10 @@ CONFIG_PROVIDERS = {
             'scm': {
                 'type': SCM_TYPE_GITHUB,
                 'auth': {
-                    'token': None
+                    'token': {
+                        'value': '',
+                        'encrypted': False
+                    }
                 }
             },
             'deployers': {
