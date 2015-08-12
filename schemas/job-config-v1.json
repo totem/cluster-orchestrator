@@ -233,6 +233,9 @@
         },
         "check": {
           "$ref": "#/definitions/deployment-check"
+        },
+        "stop": {
+          "$ref": "#/definitions/deployment-stop"
         }
       },
       "additionalProperties": false
@@ -259,6 +262,21 @@
         "attempts": {
           "$ref": "#/definitions/number-or-template-type",
           "description": "Maximum number of attempts for deployment check before marking deployment as failed."
+        }
+      },
+      "additionalProperties": false
+    },
+    "deployment-stop": {
+      "properties": {
+        "timeout": {
+          "type": "string",
+          "description": "Deployment stop timeout represented in terms of seconds or minutes. e.g: 30s for timeout of 30 seconds. The application will be sent SIGTERM signal and will have this time for its cleanup.",
+          "default": "30s"
+        },
+        "check-retries": {
+          "type": "number",
+          "description": "Maximum no. of retries to be attempted to check if deployment is stopped.",
+          "default": "10"
         }
       },
       "additionalProperties": false
