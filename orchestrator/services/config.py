@@ -197,12 +197,17 @@ def load_config(*paths, **kwargs):
     try:
         configs = [provider.load(name, *paths) for name in config_names]
         unified_config = dict_merge(*configs)
-        return validate_schema(
-            evaluate_config(
+        return dict(
+            normalize_config(
                 validate_schema(
-                    _json_compatible_config(unified_config)
-                ), default_variables
-            ), schema_name='job-config-evaluated-v1')
+                    evaluate_config(
+                        validate_schema(
+                            _json_compatible_config(unified_config)
+                        ), default_variables
+                    ), schema_name='job-config-evaluated-v1'
+                )
+            )
+        )
 
     except (MarkedYAMLError, ParserError, SchemaError) as error:
         raise ConfigParseError(str(error), paths)
@@ -325,6 +330,37 @@ def evaluate_value(value, variables={}, location='/'):
                 for each_v in value]
 
     return value.strip() if isinstance(value, (str,)) else value
+
+
+def _normalize_environment_config(env_config):
+    if isinstance(env_config, dict):
+        return {
+            'value': str(env_config.get('value') or ''),
+            'encrypted': env_config.get('encrypted', False)
+        }
+    return {
+        'value': str(env_config),
+        'encrypted': False
+    }
+
+
+def normalize_config(config):
+    """
+    Normalizes the config
+    :param config:
+    :return:
+    """
+    for config_key, config_val in config.items():
+        if isinstance(config_val, dict):
+            if config_key == 'environment':
+                yield config_key, {
+                    env_key: _normalize_environment_config(env_val)
+                    for env_key, env_val in config_val.items()
+                }
+            else:
+                yield config_key, dict(normalize_config(config_val))
+        else:
+            yield config_key, config_val
 
 
 def evaluate_config(config, default_variables={}, var_key='variables'):

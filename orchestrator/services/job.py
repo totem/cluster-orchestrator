@@ -188,7 +188,10 @@ def create_job(job_config, owner, repo, ref, commit=None, force_deploy=False,
                 'job-id': job['meta-info']['job-id']
             }
         }, search_params)
-        store.add_event(EVENT_NEW_JOB, details=job,
+        store.add_event(EVENT_NEW_JOB,
+                        details={
+                            'orchestrator-job': job
+                        },
                         search_params=search_params)
     store.update_job(job)
     return job
