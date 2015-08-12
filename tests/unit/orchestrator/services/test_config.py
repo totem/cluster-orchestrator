@@ -548,6 +548,9 @@ def test_load_config(m_validate_schema, m_get_provider):
                     'value': '{{deployer_url}}'
                 }
             }
+        },
+        'environment': {
+            'env1': 'val1'
         }
     }
     m_get_provider.return_value.load.side_effect = [cfg1, cfg2]
@@ -573,6 +576,12 @@ def test_load_config(m_validate_schema, m_get_provider):
                 'url': 'deployer2-url1',
                 'enabled': True
             }
+        },
+        'environment': {
+            'env1': {
+                'value': 'val1',
+                'encrypted': False
+            }
         }
     })
 
@@ -593,3 +602,83 @@ def test_load_config_when_config_is_invalid(m_validate_schema, m_get_provider):
     config.load_config('mockpath1', 'mockpath2')
 
     # Then: ConfigParseError is raised
+
+
+def test_normalize_config():
+    """
+    Should normalize the config containing environment variables
+    """
+    # Given: Existing config that needs to be normalized
+    input_config = {
+        'environment': {
+            'var1': 'value1',
+            'var2': 2,
+            'var3': True,
+            'var4': {
+                'value': 'value4'
+            },
+            'var5': {
+
+            },
+            'var6': {
+                'value': 'value6',
+                'encrypted': True
+            }
+        },
+        'nested': {
+            'environment': {
+                'var7': 'value7',
+            }
+        },
+        'other': {
+            'test-key': 'test-val'
+        },
+        'direct-string': 'value',
+        'direct-int': 1
+    }
+
+    # When: I normalize the config
+    normalized_config = dict(service.normalize_config(input_config))
+
+    # Then: Config gets normalized as expected
+    dict_compare(normalized_config, {
+        'environment': {
+            'var1': {
+                'value': 'value1',
+                'encrypted': False
+            },
+            'var2': {
+                'value': '2',
+                'encrypted': False
+            },
+            'var3': {
+                'value': 'True',
+                'encrypted': False
+            },
+            'var4': {
+                'value': 'value4',
+                'encrypted': False
+            },
+            'var5': {
+                'value': '',
+                'encrypted': False
+            },
+            'var6': {
+                'value': 'value6',
+                'encrypted': True
+            }
+        },
+        'nested': {
+            'environment': {
+                'var7': {
+                    'value': 'value7',
+                    'encrypted': False
+                }
+            }
+        },
+        'other': {
+            'test-key': 'test-val'
+        },
+        'direct-string': 'value',
+        'direct-int': 1
+    })

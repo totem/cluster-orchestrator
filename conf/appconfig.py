@@ -3,7 +3,7 @@ import os
 # Logging configuration
 LOG_FORMAT = '%(asctime)s [%(name)s] %(levelname)s %(message)s'
 LOG_DATE = '%Y-%m-%d %I:%M:%S %p'
-LOG_ROOT_LEVEL = os.getenv('LOG_ROOT_LEVEL', 'INFO').upper()
+LOG_ROOT_LEVEL = os.getenv('LOG_ROOT_LEVEL', '').upper() or 'INFO'
 LOG_IDENTIFIER = os.getenv('LOG_IDENTIFIER', 'cluster-orchestrator')
 
 BOOLEAN_TRUE_VALUES = {"true", "yes", "y", "1", "on"}
@@ -114,7 +114,10 @@ CONFIG_PROVIDERS = {
             'scm': {
                 'type': SCM_TYPE_GITHUB,
                 'auth': {
-                    'token': None
+                    'token': {
+                        'value': '',
+                        'encrypted': False
+                    }
                 }
             },
             'deployers': {

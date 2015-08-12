@@ -353,14 +353,8 @@
         },
         "token": {
           "description": "Hipchat API v2 token (personal/ room) for notification",
-          "oneOf": [
-            {
-              "type": "string"
-            },
-            {
-              "$ref": "#/definitions/encrypted-type"
-            }
-          ]
+          "type": "object",
+          "$ref": "#/definitions/encrypted-type"
         },
         "level": {
           "description": "Min level for the message to activate this notifier",
@@ -382,14 +376,8 @@
         },
         "token": {
           "description": "Github Oauth token",
-          "oneOf": [
-            {
-              "type": "string"
-            },
-            {
-              "$ref": "#/definitions/encrypted-type"
-            }
-          ]
+          "type": "object",
+          "$ref": "#/definitions/encrypted-type"
         },
         "level": {
           "description": "Min level for the message to activate this notifier",

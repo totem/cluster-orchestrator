@@ -229,7 +229,7 @@ def test_create_job(m_get_store, m_uuid4):
     m_get_store.return_value.add_event.assert_called_once_with(
         EVENT_NEW_JOB,
         search_params={u'meta-info': {'job-id': MOCK_JOB_ID}},
-        details=expected_job)
+        details={'orchestrator-job': expected_job})
 
 
 @patch('orchestrator.services.job.get_store')
