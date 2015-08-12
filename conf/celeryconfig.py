@@ -20,6 +20,7 @@ DEFAULT_BROKER_URL = 'amqp://%s:%s@%s:%s' % (AMQP_USERNAME, AMQP_PASSWORD,
                                              AMQP_HOST, AMQP_PORT)
 BROKER_URL = os.getenv('BROKER_URL') or DEFAULT_BROKER_URL
 BROKER_HEARTBEAT = int(os.getenv('BROKER_HEARTBEAT', '20'))
+BROKER_TRANSPORT_OPTIONS = {'confirm_publish': True}
 CELERY_DEFAULT_QUEUE = 'orchestrator-%s-default' % CLUSTER_NAME
 CELERY_QUEUES = (
     Queue(CELERY_DEFAULT_QUEUE, routing_key='default',
