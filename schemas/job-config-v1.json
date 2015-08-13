@@ -269,12 +269,12 @@
     "deployment-stop": {
       "properties": {
         "timeout": {
-          "type": "string",
+           "$ref": "#/definitions/string-or-template-type",
           "description": "Deployment stop timeout represented in terms of seconds or minutes. e.g: 30s for timeout of 30 seconds. The application will be sent SIGTERM signal and will have this time for its cleanup.",
           "default": "30s"
         },
         "check-retries": {
-          "type": "number",
+          "$ref": "#/definitions/number-or-template-type",
           "description": "Maximum no. of retries to be attempted to check if deployment is stopped.",
           "default": "10"
         }
