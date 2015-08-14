@@ -262,8 +262,7 @@ def undeploy(owner, repo, ref):
     ).delay()
 
     store = get_store()
-    store.add_event(EVENT_UNDEPLOY_HOOK, search_params=search_params,
-                    error_tasks=error_tasks)
+    store.add_event(EVENT_UNDEPLOY_HOOK, search_params=search_params)
     return (
         _using_lock.si(
             name=lock_name,
