@@ -317,7 +317,14 @@ def evaluate_value(value, variables={}, location='/'):
             return value
 
         else:
+            if '__defaults__' in value:
+                defaults = value.get('__defaults__')
+                del(value['__defaults__'])
+            else:
+                defaults = None
             for each_k, each_v in value.items():
+                if defaults and hasattr(each_v, 'items'):
+                    each_v = dict_merge(each_v, defaults)
                 value[each_k] = evaluate_value(each_v, variables,
                                                '%s%s/' % (location, each_k))
             return {

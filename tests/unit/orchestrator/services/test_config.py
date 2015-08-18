@@ -194,7 +194,15 @@ def test_evaluate_value_with_nested_variables():
                 'var1': {
                     'value': '{{ var1 }}-modified'
                 }
+            },
+            'nested-key-2': {},
+            '__defaults__': {
+                'default1': {
+                    'value': '{{ var1 }} ',
+                    'template': True
+                }
             }
+
         },
         'list-key': [
             'list-value1',
@@ -224,7 +232,10 @@ def test_evaluate_value_with_nested_variables():
         'str-key': '{{ var1 }}',
         'int-key': 2,
         'nested-key': {
-            'nested-key1': 'var1-value-modified'
+            'nested-key1': 'var1-value-modified',
+            'nested-key-2': {
+                'default1': 'var1-value-modified'
+            },
         },
         'list-key': [
             'list-value1',
