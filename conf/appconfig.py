@@ -73,7 +73,7 @@ ENCRYPTION = {
 
 DEFAULT_DEPLOYER_CONFIG = {
     'url': os.getenv('CLUSTER_DEPLOYER_URL', DEFAULT_DEPLOYER_URL),
-    'enabled': True,
+    'enabled': False,
     'proxy': {},
     'templates': {
         'app': {
@@ -121,7 +121,7 @@ CONFIG_PROVIDERS = {
                 }
             },
             'deployers': {
-                'default': DEFAULT_DEPLOYER_CONFIG
+                '__defaults__': DEFAULT_DEPLOYER_CONFIG
             },
             'hooks': {
                 'ci': {

@@ -11,7 +11,7 @@ from future.builtins import (  # noqa
 from jsonschema import ValidationError
 from mock import patch
 from nose.tools import eq_, raises
-from conf.appconfig import DEFAULT_DEPLOYER_URL
+from conf.appconfig import DEFAULT_DEPLOYER_URL, DEFAULT_DEPLOYER_CONFIG
 from orchestrator.cluster_config.effective import MergedConfigProvider
 from orchestrator.cluster_config.etcd import EtcdConfigProvider
 from orchestrator.cluster_config.github import GithubConfigProvider
@@ -194,7 +194,15 @@ def test_evaluate_value_with_nested_variables():
                 'var1': {
                     'value': '{{ var1 }}-modified'
                 }
+            },
+            'nested-key-2': {},
+            '__defaults__': {
+                'default1': {
+                    'value': '{{ var1 }} ',
+                    'template': True
+                }
             }
+
         },
         'list-key': [
             'list-value1',
@@ -224,7 +232,10 @@ def test_evaluate_value_with_nested_variables():
         'str-key': '{{ var1 }}',
         'int-key': 2,
         'nested-key': {
-            'nested-key1': 'var1-value-modified'
+            'nested-key1': 'var1-value-modified',
+            'nested-key-2': {
+                'default1': 'var1-value-modified'
+            },
         },
         'list-key': [
             'list-value1',
@@ -334,7 +345,10 @@ def test_evaluate_config_with_deployers():
             'template': True
         },
         'deployers': {
-            'default': {},
+            '__defaults__': DEFAULT_DEPLOYER_CONFIG,
+            'default': {
+                'enabled': True
+            },
             'deployer2': {
                 'url': 'deployer2-url',
                 'enabled': True,
@@ -519,6 +533,7 @@ def test_load_config(m_validate_schema, m_get_provider):
         'mockkey': 'mockvalue',
         8080: 'number-key',
         'deployers': {
+            '__defaults__': DEFAULT_DEPLOYER_CONFIG,
             'deployer1': {
                 'enabled': False,
                 'variables': {}

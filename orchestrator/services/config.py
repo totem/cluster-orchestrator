@@ -13,7 +13,7 @@ from jsonschema import validate, ValidationError
 from jsonschema.exceptions import SchemaError
 import repoze.lru
 from conf.appconfig import CONFIG_PROVIDERS, CONFIG_PROVIDER_LIST, \
-    BOOLEAN_TRUE_VALUES, DEFAULT_DEPLOYER_CONFIG, API_PORT, CONFIG_NAMES
+    BOOLEAN_TRUE_VALUES, API_PORT, CONFIG_NAMES
 from orchestrator.cluster_config.default import DefaultConfigProvider
 from orchestrator.cluster_config.effective import MergedConfigProvider
 from orchestrator.cluster_config.etcd import EtcdConfigProvider
@@ -317,7 +317,14 @@ def evaluate_value(value, variables={}, location='/'):
             return value
 
         else:
+            if '__defaults__' in value:
+                defaults = value.get('__defaults__')
+                del(value['__defaults__'])
+            else:
+                defaults = None
             for each_k, each_v in value.items():
+                if defaults and hasattr(each_v, 'items'):
+                    each_v = dict_merge(each_v, defaults)
                 value[each_k] = evaluate_value(each_v, variables,
                                                '%s%s/' % (location, each_k))
             return {
@@ -386,8 +393,6 @@ def evaluate_config(config, default_variables={}, var_key='variables'):
 
     for deployer_name, deployer in \
             list(updated_config.get('deployers').items()):
-        updated_config['deployers'][deployer_name] = dict_merge(
-            deployer, DEFAULT_DEPLOYER_CONFIG)
         updated_config['deployers'][deployer_name].setdefault(
             'variables', {})
         updated_config['deployers'][deployer_name]['variables']\
