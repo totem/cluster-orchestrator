@@ -87,7 +87,8 @@ sudo docker run -it --rm -h cluster-orchestrator-${USER} --name cluster-orchestr
 | Env Variable | Description |  Default Value (Local) | Default Value (Docker)|
 | ------------ | ----------- | ---------------------- | --------------------- |
 | QUAY_ORGANIZATION | Organization in quay to pull images from | totem | totem|
-| ETCD_HOST | Etcd server host. | 127.0.0.1 | 172.17.42.1 |
+| HOST_IP | HOST IP address | 127.0.0.1 | Determined using default route in routing table|
+| ETCD_HOST | Etcd server host. | 127.0.0.1 | ${HOST_IP} |
 | ETCD_PORT | Etcd server port. | 4001 | 4001 |
 | ETCD_TOTEM_BASE | Base path for totem configurations | /totem | /totem |
 | API_EXECUTORS | No. of uwsgi processes to be created for serving API | Not Used | 2 |
