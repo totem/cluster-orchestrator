@@ -8,3 +8,5 @@ freezegun==0.2.8
 
 # Code Coverage
 coveralls
+
+flower==0.7.2
