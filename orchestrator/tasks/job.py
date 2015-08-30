@@ -352,7 +352,7 @@ def _handle_hook(job, hook_type, hook_name, hook_status, hook_result,
         frozen = False
     else:
         frozen = job_service.is_frozen(git_meta['owner'], git_meta['repo'],
-                                     git_meta['ref'])
+                                       git_meta['ref'])
 
     if not job_config['enabled'] or not builder_hooks or \
             not job_config['deployers'] or frozen:
