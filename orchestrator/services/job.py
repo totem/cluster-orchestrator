@@ -168,10 +168,7 @@ def create_job(job_config, owner, repo, ref, commit=None, force_deploy=False,
         state_in=[JOB_STATE_NEW, JOB_STATE_SCHEDULED])
     if existing_jobs:
         job = existing_jobs[0]
-        if not commit:
-            job = reset_hook_status(job)
-            job['config'] = job_config
-        elif commit not in job['meta-info']['git']['commit-set']:
+        if commit and commit not in job['meta-info']['git']['commit-set']:
             job['meta-info']['git']['commit-set'].append(commit)
             job['meta-info']['git']['commit'] = commit
             job = reset_hook_status(job)

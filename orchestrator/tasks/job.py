@@ -349,9 +349,6 @@ def _handle_hook(job, hook_type, hook_name, hook_status, hook_result,
                                          git_meta['ref'], False)
         store.add_event(EVENT_SETUP_APPLICATION_COMPLETE,
                         search_params=search_params)
-        # Even though we unfreeze the application, we will consider this
-        #  job to be noop as no deployment will be created.
-        noop = True
     else:
         noop = job_service.is_frozen(git_meta['owner'], git_meta['repo'],
                                      git_meta['ref'])
