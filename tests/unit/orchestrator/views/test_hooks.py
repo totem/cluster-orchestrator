@@ -223,9 +223,9 @@ class TestGithubHookApi:
 
         # Then: Expected response is returned
         eq_(resp.status_code, 202)
-        m_handle_callback_hook.delay.assert_called_once_with(
-            u'mock_owner', u'mock_repo', u'develop', u'scm-create',
-            u'github-create')
+        m_handle_callback_hook.apply_async.assert_called_once_with(
+            (u'mock_owner', u'mock_repo', u'develop', u'scm-create',
+             u'github-create'), countdown=10)
 
     @patch('orchestrator.views.hooks.handle_callback_hook')
     def test_post_for_create_non_branch_event(self, m_handle_callback_hook):
