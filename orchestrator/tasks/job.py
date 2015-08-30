@@ -349,12 +349,13 @@ def _handle_hook(job, hook_type, hook_name, hook_status, hook_result,
                                          git_meta['ref'], False)
         store.add_event(EVENT_SETUP_APPLICATION_COMPLETE,
                         search_params=search_params)
+        frozen = False
     else:
-        noop = job_service.is_frozen(git_meta['owner'], git_meta['repo'],
+        frozen = job_service.is_frozen(git_meta['owner'], git_meta['repo'],
                                      git_meta['ref'])
 
     if not job_config['enabled'] or not builder_hooks or \
-            not job_config['deployers'] or noop:
+            not job_config['deployers'] or frozen:
         return _handle_noop(job)
 
     job = prepare_job(job, hook_type, hook_name, hook_status, hook_result,
