@@ -219,6 +219,7 @@ HOOK_STATUS_FAILED = 'failed'
 HOOK_TYPE_CI = 'ci'
 HOOK_TYPE_BUILDER = 'builder'
 HOOK_TYPE_SCM_PUSH = 'scm-push'
+HOOK_TYPE_SCM_CREATE = 'scm-create'
 
 # Store Settings
 DEFAULT_STORE_NAME = 'mongo'

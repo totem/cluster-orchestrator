@@ -171,15 +171,19 @@ class GithubHookApi(MethodView):
                 not request_data.get('deleted'):
             ref = basename(request_data['ref'])
             commit = request_data['after']
-            task = handle_callback_hook.delay(
-                owner, repo, ref, 'scm-push', 'github-push', commit=commit)
+            # Delay processing of github push event ( eventual consistency)
+            task = handle_callback_hook.apply_async(
+                (owner, repo, ref, 'scm-push', 'github-push'),
+                kwargs={'commit': commit}, countdown=10)
             return created_task(task)
         elif request.headers.get('X-GitHub-Event') == 'create' and \
                 request_data.get('ref_type') == 'branch' and \
                 request_data.get('ref'):
             ref = basename(request_data['ref'])
-            task = handle_callback_hook.delay(
-                owner, repo, ref, 'scm-create', 'github-create')
+            # Delay processing of github create event ( eventual consistency)
+            task = handle_callback_hook.apply_async(
+                (owner, repo, ref, 'scm-create', 'github-create'),
+                countdown=10)
             return created_task(task)
         else:
             # Ignore all other hooks

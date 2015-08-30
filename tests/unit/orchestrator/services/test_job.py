@@ -307,7 +307,7 @@ def test_create_job_when_exists_with_no_commit_info(m_get_store):
         'hooks': {
             'ci': {
                 'ci1': {
-                    'status': HOOK_STATUS_PENDING
+                    'status': HOOK_STATUS_SUCCESS
                 }
             },
             'builder': {
