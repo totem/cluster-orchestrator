@@ -29,7 +29,7 @@ def replace_regex(input_str, find, replace):
     :return: Regex replaced string
     :rtype: str
     """
-    return re.sub(find, replace, input)
+    return re.sub(find, replace, input_str)
 
 
 def apply_filters(env):
