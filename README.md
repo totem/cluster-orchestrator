@@ -3,7 +3,7 @@
 Provides orchestration for continuous deployment to Totem Cluster. 
 
 ## Development Status
-This project is currently under development.
+This project is ready to be used in production.
 
 ## Documentation
 Project uses Sphinx for code/api documentation.
