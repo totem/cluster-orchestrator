@@ -98,13 +98,7 @@ CONFIG_PROVIDERS = {
         'host': TOTEM_ETCD_SETTINGS['host'],
         'port': TOTEM_ETCD_SETTINGS['port'],
     },
-    'effective': {
-        'cache': {
-            'enabled': os.getenv('CONFIG_CACHE_ENABLED', 'true').strip()
-            .lower() in BOOLEAN_TRUE_VALUES,
-            'ttl': int(os.getenv('CONFIG_CACHE_TTL', '120'))
-        }
-    },
+    'effective': {},
     'github': {
         'token': os.getenv('GITHUB_TOKEN', None),
         'config_base': os.getenv('GITHUB_CONFIG_BASE', '/'),

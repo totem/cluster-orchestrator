@@ -50,13 +50,7 @@ def _get_effective_provider():
             provider = get_provider(provider_type)
             if provider:
                 providers.append(provider)
-
-    if CONFIG_PROVIDERS['effective']['cache']['enabled']:
-        cache_provider = _get_etcd_provider(
-            ttl=CONFIG_PROVIDERS['effective']['cache']['ttl'])
-    else:
-        cache_provider = None
-    return MergedConfigProvider(*providers, cache_provider=cache_provider)
+    return MergedConfigProvider(*providers)
 
 
 def _get_etcd_provider(ttl=None):

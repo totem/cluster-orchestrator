@@ -6,7 +6,6 @@ from future.builtins import (  # noqa
     pow, round, super,
     filter, map, zip)
 
-import functools
 from orchestrator.cluster_config.base import AbstractConfigProvider
 from orchestrator.util import dict_merge
 
@@ -19,33 +18,11 @@ class MergedConfigProvider(AbstractConfigProvider):
     def __init__(self, *providers, **kwargs):
         """
         :param providers: List of Config providers.
-        :keyword cache_provider: Config provider for caching the effective
-            config.
         :param write_provider: Config provider for writing the config to. If
             None, then no write will be done.
         """
         self.providers = providers
-        self.cache_provider = kwargs.get('cache_provider', None)
         self.write_provider = kwargs.get('write_provider', None)
-
-    def _cached_config(self, func):
-        """
-        Wrapper for caching the config if cache_provider is provided. If not,
-        it skips caching.
-        :param func: Function to be wrapped.
-        :return: Wrapped function.
-        """
-        @functools.wraps(func)
-        def inner(*args, **kwargs):
-            if not self.cache_provider:
-                return func(*args, **kwargs)
-            else:
-                config = self.cache_provider.load(*args, **kwargs) or \
-                    func(*args, **kwargs)
-                paths = args[1:] if len(args) > 1 else []
-                self.cache_provider.write(args[0], config, *paths)
-                return config
-        return inner
 
     def write(self, name, config, *paths):
         """
@@ -79,24 +56,20 @@ class MergedConfigProvider(AbstractConfigProvider):
         :return: Merged config from different providers.
         :rtype: dict
         """
+        merged_config = {}
 
-        @self._cached_config
-        def cached(name, *paths):
-            merged_config = {}
+        def merge(current_config, provider, *merge_paths):
+            return dict_merge(
+                current_config,
+                provider.load(name, *merge_paths))
 
-            def merge(current_config, provider, *merge_paths):
-                return dict_merge(
-                    current_config,
-                    provider.load(name, *merge_paths))
+        use_paths = list(paths)
+        while True:
+            for provider in self.providers:
+                merged_config = merge(merged_config, provider, *use_paths)
+            if use_paths:
+                use_paths.pop()
+            else:
+                break
 
-            use_paths = list(paths)
-            while True:
-                for provider in self.providers:
-                    merged_config = merge(merged_config, provider, *use_paths)
-                if use_paths:
-                    use_paths.pop()
-                else:
-                    break
-
-            return merged_config
-        return cached(name, *paths)
+        return merged_config
