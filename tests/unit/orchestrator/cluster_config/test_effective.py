@@ -36,7 +36,6 @@ class TestMergedConfigProvider:
     """
 
     def setup(self):
-        self.cache_provider = InMemoryProvider()
         self.write_provider = InMemoryProvider()
         self.provider1 = InMemoryProvider(init_cache={
             '/:totem.yml': {
@@ -60,8 +59,7 @@ class TestMergedConfigProvider:
             }
         })
         self.provider = MergedConfigProvider(
-            self.provider1, self.provider2, cache_provider=self.cache_provider,
-            write_provider=self.write_provider)
+            self.provider1, self.provider2, write_provider=self.write_provider)
 
     def test_write(self):
         """
@@ -115,34 +113,3 @@ class TestMergedConfigProvider:
             'key3': 'provider1-3.2',
             'key4': 'provider2-4.1',
         })
-
-    def test_load_with_caching(self):
-
-        # When: I load config
-        merged_config = self.provider.load('totem.yml', 'path1', 'path2')
-
-        # Then: Merged config is returned
-        expected_config = {
-            'key1': 'provider1-1.2',
-            'key2': 'provider1-2.1',
-            'key3': 'provider1-3.2',
-            'key4': 'provider2-4.1',
-        }
-        dict_compare(merged_config, expected_config)
-
-        # And config gets cached
-        dict_compare(self.cache_provider.load('totem.yml', 'path1', 'path2'),
-                     expected_config)
-
-    def test_load_with_cached_value(self):
-        # Give: Cached Config
-        cached_config = {
-            'cached_key': 'cached_value'
-        }
-        self.cache_provider.write('totem.yml', cached_config, 'path1', 'path2')
-
-        # When: I load config
-        merged_config = self.provider.load('totem.yml', 'path1', 'path2')
-
-        # Then: Cached config is returned
-        dict_compare(merged_config, cached_config)
