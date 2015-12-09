@@ -6,7 +6,10 @@ API for orchestrator used in totem v2.
 # Orchestrator Hooks
 
 ## Generic Internal Hook [POST /hooks/generic]
-API for posting custom callback hook to internal orchestrator api.
+API for posting custom callback hook to internal orchestrator api. 
+
+*Note:*  Orchestrator does not clone the repository and simply use git information
+as meta-information for locating totem.yml. This file need not be present in git repository and can be stored in other config providers like s3, etcd.
 
 + Request
 
