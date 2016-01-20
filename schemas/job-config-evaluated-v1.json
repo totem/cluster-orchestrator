@@ -27,6 +27,10 @@
     },
     "scm": {
       "type": "object"
+    },
+    "environment": {
+      "$ref": "#/definitions/environment",
+      "description": "Defines top level environment (key, value) support"
     }
   },
   "required": ["enabled"],
@@ -403,6 +407,22 @@
         }
       },
       "additionalProperties": true
+    },
+    "environment": {
+      "patternProperties": {
+        ".*": {
+          "oneOf": [
+            {
+              "type": "string",
+              "maxLength": 4096
+            },
+            {
+              "$ref": "#/definitions/encrypted-type"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

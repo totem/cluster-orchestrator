@@ -4,7 +4,7 @@ flake8
 Sphinx==1.2.3
 
 # For freezing time
-freezegun==0.2.8
+https://github.com/spulec/freezegun/archive/master.tar.gz
 
 # Code Coverage
 coveralls
