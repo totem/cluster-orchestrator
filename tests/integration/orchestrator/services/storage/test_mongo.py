@@ -3,8 +3,8 @@ import datetime
 from freezegun import freeze_time
 import pymongo
 import pytz
-from conf.appconfig import JOB_STATE_NEW, JOB_STATE_COMPLETE, JOB_STATE_FAILED, \
-    JOB_STATE_SCHEDULED
+from conf.appconfig import JOB_STATE_NEW, JOB_STATE_COMPLETE, \
+    JOB_STATE_FAILED, JOB_STATE_SCHEDULED
 from orchestrator.services.storage.mongo import create
 from nose.tools import ok_, eq_
 from orchestrator.util import dict_merge
