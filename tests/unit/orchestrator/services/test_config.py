@@ -397,6 +397,7 @@ def test_evaluate_config_with_deployers():
                 },
                 'deployer-name': 'deployer2',
                 'deployment': {}
+
             }
         }
     })

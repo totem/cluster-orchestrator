@@ -1,46 +1,210 @@
 FORMAT: 1A
 
 # cluster-orchestrator
-Notes API is a *short texts saving* service similar to its physical paper presence on your table.
+API for orchestrator used in totem v2. All public facing api use /external as route path prefix.
 
-# Group Notes
-Notes related resources of the **Notes API**
+## Generic Internal Hook [POST /hooks/generic]
+API for posting custom callback hook to internal orchestrator api. 
 
-## Notes Collection [/notes]
-### List all Notes [GET]
-+ Response 200 (application/json)
+*Note:  Orchestrator does not clone the repository and simply use git information
+as meta-information for locating totem.yml. This file need not be present in git repository and can be stored in other config providers like s3, etcd.*
 
-        [{
-          "id": 1, "title": "Jogging in park"
-        }, {
-          "id": 2, "title": "Pick-up posters from post-office"
-        }]
++ Request
 
-### Create a Note [POST]
-+ Request (application/json)
+    + Headers
+            
+            Content-Type: application/vnd.orch.generic.hook.v1+json
+            Accept: application/vnd.orch.task.v1+json, application/json
+            
+    + Schema
 
-        { "title": "Buy cheese and bread for breakfast." }
+            {
+              "$schema": "http://json-schema.org/draft-04/hyper-schema#",
+              "type": "object",
+              "title": "Schema for Generic Hook payload",
+              "id": "#generic-hook-v1",
+              "properties": {
+                "git": {
+                  "description": "Git meta-information used for locating totem.yml."
+                  "$ref": "#/definitions/git"
+                },
+                "name": {
+                  "description": "Name of the hook (e.g. image-factory)",
+                  "type": "string",
+                  "maxLength": 100
+                },
+                "type": {
+                  "description": "Type of the hook (e.g. builder, ci)",
+                  "enum": ["builder", "ci", "scm-create", "scm-push"]
+                },
+                "status": {
+                  "description": "Status for the hook (failed, success)",
+                  "enum": ["success", "failed"]
+                },
+                "result": {
+                  "description": "Result object",
+                  "type": "object"
+                },
+                "force-deploy": {
+                  "description": "Force deploy the image on receiving this hook (ignore status)",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false,
+              "required": ["name", "type", "git"],
+              "definitions": {
+                "git": {
+                  "properties": {
+                    "owner": {
+                      "title": "Owner/Organization of the SCM repository (e.g. totem)",
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "repo": {
+                      "title": "SCM repository name (e.g.: spec-python)",
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "ref": {
+                      "title": "Branch or tag name",
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "commit": {
+                      "title": "Git SHA Commit ID",
+                      "type": ["string", "null"],
+                      "maxLength": 100
+                    }
+                  },
+                  "additionalProperties": false,
+                  "required": ["owner", "repo", "ref"]
+                }
+              }
+            }
+    
+    + Body
+    
+            {
+                "git":{
+                    "owner": "totem",
+                    "repo": "totem-demo",
+                    "ref": "master",
+                    "commit": "75863c8b181c00a6e0f70ed3a876edc1b3a6a662"
+                },
+                "type": "builder",
+                "name": "mybuilder",
+                "status": "success",
+                "force-deploy": true,
+                "result": {
+                  "image": "totem/totem-demo:latest"
+                }
+            }
+            
+    
++ Response 202 (application/vnd.orch.task.v1+json)
 
-+ Response 201 (application/json)
+    + Headers
+    
+            Location: /tasks/94ddd430-5e66-48d9-a1b4-f996b6bd2489 
+            
+    + Body
+    
+            {
+                "task_id": "81b5de1c-a7af-4bc2-9593-644645f655bc"
+            }
+            
+            
+## Get Asynchronous Task Status [GET /tasks/{task_id}]
 
-        { "id": 3, "title": "Buy cheese and bread for breakfast." }
-
-## Note [/notes/{id}]
-A single Note object with all its details
+Gets status for asynchronous job created as a result of posting a new callback hook to orchestrator.  
+*Note: The job status can also be obtained from elasticsearch if totem is setup to sync mongo with ES.*
 
 + Parameters
-    + id (required, number, `1`) ... Numeric `id` of the Note to perform action with. Has example value.
+    + task_id (required, string, `c47d3c50-2877-4119-850e-71aaae3d53ba`) ... Task ID (`task_id`)
 
-### Retrieve a Note [GET]
-+ Response 200 (application/json)
++ Request
 
-    + Header
+    + Headers
+            
+            Accept: application/json
 
-            X-My-Header: The Value
++ Response 200
 
     + Body
+    
+            {
+              "output": {
+                "config": {
+                  "deployers": {}, 
+                  "enabled": true, 
+                  "hooks": {
+                    "builder": {
+                      "image-factory": {
+                        "enabled": true
+                      }
+                    }, 
+                    "ci": {
+                      "travis": {
+                        "enabled": false
+                      }
+                    }, 
+                    "scm-create": {
+                      "github-create": {
+                        "enabled": true
+                      }
+                    }, 
+                    "scm-push": {
+                      "github-push": {
+                        "enabled": true
+                      }
+                    }
+                  }, 
+                  "notifications": {}, 
+                  "scm": {
+                    "auth": {
+                      "token": ""
+                    }, 
+                    "type": "github"
+                  }, 
+                  "security": {
+                    "profile": "default"
+                  }
+                }, 
+                "force-deploy": false, 
+                "hooks": {
+                  "builder": {
+                    "image-factory": {
+                      "status": "pending"
+                    }
+                  }, 
+                  "ci": {}, 
+                  "scm-create": {
+                    "github-create": {
+                      "status": "pending"
+                    }
+                  }, 
+                  "scm-push": {
+                    "github-push": {
+                      "status": "pending"
+                    }
+                  }
+                }, 
+                "meta-info": {
+                  "git": {
+                    "commit": "c4084c20ba721be7c9d5d625c7749659cc4fd702", 
+                    "commit-set": [
+                      "c4084c20ba721be7c9d5d625c7749659cc4fd702"
+                    ], 
+                    "owner": "totem", 
+                    "ref": "develop", 
+                    "repo": "cluster-orchestrator"
+                  }, 
+                  "job-id": "ac572a97-f285-4917-8ff4-4ecb8a142488"
+                }, 
+                "state": "NOOP"
+              }, 
+              "status": "READY"
+            }
+    
 
-            { "id": 2, "title": "Pick-up posters from post-office" }
 
-### Remove a Note [DELETE]
-+ Response 204

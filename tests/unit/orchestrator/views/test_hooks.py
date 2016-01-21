@@ -2,8 +2,8 @@ import json
 from flask import Flask
 from mock import patch
 from nose.tools import eq_
-from conf.appconfig import MIME_JSON, MIME_FORM_URL_ENC, MIME_GENERIC_HOOK_V1, \
-    MIME_JOB_V1
+from conf.appconfig import MIME_JSON, MIME_FORM_URL_ENC, \
+    MIME_GENERIC_HOOK_V1, MIME_JOB_V1
 from orchestrator.server import app
 from orchestrator.views.hooks import authorize
 
