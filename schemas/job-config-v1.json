@@ -36,6 +36,7 @@
       "type": "object"
     },
     "environment": {
+      "type": "object",
       "$ref": "#/definitions/environment",
       "description": "Defines top level environment (key, value) support"
     }
@@ -516,6 +517,7 @@
     },
 
     "environment": {
+      "type": "object",
       "patternProperties": {
         ".*": {
           "oneOf": [
