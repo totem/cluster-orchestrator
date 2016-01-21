@@ -80,8 +80,7 @@ DEFAULT_DEPLOYER_CONFIG = {
             'args': {}
         }
     },
-    'deployment': {},
-    'environment': {}
+    'deployment': {}
 }
 
 DEFAULT_HIPCHAT_TOKEN = os.getenv('HIPCHAT_TOKEN', '')

@@ -384,8 +384,7 @@ def test_evaluate_config_with_deployers():
                         'args': {}
                     }
                 },
-                'deployment': {},
-                'environment': {}
+                'deployment': {}
             },
             'deployer2': {
                 'url': 'deployer2-url',
@@ -397,8 +396,8 @@ def test_evaluate_config_with_deployers():
                     }
                 },
                 'deployer-name': 'deployer2',
-                'deployment': {},
-                'environment': {}
+                'deployment': {}
+
             }
         }
     })
@@ -591,8 +590,7 @@ def test_load_config(m_validate_schema, m_get_provider):
                 'proxy': {},
                 'deployment': {},
                 'url': 'deployer2-url1',
-                'enabled': True,
-                'environment': {}
+                'enabled': True
             }
         },
         'environment': {
