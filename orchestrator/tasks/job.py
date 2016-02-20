@@ -462,7 +462,8 @@ def _deploy(self, job, deployer_name):
         'deployment': dict_merge(deployer['deployment']),
         'security': job_config.get('security', {}),
         'notifications': job_config.get('notifications', {}),
-        'environment': job_config.get('environment', {})
+        'environment': job_config.get('environment', {}),
+        'schedule': job_config.get('schedule', ''),
     }
     try:
         response = requests.post(apps_url, data=json.dumps(data),
