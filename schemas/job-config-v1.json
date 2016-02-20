@@ -39,6 +39,10 @@
       "type": "object",
       "$ref": "#/definitions/environment",
       "description": "Defines top level environment (key, value) support"
+    },
+    "schedule": {
+      "$ref": "#/definitions/string-or-template-type",
+      "description": "Run this deployment as scheduled job. See: https://www.freedesktop.org/software/systemd/man/systemd.time.html#Calendar%20Events"
     }
   },
   "required": ["enabled"],

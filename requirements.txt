@@ -10,7 +10,7 @@ pymongo==3.0.3
 Jinja2==2.7.3
 requests[security]==2.7.0
 urllib3==1.11
-https://github.com/sukrit007/celery/archive/3.1.tar.gz
+celery[mongodb]==3.1.20
 https://github.com/totem/flask-hyperschema/archive/v0.1.1.tar.gz
 https://github.com/totem/totem-encrypt/archive/master.tar.gz
 https://github.com/dlitz/pycrypto/archive/v2.7a1.tar.gz
