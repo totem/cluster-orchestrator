@@ -32,6 +32,10 @@
       "type": "object",
       "$ref": "#/definitions/environment",
       "description": "Defines top level environment (key, value) support"
+    },
+    "schedule": {
+      "type": "string",
+      "description": "Run this deployment as scheduled job."
     }
   },
   "required": ["enabled"],

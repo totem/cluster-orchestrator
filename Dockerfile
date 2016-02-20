@@ -9,7 +9,7 @@ RUN apt-get update --fix-missing && apt-get install -y \
     && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
 
 # Etcdctl
-ENV ETCDCTL_VERSION v0.4.6
+ENV ETCDCTL_VERSION v2.2.5
 RUN curl -L https://github.com/coreos/etcd/releases/download/$ETCDCTL_VERSION/etcd-$ETCDCTL_VERSION-linux-amd64.tar.gz -o /tmp/etcd-$ETCDCTL_VERSION-linux-amd64.tar.gz && \
     cd /tmp && gzip -dc etcd-$ETCDCTL_VERSION-linux-amd64.tar.gz | tar -xof - && \
     cp -f /tmp/etcd-$ETCDCTL_VERSION-linux-amd64/etcdctl /usr/local/bin && \
