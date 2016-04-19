@@ -1,4 +1,4 @@
-<b>Totem ({{ctx.env}} :: Orchestrator :: {{ctx.operation}}) - </b>
+<b>{{ctx.env}} Orchestrator ({{ctx.operation}}) : </b>
 {% if ctx.owner %}
   {% if ctx.github %}
     <a href="https://github.com/{{ctx.owner}}">{{ ctx.owner }}</a>
@@ -33,7 +33,7 @@
     {{ ctx.commit }}
   {% endif %}
 {% endif %}
--
+:
 {% if notification.code %}
   (<b>{{ notification.code }}</b>)
 {% endif %}
