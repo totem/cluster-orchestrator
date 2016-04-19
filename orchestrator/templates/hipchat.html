@@ -1,37 +1,36 @@
-{%- set git = ctx.deployment['meta-info'].git or {} %}
 <b>Totem ({{ctx.env}} :: Orchestrator :: {{ctx.operation}})</b>
-{% if git.owner %}
-  {% if git.type == 'github' %}
-    <a href="https://github.com/{{git.owner}}">{{ git.owner }}</a>
+{% if ctx.owner %}
+  {% if ctx.github %}
+    <a href="https://github.com/{{ctx.owner}}">{{ ctx.owner }}</a>
   {% else %}
-    {{ git.owner }}
+    {{ ctx.owner }}
   {% endif %}
   :
 {% endif %}
 
-{% if git.repo %}
-  {% if git.type == 'github' %}
-    <a href="https://github.com/{{git.owner}}/{{git.repo}}">{{ git.repo }}</a>
+{% if ctx.repo %}
+  {% if ctx.github %}
+    <a href="https://github.com/{{ctx.owner}}/{{ctx.repo}}">{{ ctx.repo }}</a>
   {% else %}
-    {{ git.repo }}
+    {{ ctx.repo }}
   {% endif %}
   :
 {% endif %}
 
-{% if git.ref %}
-  {% if git.type == 'github' %}
-    <a href="https://github.com/{{git.owner}}/{{git.repo}}/tree/{{git.ref}}">{{ git.ref }}</a>
+{% if ctx.ref %}
+  {% if ctx.github %}
+    <a href="https://github.com/{{ctx.owner}}/{{ctx.repo}}/tree/{{ctx.ref}}">{{ ctx.ref }}</a>
   {% else %}
-    {{ git.ref }}
+    {{ ctx.ref }}
   {% endif %}
   :
 {% endif %}
 
-{% if git.commit %}
-  {% if git.type == 'github' %}
-    <a href="https://github.com/{{git.owner}}/{{git.repo}}/commit/{{git.commit}}">{{ git.commit }}</a>
+{% if ctx.commit %}
+  {% if ctx.github %}
+    <a href="https://github.com/{{ctx.owner}}/{{ctx.repo}}/commit/{{ctx.commit}}">{{ ctx.commit }}</a>
   {% else %}
-    {{ git.commit }}
+    {{ ctx.commit }}
   {% endif %}
   :
 {% endif %}
@@ -41,7 +40,10 @@
 {% endif %}
 
 {% if notification.message %}
-  {{ notification.message }}
+  {{ notification.message | truncate(1000) }}
+  {% if notification.code == 'CONFIG_VALIDATION_ERROR' %}
+  <a href="https://github.com/totem/cluster-orchestrator/blob/master/schemas/job-config-v1.json"> Click here to view the job-config-v1 schema.</a>
+  {% endif %}
 {% endif %}
 
 {% if ctx['job-id'] %}
