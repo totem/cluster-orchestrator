@@ -1,0 +1,13 @@
+.idea
+docs
+postman
+tests
+.git*
+.travis.yml
+apiary.apib
+*.iml
+LICENSE
+local-celery.py
+local-server.py
+README.md
+totem.yml
