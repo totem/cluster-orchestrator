@@ -1,115 +1,52 @@
-<table>
-    <tr>
-        <td colspan="2"><b>Totem ({{ctx.env}} :: Orchestrator :: {{ctx.operation}})</b><br/></td>
-    </tr>
+{%- set git = ctx.deployment['meta-info'].git or {} %}
+<b>Totem ({{ctx.env}} :: Orchestrator :: {{ctx.operation}})</b>
+{% if git.owner %}
+  {% if git.type == 'github' %}
+    <a href="https://github.com/{{git.owner}}">{{ git.owner }}</a>
+  {% else %}
+    {{ git.owner }}
+  {% endif %}
+  :
+{% endif %}
 
+{% if git.repo %}
+  {% if git.type == 'github' %}
+    <a href="https://github.com/{{git.owner}}/{{git.repo}}">{{ git.repo }}</a>
+  {% else %}
+    {{ git.repo }}
+  {% endif %}
+  :
+{% endif %}
 
-    <tr>
-        <td>
-            <table>
-                {% if notification.code %}
-                <tr>
-                    <td valign="top"><b>Code:</b></td>
-                    <td valign="bottom">{{ notification.code }}</td>
-                </tr>
-                {% endif %}
+{% if git.ref %}
+  {% if git.type == 'github' %}
+    <a href="https://github.com/{{git.owner}}/{{git.repo}}/tree/{{git.ref}}">{{ git.ref }}</a>
+  {% else %}
+    {{ git.ref }}
+  {% endif %}
+  :
+{% endif %}
 
-                {% if notification.message %}
-                <tr>
-                    <td valign="top"><b>Message:</b></td>
-                    <td valign="bottom">{{ notification.message | truncate(1000) }}
-                        {% if notification.code == 'CONFIG_VALIDATION_ERROR' %}
-                        <a href="https://github.com/totem/cluster-orchestrator/blob/master/schemas/job-config-v1.json"> Click here to view the job-config-v1 schema.</a>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endif %}
+{% if git.commit %}
+  {% if git.type == 'github' %}
+    <a href="https://github.com/{{git.owner}}/{{git.repo}}/commit/{{git.commit}}">{{ git.commit }}</a>
+  {% else %}
+    {{ git.commit }}
+  {% endif %}
+  :
+{% endif %}
 
-                {% if ctx.repo %}
-                <tr>
-                    <td valign="top"><b>Repository:</b></td>
+{% if notification.code %}
+  (<b>{{ notification.code }}</b>)
+{% endif %}
 
-                    <td valign="bottom">
-                        {% if ctx.github %}
-                        <a href="https://github.com/{{ctx.owner}}/{{ctx.repo}}">{{ ctx.repo }}</a>
-                        {% else %}
-                        {{ ctx.repo }}
-                        {% endif %}
-                    </td>
+{% if notification.message %}
+  {{ notification.message }}
+{% endif %}
 
-                </tr>
-                {% endif %}
-
-                {% if ctx.owner %}
-                <tr >
-                    <td valign="top"><b>Owner:</b></td>
-
-                    <td valign="bottom">
-                        {% if ctx.github %}
-                        <a href="https://github.com/{{ctx.owner}}">{{ ctx.owner }}</a>
-                        {% else %}
-                        {{ ctx.owner }}
-                        {% endif %}
-                    </td>
-
-                </tr>
-                {% endif %}
-
-                {% if ctx.commit %}
-                <tr>
-                    <td valign="top"><b>Commit:</b></td>
-
-                    <td valign="bottom">
-                        {% if ctx.github %}
-                        <a href="https://github.com/{{ctx.owner}}/{{ctx.repo}}/commit/{{ctx.commit}}">{{ ctx.commit }}</a>
-                        {% else %}
-                        {{ ctx.commit }}
-                        {% endif %}
-                    </td>
-
-                </tr>
-                {% endif %}
-
-                {% if ctx.ref %}
-                <tr>
-                    <td valign="top"><b>Ref:</b></td>
-
-                    <td valign="bottom">
-                        {% if ctx.github %}
-                        <a href="https://github.com/{{ctx.owner}}/{{ctx.repo}}/tree/{{ctx.ref}}">{{ ctx.ref }}</a>
-                        {% else %}
-                        {{ ctx.ref }}
-                        {% endif %}
-                    </td>
-
-                </tr>
-                {% endif %}
-
-                {% if ctx['job-id'] %}
-                <tr>
-                    <td valign="top"><b>Job-ID:</b></td>
-
-                    <td valign="bottom">
-                        {{ ctx['job-id'] }}
-                    </td>
-
-                </tr>
-                {% endif %}
-            </table>
-
-        </td>
-        <td valign="top">
-            {% if notification.code == 'INTERNAL' %}
-            <img src='http://cdn.meme.am/instances/500x/56167084.jpg' height='200'/>
-            {% elif level == 1 %}
-            <img src='http://i.imgur.com/txw2K6j.jpg' height='200'/>
-            {% elif level == 2 %}
-            <img src="http://i.imgur.com/zknV7Dr.jpg" height='200'/>
-            {% else %}
-            &nbsp;
-            {% endif %}
-        </td>
-    </tr>
+{% if ctx['job-id'] %}
+  (job-id: {{ ctx['job-id'] }} )
+{% endif %}
 
 
 
