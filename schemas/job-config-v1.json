@@ -481,8 +481,8 @@
           "description": "Color mapping"
         },
         "room": {
-          "type": "string",
-          "description": "Room to be used for notification"
+          "description": "Room to be used for notification",
+          "$ref": "#/definitions/string-or-template-type"
         },
         "token": {
           "description": "Hipchat API v2 token (personal/ room) for notification",
