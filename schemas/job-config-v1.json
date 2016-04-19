@@ -245,9 +245,6 @@
         },
         "stop": {
           "$ref": "#/definitions/deployment-stop"
-        },
-        "type": {
-          "enum": [ "blue-green", "red-green", "a/b", "custom"]
         }
       },
       "additionalProperties": false
