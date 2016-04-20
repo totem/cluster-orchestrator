@@ -4,6 +4,8 @@ HOST_IP="${HOST_IP:-$(/sbin/ip route|awk '/default/ { print $3 }')}"
 
 export ETCD_HOST="${ETCD_HOST:-$HOST_IP}"
 export ETCD_PORT="${ETCD_PORT:-4001}"
+export ETCD_URL="${ETCD_URL:-http://$ETCD_HOST:$ETCD_PORT}"
+export ETCDCTL="${ETCDCTL:-etcdctl --peers $ETCD_URL}"
 export ETCD_TOTEM_BASE="${ETCD_TOTEM_BASE:-/totem}"
 export ETCD_YODA_BASE="${ETCD_YODA_BASE:-/yoda}"
 export CELERY_GEVENT_EXECUTORS="${CELERY_GEVENT_EXECUTORS:-1}"
@@ -36,6 +38,34 @@ export HIPCHAT_ROOM="${HIPCHAT_ROOM:-not-set}"
 export GITHUB_NOTIFICATION_ENABLED="${GITHUB_NOTIFICATION_ENABLED:-false}"
 export LOG_IDENTIFIER="${LOG_IDENTIFIER:-cluster-orchestrator}"
 export LOG_ROOT_LEVEL="${LOG_ROOT_LEVEL}"
+
+until $ETCDCTL cluster-health; do
+  >&2 echo "Etcdctl cluster not healthy - sleeping"
+  sleep 10
+done
+
+# Cleanup for local testing
+if ls celerybeat* 2>/dev/null; then
+  rm celerybeat*
+fi
+
+if [ "$DISCOVER_RABBITMQ" == "true" ]; then
+  export AMQP_HOST="$($ETCDCTL ls $ETCD_TOTEM_BASE/rabbitmq/nodes | xargs -n 1  $ETCDCTL get | xargs echo -n | tr ' ' ',')"
+  until [ ! -z "$AMQP_HOST" ]; do
+    >&2 echo "Rabbitmq could not be discovered - sleeping"
+    sleep 10
+    export AMQP_HOST="$($ETCDCTL ls $ETCD_TOTEM_BASE/rabbitmq/nodes | xargs -n 1  $ETCDCTL get | xargs echo -n | tr ' ' ',')"
+  done
+fi
+
+if [ "$DISCOVER_MONGO" == "true" ]; then
+  export MONGODB_SERVERS="$($ETCDCTL ls $ETCD_TOTEM_BASE/mongo/nodes | xargs -n 1  $ETCDCTL get | xargs echo -n | tr ' ' ',')"
+  until [ ! -z "$MONGODB_SERVERS" ]; do
+    >&2 echo "Mongo servers could not be discovered - sleeping"
+    sleep 10
+    export MONGODB_SERVERS="$($ETCDCTL ls $ETCD_TOTEM_BASE/mongo/nodes | xargs -n 1  $ETCDCTL get | xargs echo -n | tr ' ' ',')"
+  done
+fi
 
 envsubst  < /etc/supervisor/conf.d/supervisord.conf.template  > /etc/supervisor/conf.d/supervisord.conf
 
