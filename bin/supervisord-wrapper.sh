@@ -1,4 +1,4 @@
-#!/bin/bash -le
+#!/bin/sh -e
 
 HOST_IP="${HOST_IP:-$(/sbin/ip route|awk '/default/ { print $3 }')}"
 
