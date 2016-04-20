@@ -9,6 +9,7 @@ services:
 
 # command to install dependencies
 install:
+  - "pip install --upgrade pip"
   - "pip install -r requirements.txt"
   - "pip install -r dev-requirements.txt"
   - "curl -L  https://github.com/coreos/etcd/releases/download/v2.2.5/etcd-v2.2.5-linux-amd64.tar.gz -o etcd-linux-amd64.tar.gz"
