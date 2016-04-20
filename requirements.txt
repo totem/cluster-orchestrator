@@ -1,7 +1,9 @@
 Flask==0.10.1
 Flask-Cors==2.1.2
 gevent==1.1.1
-uWSGI==2.0.12
+# Uncomment below , when 2.0.13 is released See https://github.com/gliderlabs/docker-alpine/issues/158#issuecomment-205401343
+# uWSGI==2.0.13
+https://github.com/unbit/uwsgi/archive/uwsgi-2.0.zip#egg=uwsgi
 python-etcd==0.3.3
 future==0.15.2
 PyYAML==3.11
@@ -14,4 +16,3 @@ celery[mongodb]==3.1.23
 https://github.com/totem/flask-hyperschema/archive/0.2.0.tar.gz
 https://github.com/totem/totem-encrypt/archive/master.tar.gz
 https://github.com/dlitz/pycrypto/archive/v2.7a1.tar.gz
-
