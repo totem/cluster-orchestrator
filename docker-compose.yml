@@ -17,7 +17,8 @@ services:
       MONGODB_SERVERS: 'mongo.local:27017'
       DISCOVER_MONGO: 'false'
       DISCOVER_RABBITMQ: 'false'
-    expose:
+
+    ports:
       - 9400
 
     depends_on:
