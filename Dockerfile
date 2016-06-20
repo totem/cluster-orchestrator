@@ -8,6 +8,7 @@ RUN apk add --no-cache --update \
         pcre \
         gettext \
         curl \
+        openssl \
 
     # Etcdctl
     && curl -L https://github.com/coreos/etcd/releases/download/$ETCDCTL_VERSION/etcd-$ETCDCTL_VERSION-linux-amd64.tar.gz -o /tmp/etcd-$ETCDCTL_VERSION-linux-amd64.tar.gz \
