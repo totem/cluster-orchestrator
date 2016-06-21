@@ -46,8 +46,8 @@ class MongoStore(AbstractStore):
         Setup indexes for mongo store
         :return:
         """
+        # self._jobs.drop_indexes()
         idxs = self._jobs.index_information()
-        self._jobs.drop_indexes()
         if 'created_idx' not in idxs:
             self._jobs.create_index(
                 [('date', pymongo.DESCENDING)],
