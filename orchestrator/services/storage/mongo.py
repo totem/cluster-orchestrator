@@ -4,7 +4,7 @@ import pymongo
 import pytz
 from conf.appconfig import MONGODB_URL, MONGODB_JOB_COLLECTION, \
     MONGODB_DB, MONGODB_EVENT_COLLECTION, \
-    JOB_EXPIRY_SECONDS
+    JOB_EXPIRY_SECONDS, EVENT_EXPIRY_SECONDS
 from orchestrator.services.storage.base import AbstractStore
 
 __author__ = 'sukrit'
@@ -70,6 +70,12 @@ class MongoStore(AbstractStore):
                 ('meta-info.git.commit', pymongo.ASCENDING),
 
             ], name='git_idx')
+
+        event_idxs = self._events.index_information()
+        if 'expiry_idx' not in event_idxs:
+            self._events.create_index(
+                [('_expiry', pymongo.DESCENDING)], name='expiry_idx',
+                background=True, expireAfterSeconds=EVENT_EXPIRY_SECONDS)
 
     @property
     def _db(self):
