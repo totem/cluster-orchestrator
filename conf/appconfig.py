@@ -165,6 +165,12 @@ CONFIG_PROVIDERS = {
                     .strip().lower() in BOOLEAN_TRUE_VALUES,
                     'token': '',
                     'level': LEVEL_PENDING
+                },
+                'slack': {
+                    'enabled': os.getenv('HIPCHAT_ENABLED', 'false').strip()
+                    .lower() in BOOLEAN_TRUE_VALUES,
+                    'level': LEVEL_FAILED,
+                    'url': ''
                 }
             }
         }

@@ -151,6 +151,60 @@ def test_notify_hipchat_for_level_success(m_json, m_templatefactory,
 
 
 @patch('orchestrator.tasks.notification.requests')
+@patch('orchestrator.tasks.notification.templatefactory')
+@patch('orchestrator.tasks.notification.json')
+def test_notify_slack(m_json, m_templatefactory, m_requests):
+    """
+    Should send slack notification
+    :return:
+    """
+    # Given: Template factory that renders html template for notification
+    m_templatefactory.render_template.return_value = '{}'
+
+    # And: Mock implementation for jsonify (for validating data)
+    m_json.dumps.side_effect = lambda data: data
+
+    # When: I send message using slack
+    notification.notify_slack(
+        {'message': 'mock'}, {}, LEVEL_FAILED,
+        {'url': 'http://mockslackurl'},
+        'default')
+
+    # Then: Notification gets send successfully
+    m_requests.post.assert_called_once_with(
+        'http://mockslackurl',
+        headers={
+            'content-type': 'application/json'
+        },
+        data='{}')
+
+
+@patch('orchestrator.tasks.notification.requests')
+@patch('orchestrator.tasks.notification.templatefactory')
+@patch('orchestrator.tasks.notification.json')
+def test_notify_slack_when_url_is_not_set(m_json, m_templatefactory,
+                                          m_requests):
+    """
+    Should not send slack notification
+    :return:
+    """
+    # Given: Template factory that renders html template for notification
+    m_templatefactory.render_template.return_value = '{}'
+
+    # And: Mock implementation for jsonify (for validating data)
+    m_json.dumps.side_effect = lambda data: data
+
+    # When: I send message using slack
+    notification.notify_slack(
+        {'message': 'mock'}, {}, LEVEL_FAILED,
+        {},
+        'default')
+
+    # Then: Notification is not sent
+    m_requests.post.assert_not_called()
+
+
+@patch('orchestrator.tasks.notification.requests')
 @patch('orchestrator.tasks.notification.json')
 def test_github(m_json, m_requests):
     """
