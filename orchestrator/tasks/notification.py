@@ -69,8 +69,10 @@ def notify_slack(obj, ctx, level, config, security_profile):
     config = decrypt_config(config, profile=security_profile)
     ctx.setdefault('github', True)
     url = config.get('url')
+    notification=util.as_dict(obj)
+    notification['channel'] = config.get('channel')
     msg = templatefactory.render_template(
-        'slack.json.jinja', notification=util.as_dict(obj), ctx=ctx,
+        'slack.json.jinja', notification=notification, ctx=ctx,
         level=level)
     headers = {
         'content-type': 'application/json',
