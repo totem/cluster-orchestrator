@@ -167,10 +167,11 @@ CONFIG_PROVIDERS = {
                     'level': LEVEL_PENDING
                 },
                 'slack': {
-                    'enabled': os.getenv('HIPCHAT_ENABLED', 'false').strip()
+                    'enabled': os.getenv('SLACK_ENABLED', 'false').strip()
                     .lower() in BOOLEAN_TRUE_VALUES,
                     'level': LEVEL_FAILED,
-                    'url': ''
+                    'channel': os.getenv('SLACK_CHANNEL', '#totem'),
+                    'url': os.getenv('SLACK_URL'),
                 }
             }
         }
