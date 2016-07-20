@@ -5,7 +5,7 @@
 
   "attachments": [
       {
-          "text": "{{ notification.code}}: {{ notification.message | truncate(1000) }} {%if notification.code == 'CONFIG_VALIDATION_ERROR' -%}
+          "text": "{% if notification.code %}{{ notification.code}}: {% endif %}{{ notification.message | truncate(1000) }} {%if notification.code == 'CONFIG_VALIDATION_ERROR' -%}
             <https://github.com/totem/cluster-orchestrator/blob/master/schemas/job-config-v1.json | Click here to view the job-config-v1 schema.>
           {%- endif %} {% if ctx['job-id'] -%}
             (job-id: {{ ctx['job-id'] }})
