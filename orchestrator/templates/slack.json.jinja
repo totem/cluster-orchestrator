@@ -22,9 +22,9 @@
               {% endif %},
           "footer":
               {% if ctx.github %}
-                "<https://github.com/{{ctx.owner}}|{{ctx.owner or 'NA'}}> / <https://github.com/{{ctx.owner}}/{{ctx.repo}}|{{ctx.repo or 'NA'}}> / <https://github.com/{{ctx.owner}}/{{ctx.repo}}/tree/{{ctx.ref}}|{{(ctx.ref or 'NA')| truncate(30)}}> / <https://github.com/{{ctx.owner}}/{{ctx.repo}}/commit/{{(ctx.commit or ctx.ref or 'NA')[0:7]}}|{{(ctx.commit or ctx.ref or 'NA')[0:7]}}>\n"
+                "<https://github.com/{{ctx.owner}}|{{ctx.owner or 'NA'}}> / <https://github.com/{{ctx.owner}}/{{ctx.repo}}|{{ctx.repo or 'NA'}}> / <https://github.com/{{ctx.owner}}/{{ctx.repo}}/tree/{{ctx.ref}}|{{ctx.ref | truncate(30, True) or 'NA'}}> / <https://github.com/{{ctx.owner}}/{{ctx.repo}}/commit/{{(ctx.commit or ctx.ref or 'NA')[0:7]}}|{{(ctx.commit or ctx.ref or 'NA')[0:7]}}>\n"
               {% else %}
-                "{{ctx.owner or 'NA'}}/{{ctx.repo or 'NA'}}/{{(ctx.ref or 'NA') | truncate(30) }}/{{(ctx.commit or 'NA')[0:7]}}"
+                "{{ctx.owner or 'NA'}}/{{ctx.repo or 'NA'}}/{{ctx.ref | truncate(30, True) or 'NA' }}/{{(ctx.commit or 'NA')[0:7]}}"
               {% endif %},
           "ts": "{{ notification.date }}"
       }
