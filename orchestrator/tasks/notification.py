@@ -2,6 +2,8 @@
 Tasks for notification
 """
 import json
+
+import time
 from future.builtins import (  # noqa
     bytes, dict, int, list, object, range, str,
     ascii, chr, hex, input, next, oct, open,
@@ -71,6 +73,7 @@ def notify_slack(obj, ctx, level, config, security_profile):
     url = config.get('url')
     notification = util.as_dict(obj)
     notification['channel'] = config.get('channel')
+    notification['date'] = int(time.time())
     msg = templatefactory.render_template(
         'slack.json.jinja', notification=notification, ctx=ctx,
         level=level)
