@@ -229,7 +229,10 @@ def get_template_variables(owner, repo, ref, commit=None):
     :return: Template variables
     :rtype: dict
     """
-    ref_number = ref.lower().replace('feature_', '').replace('patch_', '')
+    ref_number = ref.lower()\
+        .replace('feature_', '')\
+        .replace('patch_', '') \
+        .replace('develop_', '')
     commit = commit or 'na'
     return {
         'owner': owner,

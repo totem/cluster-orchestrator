@@ -1,0 +1,33 @@
+{
+  "username": "Orchestrator ({{ctx.env}}-{{ctx.operation}})",
+  "channel": "{{ notification.channel or '#totem' }}",
+  "text": " ",
+
+  "attachments": [
+      {
+          "text": "{% if notification.code %}{{ notification.code}}: {% endif %}{{ notification.message | truncate(1000) }} {%if notification.code == 'CONFIG_VALIDATION_ERROR' -%}
+            <https://github.com/totem/cluster-orchestrator/blob/master/schemas/job-config-v1.json | Click here to view the job-config-v1 schema.>
+          {%- endif %} {% if ctx['job-id'] -%}
+            (job-id: {{ ctx['job-id'] }})
+          {%- endif -%}",
+          "color":
+              {% if level == 1 %}
+                "danger"
+              {% elif level == 2 %}
+                "warning"
+              {% elif level == 3 %}
+                "good"
+              {% else %}
+                "#439FE0"
+              {% endif %},
+          "footer":
+              {% if ctx.github %}
+                "<https://github.com/{{ctx.owner}}|{{ctx.owner or 'NA'}}> / <https://github.com/{{ctx.owner}}/{{ctx.repo}}|{{ctx.repo or 'NA'}}> / <https://github.com/{{ctx.owner}}/{{ctx.repo}}/tree/{{ctx.ref}}|{{ctx.ref | truncate(30, True) or 'NA'}}> / <https://github.com/{{ctx.owner}}/{{ctx.repo}}/commit/{{(ctx.commit or ctx.ref or 'NA')[0:7]}}|{{(ctx.commit or ctx.ref or 'NA')[0:7]}}>\n"
+              {% else %}
+                "{{ctx.owner or 'NA'}}/{{ctx.repo or 'NA'}}/{{ctx.ref | truncate(30, True) or 'NA' }}/{{(ctx.commit or 'NA')[0:7]}}"
+              {% endif %},
+          "ts": "{{ notification.date }}"
+      }
+  ]
+
+}

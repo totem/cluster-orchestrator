@@ -2,6 +2,8 @@
 Tasks for notification
 """
 import json
+
+import time
 from future.builtins import (  # noqa
     bytes, dict, int, list, object, range, str,
     ascii, chr, hex, input, next, oct, open,
@@ -65,6 +67,25 @@ def notify_hipchat(obj, ctx, level, config, security_profile):
 
 
 @app.task
+def notify_slack(obj, ctx, level, config, security_profile):
+    config = decrypt_config(config, profile=security_profile)
+    ctx.setdefault('github', True)
+    url = config.get('url')
+    notification = util.as_dict(obj)
+    notification['channel'] = config.get('channel')
+    notification['date'] = int(time.time())
+    msg = templatefactory.render_template(
+        'slack.json.jinja', notification=notification, ctx=ctx,
+        level=level)
+    headers = {
+        'content-type': 'application/json',
+    }
+    if url:
+        requests.post(url, data=msg, headers=headers)\
+            .raise_for_status()
+
+
+@app.task
 def notify_github(obj, ctx, level, config, security_profile):
     config = decrypt_config(config, profile=security_profile)
     base_url = config.get('url') or 'https://api.github.com'
@@ -96,5 +117,5 @@ def notify_github(obj, ctx, level, config, security_profile):
         requests.post(status_url, data=json.dumps(data),
                       headers=headers).raise_for_status()
     else:
-        # Github notification not sent
+        # Github notification is not sent
         pass
