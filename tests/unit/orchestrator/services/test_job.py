@@ -345,6 +345,28 @@ def test_template_variables():
     })
 
 
+def test_template_variables_for_develop_branch():
+    """
+    Should return default template variables for job config
+    """
+
+    # When: I get template variables for given repository
+    # owner, repo, ref and commit
+    variables = get_template_variables(
+        MOCK_OWNER, MOCK_REPO, 'develop_test', MOCK_COMMIT)
+
+    # Then: Default variables for the config template are returned
+    dict_compare(variables, {
+        'owner': MOCK_OWNER,
+        'repo': MOCK_REPO,
+        'ref': 'develop_test',
+        'commit': MOCK_COMMIT,
+        'ref_number': 'test',
+        'cluster': CLUSTER_NAME,
+        'env': TOTEM_ENV
+    })
+
+
 def test_create_search_params():
     """
     Should return search parameters for given job
