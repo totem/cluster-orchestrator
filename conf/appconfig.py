@@ -245,7 +245,7 @@ MONGODB_AUTH = '{0}:{1}@'.format(MONGODB_USERNAME, MONGODB_PASSWORD) \
     if MONGODB_USERNAME else ''
 
 MONGODB_REPLICA_OPTIONS = '?w=majority' \
-    if len(MONGODB_SERVERS.split(',')) > 0 else ''
+    if len(MONGODB_SERVERS.split(',')) > 1 else ''
 
 MONGODB_DEFAULT_URL = 'mongodb://{0}{1}/{2}{3}'.format(
     MONGODB_AUTH, MONGODB_SERVERS, MONGODB_AUTH_DB,
