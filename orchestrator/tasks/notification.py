@@ -87,35 +87,4 @@ def notify_slack(obj, ctx, level, config, security_profile):
 
 @app.task
 def notify_github(obj, ctx, level, config, security_profile):
-    config = decrypt_config(config, profile=security_profile)
-    base_url = config.get('url') or 'https://api.github.com'
-    owner, repo, commit = ctx.get('owner'), ctx.get('repo'), ctx.get('commit')
-    token = config.get('token') or DEFAULT_GITHUB_TOKEN
-    if owner and repo and commit and token:
-        desc = util.as_dict(obj).get('message', str(obj))
-        # Max 140 characters allowed for description
-        use_desc = desc[:137] + '...' if len(desc) > 140 else desc
-
-        status_url = '{0}/repos/{1}/{2}/statuses/{3}'.format(
-            base_url, owner, repo, commit)
-        headers = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/vnd.github.v3+json',
-            'Authorization': 'token {0}'.format(token)
-        }
-        data = {
-            'state': {
-                LEVEL_FAILED: 'failure',
-                LEVEL_FAILED_WARN: 'failure',
-                LEVEL_SUCCESS: 'success',
-                LEVEL_STARTED: 'pending',
-                LEVEL_PENDING: 'pending'
-            }.get(level, 'pending'),
-            'description': use_desc,
-            'context': ctx.get('env', 'local') + '::Orchestrator'
-        }
-        requests.post(status_url, data=json.dumps(data),
-                      headers=headers).raise_for_status()
-    else:
-        # Github notification is not sent
-        pass
+    pass
