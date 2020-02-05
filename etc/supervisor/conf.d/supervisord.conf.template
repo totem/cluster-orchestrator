@@ -9,7 +9,7 @@ stdout_events_enabled = true
 stderr_events_enabled = true
 
 [program:celerybeat]
-command=/usr/local/bin/celery --loglevel=info -A orchestrator beat
+command=/usr/local/bin/celery --loglevel=%(ENV_LOG_ROOT_LEVEL)s -A orchestrator beat
 autorestart=true
 startsecs=5
 stdout_events_enabled = true
@@ -17,12 +17,17 @@ stderr_events_enabled = true
 
 [program:celery-worker-default]
 process_name=%(program_name)s-%(process_num)02d
-command=/usr/local/bin/celery --loglevel=info -Q ha.orchestrator-%(ENV_CLUSTER_NAME)s-default -n %(program_name)s-%(process_num)02d@%(ENV_HOSTNAME)s -A orchestrator -P gevent -c %(ENV_CELERY_GEVENT_CONCURRENCY)s worker
+command=/usr/local/bin/celery --loglevel=debug -Q ha.orchestrator-%(ENV_CLUSTER_NAME)s-default -n %(program_name)s-%(process_num)02d@%(ENV_HOSTNAME)s -A orchestrator -P gevent -c %(ENV_CELERY_GEVENT_CONCURRENCY)s worker
 numprocs=${CELERY_GEVENT_EXECUTORS}
 autorestart=true
 startsecs=5
 stdout_events_enabled = true
 stderr_events_enabled = true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+
 
 [eventlistener:stdout]
 command = supervisor_stdout
