@@ -19,6 +19,9 @@ from orchestrator.celery import app
 from orchestrator.services.security import decrypt_config
 from orchestrator.tasks import util
 
+import logging
+logger = logging.getLogger('orchestrator.tasks.notification')
+
 
 @app.task
 def notify(obj, ctx=None, level=LEVEL_FAILED,
@@ -44,30 +47,11 @@ def notify(obj, ctx=None, level=LEVEL_FAILED,
 
 @app.task
 def notify_hipchat(obj, ctx, level, config, security_profile):
-    config = decrypt_config(config, profile=security_profile)
-    ctx.setdefault('github', True)
-    base_url = config.get('url') or 'https://api.hipchat.com'
-    room_url = '{0}/v2/room/{1}/notification'.format(
-        base_url, config.get('room'))
-    msg = templatefactory.render_template(
-        'hipchat.html', notification=util.as_dict(obj), ctx=ctx, level=level)
-    headers = {
-        'content-type': 'application/json',
-        'Authorization': 'Bearer {0}'.format(
-            config.get('token', '') or DEFAULT_HIPCHAT_TOKEN)
-    }
-    data = {
-        'message_format': 'html',
-        'message': msg[:5000],
-        'color': config.get('colors', {}).get(str(level), 'gray'),
-        'notify': level <= LEVEL_FAILED_WARN
-    }
-    requests.post(room_url, data=json.dumps(data),
-                  headers=headers).raise_for_status()
-
+    logger.info('Ignorning hipchat notification')
 
 @app.task
 def notify_slack(obj, ctx, level, config, security_profile):
+    logger.info('Sending notification to slack')
     config = decrypt_config(config, profile=security_profile)
     ctx.setdefault('github', True)
     url = config.get('url')
@@ -83,8 +67,9 @@ def notify_slack(obj, ctx, level, config, security_profile):
     if url:
         requests.post(url, data=msg, headers=headers)\
             .raise_for_status()
+    logger.info('Sent notification to slack')
 
 
 @app.task
 def notify_github(obj, ctx, level, config, security_profile):
-    pass
+    logger.info('Ignorning github notification')
