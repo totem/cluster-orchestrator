@@ -8,8 +8,10 @@ from future.builtins import (  # noqa
     filter, map, zip)
 import requests
 import yaml
+import logging
 from orchestrator.cluster_config.base import AbstractConfigProvider
 
+logger = logging.getLogger(__name__)
 
 class GithubConfigProvider(AbstractConfigProvider):
     """
@@ -55,8 +57,10 @@ class GithubConfigProvider(AbstractConfigProvider):
         if resp.status_code == 200:
             return base64.decodestring(resp.json()[u'content'])
         elif resp.status_code == 404:
+            logger.debug("config file %s not found", hub_url)
             return None
         else:
+            logger.error("error fetching config from github %s: %s", hub_url, resp.text)
             hub_response = {
                 'url': hub_url,
                 'response': resp.json() if 'json' in resp.headers.get(
@@ -77,6 +81,7 @@ class GithubConfigProvider(AbstractConfigProvider):
         :return: Totem config as dictionary
         :rtype: dict
         """
+        logger.debug("attempting to load config from github for %s %s", name, paths)
         if len(paths) < 4:
             return {}
         else:

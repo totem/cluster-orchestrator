@@ -55,10 +55,14 @@ def _load_job_config(owner, repo, ref, notify_ctx, search_params, commit=None):
     :rtype: dict
     """
     template_vars = get_template_variables(owner, repo, ref, commit=commit,)
+    logger.info(
+        "Loading job config for %s %s from %s", TOTEM_ENV, json.dumps(template_vars),
+        CONFIG_PROVIDERS['default']['config'])
     try:
         return config.load_config(
             TOTEM_ENV, owner, repo, ref, default_variables=template_vars)
     except BaseException as exc:
+        logger.error("Error loading job config for %s: %s", template_vars, exc)
         _handle_job_error.si(exc, CONFIG_PROVIDERS['default']['config'],
                              notify_ctx, search_params).delay()
         raise
@@ -83,19 +87,28 @@ def _handle_job_error(error, job_config, notify_ctx, search_params,
     :type job_id: str
     :return:
     """
-    notify.si(
-        error,
-        ctx=notify_ctx,
-        level=LEVEL_FAILED,
-        notifications=job_config.get('notifications'),
-        security_profile=job_config['security']['profile']).delay()
+    try:
+        notify.si(
+            error,
+            ctx=notify_ctx,
+            level=LEVEL_FAILED,
+            notifications=job_config.get('notifications'),
+            security_profile=job_config['security']['profile']).delay()
 
-    store = get_store()
-    store.add_event(
-        EVENT_JOB_FAILED, details={'job-error': util.as_dict(error)},
-        search_params=search_params)
-    if job_id:
-        store.update_state(job_id, EVENT_JOB_FAILED)
+        store = get_store()
+
+        logger.debug("_handle_job_error adding job failed event %s job-error: %s", EVENT_JOB_FAILED, json.dumps(util.as_dict(error), skipkeys=True))
+        store.add_event(
+            EVENT_JOB_FAILED, details={'job-error': util.as_dict(error)},
+            search_params=search_params)
+
+        if job_id:
+            logger.debug("_handle_job_error updating state for job %s", job_id)
+            store.update_state(job_id, EVENT_JOB_FAILED)
+    except Exception as e:
+        logger.error("Unexpected exception handling a job error: %s", e)
+
+    return True
 
 
 @app.task
@@ -105,13 +118,15 @@ def _new_job(job_config, owner, repo, ref, hook_type, hook_name,
     notify_ctx = as_notify_ctx(
         owner, repo, ref, commit=commit, operation='handle_callback_hook')
     search_params = as_job_meta(owner, repo, ref, commit=commit)
+    logger.info("creating new job for %s %s %s %s", owner, repo, ref, commit)
+
     try:
         # Making create job sync call to get job-id
         job = create_job(job_config, owner, repo, ref, commit=commit,
                          force_deploy=force_deploy,
                          search_params=search_params)
     except BaseException as exc:
-        logger.exception('An unknown error happened while creating job')
+        logger.exception('An unknown error happened while creating job: %s', exc)
         _handle_job_error.si(exc, job_config, notify_ctx, search_params) \
             .delay()
         raise
@@ -128,6 +143,7 @@ def _new_job(job_config, owner, repo, ref, hook_type, hook_name,
 
     job_commit = job['meta-info']['git']['commit']
     if commit and commit != job_commit:
+        logger.info("ignoring job %s commit %s it was superseded by %s", job_id, commit, job_commit)
         get_store().add_event(
             EVENT_COMMIT_IGNORED,
             details={
@@ -143,11 +159,13 @@ def _new_job(job_config, owner, repo, ref, hook_type, hook_name,
     if hook_type not in job_config['hooks'] or \
             hook_name not in job_config['hooks'][hook_type] or \
             not job_config['hooks'][hook_type][hook_name].get('enabled'):
+        event_message = 'Hook: {} with type {} is not configured/disabled and will be ignored'.format(hook_name, hook_type)
+
+        logger.info("%s: %s", EVENT_HOOK_IGNORED, event_message)
         get_store().add_event(
             EVENT_HOOK_IGNORED,
             details={
-                'message': 'Hook: {} with type {} is not configured/disabled '
-                           'and will be ignored'.format(hook_name, hook_type),
+                'message': event_message,
                 'hook_name': hook_name,
                 'hook_type': hook_type
             },
@@ -155,6 +173,7 @@ def _new_job(job_config, owner, repo, ref, hook_type, hook_name,
         )
         return job
 
+    logger.info("Executing hook %s %s for job %s", hook_type, hook_name, job_id)
     return (
         _handle_hook.si(job, hook_type, hook_name, hook_status=hook_status,
                         hook_result=hook_result, error_tasks=error_tasks,
@@ -216,7 +235,6 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
     # Define error tasks to be executed when task fails. We will use it for
     # add_search_event,_using_lock tasks to update job state,
     # send notifications and update job events.
-
     get_store().add_event(EVENT_CALLBACK_HOOK,
                           details={
                               'hook': as_callback_hook(
@@ -224,7 +242,7 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
                                   force_deploy)
                           },
                           search_params=search_params)
-
+    logger.info('Acquiring lock %s and starting job', lock_name)
     return (
         _using_lock.si(
             name=lock_name,
@@ -298,6 +316,7 @@ def _using_lock(self, name, do_task, cleanup_tasks=None,
     try:
         lock = LockService().apply_lock(name)
     except ResourceLockedException as lock_error:
+        logger.debug('error acquiring lock %s, will retry', name)
         raise self.retry(exc=lock_error)
 
     _release_lock_s = _release_lock.si(lock)
@@ -354,12 +373,16 @@ def _handle_hook(job, hook_type, hook_name, hook_status, hook_result,
         frozen = job_service.is_frozen(git_meta['owner'], git_meta['repo'],
                                        git_meta['ref'])
 
+    logger.info('_handle_hook enabled %s, frozen %s, builders %s', job_config['enabled'], frozen, builder_hooks)
     if not job_config['enabled'] or not builder_hooks or \
             not job_config['deployers'] or frozen:
         return _handle_noop(job)
 
+    logger.info('_handle_hook preparing job')
     job = prepare_job(job, hook_type, hook_name, hook_status, hook_result,
                       force_deploy=force_deploy)
+
+    logger.info('_handle_hook check and fire')
     return _check_and_fire_deploy.si(job).delay()
 
 
