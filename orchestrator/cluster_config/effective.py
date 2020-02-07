@@ -9,6 +9,10 @@ from future.builtins import (  # noqa
 from orchestrator.cluster_config.base import AbstractConfigProvider
 from orchestrator.util import dict_merge
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class MergedConfigProvider(AbstractConfigProvider):
     """
@@ -66,7 +70,9 @@ class MergedConfigProvider(AbstractConfigProvider):
         use_paths = list(paths)
         while True:
             for provider in self.providers:
+                logger.info("loading config %s from provider %s with paths %s", name, provider, use_paths)
                 merged_config = merge(merged_config, provider, *use_paths)
+                logger.info("loaded config from provider %s", provider)
             if use_paths:
                 use_paths.pop()
             else:

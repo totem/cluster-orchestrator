@@ -1,4 +1,5 @@
 import datetime
+import logging
 from pymongo import MongoClient
 import pymongo
 import pytz
@@ -8,6 +9,8 @@ from conf.appconfig import MONGODB_URL, MONGODB_JOB_COLLECTION, \
 from orchestrator.services.storage.base import AbstractStore
 
 __author__ = 'sukrit'
+
+logger = logging.getLogger(__name__)
 
 
 def create(url=MONGODB_URL, dbname=MONGODB_DB,
@@ -27,6 +30,7 @@ def create(url=MONGODB_URL, dbname=MONGODB_DB,
     :return: Instance of MongoStore
     :rtype: MongoStore
     """
+    logger.info("creating MongoStore url %s, dbname %s", url, dbname)
     return MongoStore(url, dbname, job_coll, event_coll)
 
 

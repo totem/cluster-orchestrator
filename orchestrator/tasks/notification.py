@@ -48,6 +48,7 @@ def notify(obj, ctx=None, level=LEVEL_FAILED,
 @app.task
 def notify_hipchat(obj, ctx, level, config, security_profile):
     logger.info('Ignorning hipchat notification')
+    return
 
 @app.task
 def notify_slack(obj, ctx, level, config, security_profile):
@@ -73,3 +74,4 @@ def notify_slack(obj, ctx, level, config, security_profile):
 @app.task
 def notify_github(obj, ctx, level, config, security_profile):
     logger.info('Ignorning github notification')
+    return

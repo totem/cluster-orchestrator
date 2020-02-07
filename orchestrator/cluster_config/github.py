@@ -53,11 +53,13 @@ class GithubConfigProvider(AbstractConfigProvider):
         }
         hub_url = 'https://api.github.com/repos/{owner}/{repo}/contents' \
                   '{path}'.format(**path_params)
+        logger.info("_github_fetch: requests.get(%s, params=%s)", hub_url, query_params)
         resp = requests.get(hub_url, params=query_params, auth=self.auth)
+        logger.info("_github_fetch: response status_code: %s", resp.status_code)
         if resp.status_code == 200:
             return base64.decodestring(resp.json()[u'content'])
         elif resp.status_code == 404:
-            logger.debug("config file %s not found", hub_url)
+            logger.info("config file %s not found", hub_url)
             return None
         else:
             logger.error("error fetching config from github %s: %s", hub_url, resp.text)
@@ -81,7 +83,7 @@ class GithubConfigProvider(AbstractConfigProvider):
         :return: Totem config as dictionary
         :rtype: dict
         """
-        logger.debug("attempting to load config from github for %s %s", name, paths)
+        logger.info("attempting to load config from github for %s %s", name, paths)
         if len(paths) < 4:
             return {}
         else:

@@ -115,10 +115,10 @@ def _handle_job_error(error, job_config, notify_ctx, search_params,
 def _new_job(job_config, owner, repo, ref, hook_type, hook_name,
              hook_status=HOOK_STATUS_SUCCESS, hook_result=None, commit=None,
              force_deploy=None):
+    logger.info("_new_job creating new job for %s %s %s %s", owner, repo, ref, commit)
     notify_ctx = as_notify_ctx(
         owner, repo, ref, commit=commit, operation='handle_callback_hook')
     search_params = as_job_meta(owner, repo, ref, commit=commit)
-    logger.info("creating new job for %s %s %s %s", owner, repo, ref, commit)
 
     try:
         # Making create job sync call to get job-id
@@ -126,7 +126,7 @@ def _new_job(job_config, owner, repo, ref, hook_type, hook_name,
                          force_deploy=force_deploy,
                          search_params=search_params)
     except BaseException as exc:
-        logger.exception('An unknown error happened while creating job: %s', exc)
+        logger.exception('_new_job An unknown error happened while creating job: %s', exc)
         _handle_job_error.si(exc, job_config, notify_ctx, search_params) \
             .delay()
         raise
@@ -220,7 +220,7 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
     search_params = as_job_meta(owner, repo, ref, commit=commit)
     job_config = _load_job_config(owner, repo, ref, notify_ctx, search_params,
                                   commit=commit)
-
+    logger.info("handle_callback_hook loaded job config, sending notification")
     # Create a notification for receiving webhook
     notify.si(
         {'message': 'Received webhook {0}/{1} with status {2}'.format(
@@ -229,20 +229,26 @@ def handle_callback_hook(owner, repo, ref, hook_type, hook_name,
         notifications=job_config.get('notifications'),
         security_profile=job_config['security']['profile']
     ).delay()
+    logger.info("handle_callback_hook sent notifications, adding event")
 
     lock_name = '{}-{}-{}-{}'.format(TOTEM_ENV, owner, repo, ref)
 
     # Define error tasks to be executed when task fails. We will use it for
     # add_search_event,_using_lock tasks to update job state,
     # send notifications and update job events.
-    get_store().add_event(EVENT_CALLBACK_HOOK,
-                          details={
-                              'hook': as_callback_hook(
-                                  hook_name, hook_type, hook_status,
-                                  force_deploy)
-                          },
-                          search_params=search_params)
-    logger.info('Acquiring lock %s and starting job', lock_name)
+    try:
+        get_store().add_event(EVENT_CALLBACK_HOOK,
+                            details={
+                                'hook': as_callback_hook(
+                                    hook_name, hook_type, hook_status,
+                                    force_deploy)
+                            },
+                            search_params=search_params)
+
+        logger.info('handle_callback_hook added event, acquiring lock %s and starting job', lock_name)
+    except Exception as exc:
+        logger.error("Unexpected exception adding event %s", exc)
+
     return (
         _using_lock.si(
             name=lock_name,
