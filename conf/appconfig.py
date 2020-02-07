@@ -244,7 +244,7 @@ MONGODB_AUTH_DB = os.getenv('MONGODB_AUTH_DB') or 'admin'
 MONGODB_AUTH = '{0}:{1}@'.format(MONGODB_USERNAME, MONGODB_PASSWORD) \
     if MONGODB_USERNAME else ''
 
-MONGODB_REPLICA_OPTIONS = '?w=majority' \
+MONGODB_REPLICA_OPTIONS = '?w=1' \
     if len(MONGODB_SERVERS.split(',')) > 0 else ''
 
 MONGODB_DEFAULT_URL = 'mongodb://{0}{1}/{2}{3}'.format(
