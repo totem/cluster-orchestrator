@@ -7,7 +7,7 @@ future==0.15.2
 PyYAML==3.11
 boto==2.34.0
 pymongo==3.2.2
-Jinja2==2.7.3
+Jinja2==2.11.3
 requests[security]==2.9.1
 urllib3==1.15
 celery[mongodb]==3.1.23
