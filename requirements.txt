@@ -1,5 +1,5 @@
 Flask==0.10.1
-Flask-Cors==2.1.2
+Flask-Cors==3.0.9
 gevent==1.1.1
 uWSGI==2.0.13.1
 python-etcd==0.3.3
