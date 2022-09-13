@@ -9,5 +9,5 @@ https://github.com/spulec/freezegun/archive/master.tar.gz
 # Code Coverage
 coveralls
 
-flower==0.9.0
+flower==1.2.0
 
